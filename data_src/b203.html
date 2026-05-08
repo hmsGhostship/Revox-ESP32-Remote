@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang='de'>
+	<head>
+		<h3>Revox B203</h3>
+		<title>Revox CD Remote</title>
+		<link rel='stylesheet' href='style.css'>
+		<script src='script.js'></script>
+		<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	</head>
+
+	<body>
+
+		<div class='button-group-container-dev span2'>
+        <span class='button-group-title-dev'>Ger&auml;teauswahl</span>
+			<a href='tape1.html'><button id='tape1' name='page' class='button span1'>Tape1</button></a>
+			<a href='tape2.html'><button id='tape2' name='page' class='button span1'>Tape2</button></a>
+			<a href='tuner.html'><button id='tuner' name='page' class='button span1'>Tuner</button></a>
+			<a href='phono.html'><button id='phono' name='page' class='button span1'>Phono</button></a>
+			<a href='cd.html'><button id='cd' name='page' class='button span1'>CD</button></a>
+			<a href='index.html'><button id='amplifier' name='page' class='button span1'>Amplifier</button></a>
+		</div>
+
+		<div class="tab">
+			<button class="tablinks active" onclick="openB203(event, 'B203tab')">Control</button>
+			<button class="tablinks" onclick="openB203(event, 'Setuptab')">Setup</button>
+  			<button class="tablinks" onclick="openB203(event, 'Timertab')">Timer</button>
+		</div>
+
+		<div id="B203tab" class="tabcontent" style="display:block">
+  		
+		<div class='button-pwr-container-dev span2'>
+			<p><button name='button' id='b203poweroff' class='power_btn span12 pwr_color'>OFF</button></p>
+		</div>
+
+		<div class='button-group-container-dev span2'>
+			<p><button name='button' id='b203exit' class='button span6'>Exit</button></p>
+			<p><button name='button' id='b203time' class='button span6'>Time</button></p>
+			<p><button name='button' id='b203event' class='button span6'>Event</button></p>
+			<p><button name='button' id='b203select' class='button span6'>Select</button></p>
+			<p><button name='button' id='b203test' class='button span6'>Test</button></p>
+		</div>
+		
+		<div class='button-group-container-misc span2'>
+			<p><button name='button' id='b203prev' class='button span6'><<</button></p>
+			<p><button name='button' id='b203next' class='button span6'>>></button></p>
+		</div>
+
+		<div class='button-pwr-container-dev span2'>
+			<p><button name='button' id='b203enter' class='power_btn span12 load_color'>Enter</button></p>
+		</div>
+		</div>
+
+		<div id="Setuptab" class="tabcontent">
+			<div class='select-group-container span2'>
+				<span class='select-group-title-dev'>Setup</span>
+				<label for="language">Sprache w&auml;hlen:</label>
+				<select class="b203set" id="language" name="select">
+  				<option value="0">English</option>
+  				<option value="1">Deutsch</option>
+  				<option value="2">Francaise</option>
+				</select>
+
+				<label for="easy">Easy Modus:</label>
+				<select class="b203set" id='easy' name="select">
+  				<option value="0">Easy Remote</option>
+  				<option value="1">Easy Remote & Local</option>
+  				<option value="2">Aus</option>
+				</select>
+
+				<label for="timer">Timer Funktion:</label>
+				<select class="b203set" id='timer' name="select">
+	  			<option value="0">Timer on</option>
+	  			<option value="1">Timer off</option>
+				</select>
+
+				<label for="poweron">Einschaltbedingung:</label>
+				<select class="b203set" id='poweron' name="select">
+  				<option value="0">Lautsprecher A</option>
+  				<option value="1">Lautsprecher B</option>
+				<option value="2">Lautsprecher A+B</option>
+				<option value="3">Letzte Lsp. Gruppe</option>
+				<option value="4">Lautsprecher aus</option>
+				</select>
+
+				<label for="switch">IR-Empf&auml;nger</label>
+				<label class="switch">
+					<input type="checkbox" id='IR' name="toggle">
+  					<div class="slider round">
+    				<span class="on">ON</span>
+    				<span class="off">OFF</span>
+  					</div>
+				</label>
+				<p><button name='getsettings' id='b203_get' class='set_button span12'>Laden</button></p>
+				<p><button name='setup' id='b203_set' class='set_button span12'>Speichern</button></p>
+				
+			</div>
+
+			<div class='select-group-container span2'>
+				<label for="setdate">Datum:</label>
+				<input class="b203_event" type="date" id="set_date" name="select" step="1" value="2026-01-01" required>
+				<p><button name='setDate' id='setDate' class='set_button span12'>Datum stellen</button></p>
+				
+				<label for="settime">Uhrzeit:</label>
+				<input class="b203_event" type="time" id="set_time" name="select" step="1" value="12:00:00" required>
+				<p><button name='setTime' id='setTime' class='set_button span12'>Uhreit stellen</button></p>
+			</div>
+
+			<div class='select-group-container span2'>
+			<p><button name='button' id='b203reset' class='button span12'>Reset</button></p>
+			</div>
+
+		</div>
+
+		<div id="Timertab" class="tabcontent">
+			<div class='timer-group-container span2'>
+			<span class='select-group-title-dev'>Timer</span>
+			<label for="b203evn">Event:</label>
+			<select class="b203_event" id="b203evn" name="select">
+  			<option value="01">Event 01</option>
+  			<option value="02">Event 02</option>
+  			<option value="03">Event 03</option>
+			<option value="04">Event 04</option>
+			<option value="05">Event 05</option>
+			</select>
+
+			<label for="datetype">Datums-Art:</label>
+			<select class="b203_event" id='datetype' name="select">
+  			<option value="W">W&ouml;chentlich</option>
+  			<option value="D">Einmalig</option>
+			</select>
+
+			<label for="weekday">Wochentag:</label>
+			<div class="checkbox-group" id="weekday">
+  			<label><input type="checkbox" name="day" value="so"> So</label>
+			<label><input type="checkbox" name="day" value="mo"> Mo</label>
+			<label><input type="checkbox" name="day" value="di"> Di</label>
+			<label><input type="checkbox" name="day" value="mi"> Mi</label>
+			<label><input type="checkbox" name="day" value="do"> Do</label>
+			<label><input type="checkbox" name="day" value="fr"> Fr</label>
+			<label><input type="checkbox" name="day" value="sa"> Sa</label>
+			</div>
+
+			<label for="signalsource">Signalquelle:</label>
+			<select class="b203_event" id='signalsource' name="select">
+  			<option value="0">Receiver</option>
+  			<option value="1">CD-Player</option>
+			<option value="2">Tape 1</option>
+			<option value="3">Tape 2</option>
+			<option value="4">Phono</option>
+			</select>
+
+			<div class="form-group">
+				<label for="sourceadd" class="label-top">Erg&auml;nzung Signalquelle:</label>
+
+				<div class="container">
+					<div class="hinweistext">
+						00...29 Tuner Stationswahl (00=Enter)<br>
+						00...99 CD-Trackwahl (00=PLAY/NEXT)<br>
+						00 Eingabe f&uuml;r alle anderen Quellen<br> 
+    				</div>
+
+				<input class="b203_event" id="sourceadd" type="text" name="select" value="00">
+				</div>
+			</div>
+
+			<label for="output">Ausgang/Ziel:</label>
+			<div class="checkbox-group" id="output">
+  			<label><input type="checkbox" name="out" value="outTape1">Tape 1</label>
+			<label><input type="checkbox" name="out" value="outTape2">Tape 2</label>
+			<label><input type="checkbox" name="out" value="outLSA">Lautsprecher A</label>
+			<label><input type="checkbox" name="out" value="outLSB">Lautsprecher B</label>
+			</div>
+
+			<label for="eventstarttime">Startzeit:</label>
+			<input class="b203_event" type="time" id="eventstarttime" name="select" step="1" value="12:00:00" required>
+			<label for="eventstoptime">Stopzeit:</label>
+			<input class="b203_event" type="time" id="eventstoptime" name="select" step="1" value="12:00:00" required>
+
+
+			<p><button name='setEvent' id='b203setevent' class='set_event_button span7'>Speichern</button></p>
+			<p><button name='call' id='b203callevent' class='set_event_button span7'>Aufrufen</button></p>
+			<p><button name='delete' id='b203delevent' class='set_event_button span7'>L&ouml;schen</button></p>
+			<p><button name='testEvent' id='b203testevent' class='set_event_button span12'>Test</button></p>	
+		</div>
+			
+		</div>
+	</body>
+</html>

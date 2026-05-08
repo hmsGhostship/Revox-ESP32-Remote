@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang='de'>
+	<head>
+		<h3>Revox Kassette B215</h3>
+		<title>Revox CD Remote</title>
+		<link rel='stylesheet' href='style.css'>
+		<script src='script.js'></script>
+		<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	</head>
+
+	<body>
+
+		<div class='button-group-container-dev span2'>
+        	<span class='button-group-title-dev'>Ger&auml;teauswahl</span>
+			<a href='tape1.html'><button id='tape1' name='page' class='button span1'>Tape1</button></a>
+			<a href='index.html'><button id='amplifier' name='apage' class='button span1'>Amplifier</button></a>
+			<a href='tuner.html'><button id='tuner' name='page' class='button span1'>Tuner</button></a>
+			<a href='phono.html'><button id='phono' name='page'class='button span1'>Phono</button></a>
+			<a href='cd.html'><button id='cd' name='page' class='button span1'>CD</button></a>
+			<a href='b203.html'><button id='b203' name='page' class='button span1'>B203</button></a>
+		</div>
+
+
+		<div class="tab">
+			<button class="tablinks active" onclick="openB203(event, 'B215tab')">Control</button>
+			<button class="tablinks" onclick="openB203(event, 'B215Statustab')">Status</button>
+		</div>
+
+		<div id="B215tab" class="tabcontent" style="display:block">
+		<div class='button-pwr-container-dev span2'>
+			<p><button name='button' id='tape2poweroff'class='power_btn span12 pwr_color'>OFF</button></p>
+		</div>
+
+		<div class='button-group-container-dev span2'>
+			<p><button name='button' id='tape2play' class='button span6'>Play</button></p>
+			<p><button name='button' id='tape2stop' class='button span6'>Stop</button></p>
+			<p><button name='button' id='tape2pause' class='button span6'>Pause</button></p>
+			<p><button name='button' id='tape2pauserec' class='button span6'>Pause + Rec</button></p>
+			<p><button name='button' id='tape2rew' class='button span6'>Rewind <<</button></p>
+			<p><button name='button' id='tape2forw' class='button span6'>Forward >></button></p>
+    		<p><button name='button' id='tape2playrec' class='button span6'>Play + Rec</button></p>
+			<p><button name='button' id='tape2mn' class='button span6'>Monitor</button></p>
+			<p><button name='button' id='tape2loc1' class='button span6'>Loc-1</button></p>
+			<p><button name='button' id='tape2loc2' class='button span6'>Loc-2</button></p>
+			<p><button name='button' id='tape2loop' class='button span6'>Loop</button></p>
+		</div>
+		</div>
+
+		<div id="B215Statustab" class="tabcontent" style="display:block">
+			<div class='select-group-container span2'>
+				<span class='select-group-title-dev'>Status</span>
+				<label for="functions">Laufwerk-Funktionen</label>
+				<select class="b203set" id="functions" name="select" disabled>
+  				<option value="0">Standby</option>
+  				<option value="1">Stop</option>
+  				<option value="2">Play</option>
+				<option value="3">Vorspulen</option>
+				<option value="4">R&uuml;ckspulen</option>
+				<option value="5">Aufnahme-Play</option>
+				<option value="7">Stop</option>
+				<option value="9">Status unbekannt</option>
+				</select>
+
+				<label for="addfunctions">Zusatz-Funktionen</label>
+				<select class="b203set" id='addfunctions' name="select" disabled>
+  				<option value="0">keine</option>
+  				<option value="1">Positionieren</option>
+  				<option value="2">LOOP</option>
+				<option value="3">Pause</option>
+				<option value="4">keine Kassette eingelegt</option>
+				<option value="5">Bandanfang</option>
+				<option value="6">Bandende</option>
+				</select>
+
+				<label for="cuestate">Cue Status</label>
+				<select class="b203set" id='cuestate' name="select" disabled>
+	  			<option value="0">kein Cue Status</option>
+	  			<option value="1">Cue Marker wird aufgenommen</option>
+				<option value="2">Cue Marker OK (Aufnahme beendet)</option>
+				<option value="3">Cue Marker-Aufnahme nicht m&ouml;glich</option>
+				<option value="4">Cue Marker wird gesucht</option>
+				<option value="5">Cue Marker gefunden</option>
+				<option value="6">Cue Marker nicht gefunden</option>
+				</select>
+
+				<label for="bandzehler">Bandz&auml;hler</label>
+
+				<input type=text id="bandzaehler" class="b203set"  value="" disabled>
+
+			</div>			
+		</div>
+
+	</body>
+</html>

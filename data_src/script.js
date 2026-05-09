@@ -16,6 +16,8 @@
     callEventb203();
     delEventb203();
     testEventb203();
+    getb215();
+    getb226();
   }
 
     function initWebSocket() {
@@ -63,7 +65,7 @@
       } else if  (Number(Identifier) == B225_2 ){
 
       } else if  (Number(Identifier) == B226 ){
-
+        getB226Settings();
       } else if  (Number(Identifier) == A725_2 ){
 
       } else if  (Number(Identifier) == B291 ){
@@ -98,6 +100,28 @@ function setb203() {
     if (websocket.readyState === WebSocket.OPEN) {
     console.log( Name + "0S" + language + easy + timer + poweron );
     websocket.send( Name + "0S" + language + easy + timer + poweron );
+    }
+  });
+}
+
+function getb215() {
+
+  document.getElementById('b215_get')?.addEventListener('click', () => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "tape2X" );
+    websocket.send("tape2X");
+    }
+  });
+}
+
+function getb226() {
+
+  document.getElementById('b226_get')?.addEventListener('click', () => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "cdplayerX" );
+    websocket.send("cdplayerX");
     }
   });
 }
@@ -241,8 +265,7 @@ const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
     });
   }
 
-
-  function openB203(evt, TabName) {
+function openB203(evt, TabName) {
   // Declare all variables
   var i, tabcontent, tablinks;
 
@@ -306,21 +329,32 @@ function getB203Settings() {
 
 function getB215Settings() {
         const rawdata = event.data.slice(3);
-        console.log(rawdata);
         const functions = rawdata.charAt(0);
-        console.log(functions);
         document.getElementById("functions").value = functions;
         const addfunctions = rawdata.charAt(1);
-        console.log(addfunctions);
         document.getElementById("addfunctions").value = addfunctions;
         const cuestate = rawdata.charAt(2);
-        console.log(cuestate);
         document.getElementById("cuestate").value = cuestate;
         const tapecountermm = rawdata.slice(3, 5);
-        console.log(tapecountermm);
         const tapecounterss = rawdata.slice(5, 7);
-        console.log(tapecounterss);
         const tapecounter = (tapecountermm + ":" + tapecounterss)
-        console.log(tapecounter);
         document.getElementById("bandzaehler").value = tapecounter;
+}
+
+function getB226Settings() {
+        const rawdata = event.data.slice(3);
+        const b226state = rawdata.charAt(0);
+        document.getElementById("b226state").value = b226state;
+        const tracknumber = rawdata.slice(1, 3);
+        document.getElementById("tracknumber").value = tracknumber;
+        const indexnumber = rawdata.slice(3, 5);
+        document.getElementById("indexnumber").value = indexnumber;
+        const elapsedtimemm = rawdata.slice(5, 7);
+        const elapsedtimess = rawdata.slice(7, 9);
+        const elapsedtime = (elapsedtimemm + ":" + elapsedtimess);
+        document.getElementById("elapsedtime").value = elapsedtime;
+        const remainingtimemm = rawdata.slice(9, 11);
+        const remainingtimess = rawdata.slice(11, 13);
+        const remainingtime = (remainingtimemm + ":" + remainingtimess);
+        document.getElementById("remainingtime").value = remainingtime;
 }

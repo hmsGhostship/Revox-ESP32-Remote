@@ -21,9 +21,10 @@ h3 {
 
 label {
   text-align-last:center;
+  vertical-align: middle;
   padding: 5px;
   display: block;
-  font-size: 22px; /* Oder px, em etc. */
+  font-size: 15px; /* Oder px, em etc. */
   color:#000000
 }
 
@@ -239,6 +240,7 @@ label {
   background-color: #eee;
 }
 
+
 .text {
   border:4px solid #333;
   padding-top:30px;
@@ -384,6 +386,15 @@ input:checked + .slider:before {
   transform: translateX(40px);
 }
 
+input:checked + .slider .on {
+  display: block;
+}
+
+input:checked + .slider .off {
+  display: none;
+}
+
+
 
 .on {
   display: none;
@@ -410,14 +421,6 @@ input:checked + .slider:before {
   top: 20px;
 }
 
-input:checked + .slider .on {
-  display: block;
-}
-
-input:checked + .slider .off {
-  display: none;
-}
-
 
 /* Rounded sliders */
 
@@ -428,6 +431,9 @@ input:checked + .slider .off {
 .slider.round:before {
   border-radius: 50%;
 }
+
+
+
 
 /* Style the tab */
 .tab {
@@ -533,6 +539,22 @@ input[type="date"]:invalid {
     border-color: red;
 }
 
+select:disabled {
+    /* Verhindert das Standard-Grau */
+    color: black; /* Oder eine andere Farbe */
+    background-color: white; /* Oder eine andere Farbe */
+    opacity: 1; /* Überschreibt die Blässe bei manchen Browsern */
+    cursor: not-allowed; /* Zeigt, dass es nicht klickbar ist */
+}
+
+input:disabled {
+    /* Verhindert das Standard-Grau */
+    color: black; /* Oder eine andere Farbe */
+    background-color: white; /* Oder eine andere Farbe */
+    opacity: 1; /* Überschreibt die Blässe bei manchen Browsern */
+    cursor: not-allowed; /* Zeigt, dass es nicht klickbar ist */
+}
+
 .checkbox-group {
         display: flex;
         justify-content: center;
@@ -573,4 +595,10 @@ input[type="date"]:invalid {
   display: block; /* Zwingt das Label in eine eigene Zeile */
   font-weight: bold;
   margin-bottom: 5px;
+}
+
+input[type='checkbox'] {
+    vertical-align: middle;
+    margin-top: -2px; /* Oder '0', je nach Bedarf anpassen */
+    margin-right: 0px; /* Abstand zwischen Checkbox und Label */
 }

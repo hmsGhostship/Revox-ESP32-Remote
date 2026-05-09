@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang='de'>
 	<head>
-		<h3>Revox Kassette B215</h3>
+		<h3>Revox B215</h3>
 		<title>Revox CD Remote</title>
 		<link rel='stylesheet' href='style.css'>
 		<script src='script.js'></script>
@@ -48,7 +48,11 @@
 
 		<div id="B215Statustab" class="tabcontent" style="display:block">
 			<div class='select-group-container span2'>
+
 				<span class='select-group-title-dev'>Status</span>
+				<!--<label><input type="checkbox" name="autoupdate" > Autoupdate</label>-->
+				
+
 				<label for="functions">Laufwerk-Funktionen</label>
 				<select class="b203set" id="functions" name="select" disabled>
   				<option value="0">Standby</option>
@@ -86,7 +90,7 @@
 				<label for="bandzehler">Bandz&auml;hler</label>
 
 				<input type=text id="bandzaehler" class="b203set"  value="" disabled>
-
+				<p><button name='getb215settings' id='b215_get' class='set_button span12'>Laden</button></p>
 			</div>			
 		</div>
 

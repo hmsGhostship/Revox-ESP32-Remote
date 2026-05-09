@@ -62,8 +62,8 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     data[len] = 0;
-    //String message = (char*)data;
-    //Serial.println("Message: " + message);
+    String message = (char*)data;
+    Serial.println("Message: " + message);
 
     if (strncmp((char*)data, "button", 6) == 0) {
       data +=6;
@@ -91,6 +91,45 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       Serial2.print("\r");
       Serial.println(settingsBytes);
     }
+
+    else if (strncmp((char*)data, "tape2", 5) == 0) {
+              char b215settingsBytes[2];
+              strncpy( b215settingsBytes, (char*)data + 5, sizeof(b215settingsBytes));
+              char device[5];
+              strncpy( device, (char*)data, sizeof(device));
+              int i2 = 0;
+              while( outputTable[i2].descr != NULL) {
+                if ( strcmp ( device, outputTable[i2].descr ) == 0) {
+                  Serial2.print( outputTable[i2].out );
+                  Serial2.print( b215settingsBytes );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i2].out );
+                  Serial.print( b215settingsBytes );
+                break;
+                }
+              ++i2;
+              }
+    }
+
+    else if (strncmp((char*)data, "cdplayer", 8) == 0) {
+              char b226settingsBytes[2];
+              strncpy( b226settingsBytes, (char*)data + 8, sizeof(b226settingsBytes));
+              char device[8];
+              strncpy( device, (char*)data, sizeof(device));
+              int i2 = 0;
+              while( outputTable[i2].descr != NULL) {
+                if ( strcmp ( device, outputTable[i2].descr ) == 0) {
+                  Serial2.print( outputTable[i2].out );
+                  Serial2.print( b226settingsBytes );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i2].out );
+                  Serial.print( b226settingsBytes );
+                break;
+                }
+              ++i2;
+              }
+    }
+
 
     else if (strncmp((char*)data, "testEvent", 9) == 0) {
       char testEventBytes[5];

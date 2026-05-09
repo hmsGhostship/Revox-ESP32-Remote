@@ -16,7 +16,7 @@ static const outputs outputTable [] = {
     { "amplifier", "3" },
     { "tuner", "4" },
     { "phono", "5" },
-    { "tape2", "9" },
+    { "tape1", "9" },
     { NULL, NULL }
     };
 

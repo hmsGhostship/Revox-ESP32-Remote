@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang='de'>
 	<head>
-		<h3>Revox CD B226</h3>
+		<h3>Revox B226</h3>
 		<title>Revox CD Remote</title>
 		<link rel='stylesheet' href='style.css'>
 		<script src='script.js'></script>
@@ -10,7 +10,7 @@
 
 	<body>
 		<div class='button-group-container-dev span2'>
-        <span class='button-group-title-dev'>Ger&auml;teauswahl</span>
+        	<span class='button-group-title-dev'>Ger&auml;teauswahl</span>
 			<a href='tape1.html'><button id='tape1' name='page' class='button span1'>Tape1</button></a>
 			<a href='tape2.html'><button id='tape2' name='page' class='button span1'>Tape2</button></a>
 			<a href='tuner.html'><button id='tuner' name='page' class='button span1'>Tuner</button></a>
@@ -19,48 +19,88 @@
 			<a href='b203.html'><button id='b203' name='page' class='button span1'>B203</button></a>
 		</div>
 		
-		<div class='button-pwr-container-dev span2'>
-			<p><button name='button'id='cdpoweroff'class='power_btn span12 pwr_color'>OFF</button></p>
+		<div class="tab">
+			<button class="tablinks active" onclick="openB203(event, 'B226tab')">Control</button>
+			<button class="tablinks" onclick="openB203(event, 'B226Statustab')">Status</button>
 		</div>
 
-   		<div class='button-group-container-dev span2'>
-			<p><button name='button' id='cd1' class='button span3'>1</button></p>
-			<p><button name='button' id='cd2' class='button span3'>2</button></p>
-			<p><button name='button' id='cd3' class='button span3'>3</button></p>
-			<p><button name='button' id='cd4' class='button span3'>4</button></p>
-			<p><button name='button' id='cd5' class='button span3'>5</button></p>
-			<p><button name='button' id='cd6' class='button span3'>6</button></p>
-			<p><button name='button' id='cd7' class='button span3'>7</button></p>
-			<p><button name='button' id='cd8' class='button span3'>8</button></p>
-			<p><button name='button' id='cd9' class='button span3'>9</button></p>
-			<p><button name='button' id='cd0' class='button span3'>0</button></p>
-		</div>
 
-		<div class='button-pwr-container-dev span2'>
-			<p><button name='button'id='cdload'class='power_btn span12 load_color'>Load</button></p>
-		</div>
+		<div id="B226tab" class="tabcontent" style="display:block">
+			
+			<div class='button-pwr-container-dev span2'>
+				<p><button name='button'id='cdpoweroff'class='power_btn span12 pwr_color'>OFF</button></p>
+			</div>
+
+	   		<div class='button-group-container-dev span2'>
+				<p><button name='button' id='cd1' class='button span3'>1</button></p>
+				<p><button name='button' id='cd2' class='button span3'>2</button></p>
+				<p><button name='button' id='cd3' class='button span3'>3</button></p>
+				<p><button name='button' id='cd4' class='button span3'>4</button></p>
+				<p><button name='button' id='cd5' class='button span3'>5</button></p>
+				<p><button name='button' id='cd6' class='button span3'>6</button></p>
+				<p><button name='button' id='cd7' class='button span3'>7</button></p>
+				<p><button name='button' id='cd8' class='button span3'>8</button></p>
+				<p><button name='button' id='cd9' class='button span3'>9</button></p>
+				<p><button name='button' id='cd0' class='button span3'>0</button></p>
+			</div>
+
+			<div class='button-pwr-container-dev span2'>
+				<p><button name='button'id='cdload'class='power_btn span12 load_color'>Load</button></p>
+			</div>
 		
-		<div class='button-group-container-dev span2'>
-			<p><button name='button' id='cdplay' class='button span6'>Play/Next</button></p>
-			<p><button name='cbutton' id='cdstop' class='button span6'>Stop</button></p>
-			<p><button name='button' id='button' class='button span6'>Pause</button></p>
-			<p><button name='button' id='cdpause' class='button span6'>Pause on</button></p>
-			<p><button name='button' id='cdrew' class='button span6'>Rewind <<</button></p>
-			<p><button name='button' id='cdforw' class='button span6'>Forward >></button></p>
-			<p><button name='button' id='cdvoldn' class='button span6'>Volume -</button></p>
-			<p><button name='button' id='cdvolup' class='button span6'>Volume +</button></p>
-			<p><button name='cbutton' id='cdpreemph_on' class='button span6'>Preemph.On</button></p>
-			<p><button name='cbutton' id='cdpreemph_off' class='button span6'>Preemph.Off</button></p>
-			<p><button name='button' id='cdindscan' class='button span6'>Ind Scan</button></p>
-			<p><button name='button' id='cdpause_wom' class='button span6'>Pause w/o m</button></p>
+			<div class='button-group-container-dev span2'>
+				<p><button name='button' id='cdplay' class='button span6'>Play/Next</button></p>
+				<p><button name='cbutton' id='cdstop' class='button span6'>Stop</button></p>
+				<p><button name='button' id='button' class='button span6'>Pause</button></p>
+				<p><button name='button' id='cdpause' class='button span6'>Pause on</button></p>
+				<p><button name='button' id='cdrew' class='button span6'>Rewind <<</button></p>
+				<p><button name='button' id='cdforw' class='button span6'>Forward >></button></p>
+				<p><button name='button' id='cdvoldn' class='button span6'>Volume -</button></p>
+				<p><button name='button' id='cdvolup' class='button span6'>Volume +</button></p>
+				<p><button name='cbutton' id='cdpreemph_on' class='button span6'>Preemph.On</button></p>
+				<p><button name='cbutton' id='cdpreemph_off' class='button span6'>Preemph.Off</button></p>
+				<p><button name='button' id='cdindscan' class='button span6'>Ind Scan</button></p>
+				<p><button name='button' id='cdpause_wom' class='button span6'>Pause w/o m</button></p>
+			</div>
+
+			<div class='button-group-container-misc span2'>
+				<p><button name='button' id='cdautostp_on' class='misc_button span6'>Autostop On</button></p>
+				<p><button name='button' id='cdautostp_off' class='misc_button span6'>Autostop Off</button></p>
+				<p><button name='button' id='cdlocal_time' class='misc_button span6'>Track Time</button></p>
+				<p><button name='button' id='cdtotal_time' class='misc_button span6'>Disk Time</button></p>
+				<p><button name='button' id='cdlocate' class='misc_button span6'>Locate</button></p>
+			</div>
 		</div>
 
-		<div class='button-group-container-misc span2'>
-			<p><button name='button' id='cdautostp_on' class='misc_button span6'>Autostop On</button></p>
-			<p><button name='button' id='cdautostp_off' class='misc_button span6'>Autostop Off</button></p>
-			<p><button name='button' id='cdlocal_time' class='misc_button span6'>Track Time</button></p>
-			<p><button name='button' id='cdtotal_time' class='misc_button span6'>Disk Time</button></p>
-			<p><button name='button' id='cdlocate' class='misc_button span6'>Locate</button></p>
+		<div id="B226Statustab" class="tabcontent" style="display:block">
+		
+			<div class='select-group-container span2'>
+
+				<span class='select-group-title-dev'>Status</span>
+				<!--<label><input type="checkbox" name="autoupdate" > Autoupdate</label>-->
+		
+				<label for="b226state">Ger&auml;te-Status</label>
+				<select class="b203set" id="b226state" name="select" disabled>
+	  			<option value="0">Standby</option>
+  				<option value="1">Stop</option>
+  				<option value="2">Play</option>
+				<option value="3">Play und Autostop</option>
+				<option value="4">Play und Loop</option>
+				<option value="5">Play, Autostop und Loop</option>
+				<option value="6">Pause</option>
+				<option value="7">Pause und Loop</option>
+				<option value="9">Pause ohne Stummschaltung</option>
+				</select>
+				<label for="tracknumber">Track-Nummer</label>
+				<input type=text id="tracknumber" class="b203set"  value="" disabled>
+				<label for="indexnumber">Index-Nummer</label>
+				<input type=text id="indexnumber" class="b203set"  value="" disabled>
+				<label for="elapsedtime">Abgelaufene-Zeit</label>
+				<input type=text id="elapsedtime" class="b203set"  value="" disabled>
+				<label for="remainingtime">Verbleibende-Zeit</label>
+				<input type=text id="remainingtime" class="b203set"  value="" disabled>
+				<p><button name='getb226settings' id='b226_get' class='set_button span12'>Laden</button></p>
+			</div>
 		</div>
 	</body>
 </html>

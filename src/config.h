@@ -7,24 +7,25 @@
 struct outputs {
   const char* descr;
   const char* out;
+  bool feedback;
 };
 
 static const outputs outputTable [] = {
-    { "b203", "0" },
-    { "cdplayer", "1" },
-    { "tape2", "2" },
-    { "amplifier", "3" },
-    { "tuner", "4" },
-    { "phono", "5" },
-    { "tape1", "9" },
+    { "b203", "0", 1 },
+    { "cdplayer", "1", 1 },
+    { "tape2", "2", 1 },
+    { "amplifier", "3", 0 },
+    { "tuner", "4", 0 },
+    { "phono", "5", 0 },
+    { "tape1", "9", 0 },
     { NULL, NULL }
     };
 
 const int outputTableSize = sizeof(outputTable) / sizeof(outputTable[0]);
 
 struct command {
-    const char* btnName;
-    uint16_t irRecCode;
+    const char* btnID;
+    uint16_t irRecvCode;
     const char* address;
     const char* ITTcode;
     uint16_t cmdFlag;
@@ -35,9 +36,14 @@ struct command {
 
 static const command cmdTable [] = {
     // Timer Controller B203
-    // btnname, irReCode, address,  ITTcode,  cmdFlag, serCmd,  once, device
-    // cmdFlag 0= CMD disabled, 1 = send adress+CMD 2 = send CMD
+    // btnID, irRecvCode, address,  ITTcode,  cmdFlag, serCmd,  once, device
+    // btnID = Button ID
+    // irRecvCode == IIR code of the transmitting remote control
+    // address = IR/SerielLink ITT-address
+    // ITTcode = IR/SerialLink ITT-Code
+    // cmdFlag 0= CMD disabled, 1 = send adress+CMD // SerialLink 0 = enabled, 1 (or >0) = disabled
     // once 0 = IR command send repeated 1 = IR command send once
+    // device = Description of the Device
     { "b203poweroff", 0x0, "1000", "111111", 0, NULL, 1, "b203" },
     { "b203exit", 0x0, "0110", "001111", 0, NULL, 1, "b203" },
     { "b203time", 0x0, "0110", "011011", 0, NULL, 1, "b203" },
@@ -50,7 +56,6 @@ static const command cmdTable [] = {
     { "b203reset", 0x0, NULL, NULL, 2, "RES", 1, "b203" },
     { "trueIR", 0x0, NULL, NULL, 1, "R0", 1, "b203"},
     { "falseIR", 0x0, NULL, NULL, 1, "R1", 1, "b203"},
-    { "b203", 0x0, NULL, NULL, 1, "X", 1, "b203" },
     // Amplifier B251
     { "amptape1", 0x0, "1000", "111100", 0, NULL, 1, "amplifier" },
     { "amptuner", 0x0, "1000", "011100", 0, NULL, 1, "amplifier" },
@@ -109,7 +114,7 @@ static const command cmdTable [] = {
     { "cd7",	0x611, "0000", "000101", 0, NULL, 1, "cdplayer" },
     { "cd8",	0xE11, "0000", "111001", 0, NULL, 1, "cdplayer" },
     { "cd9",   0x51,  "0000", "011001", 0, NULL, 1, "cdplayer" },
-    { "cdplay", 0x4D1, "1000", "000100", 0, "P", 1, "cdplayer" },
+    { "cdplay", 0x4D1, "0000", "000100", 0, "P", 1, "cdplayer" },
     { "cdstop", 0x1D1, "0000", "000110", 0, "S", 1, "cdplayer" },
     { "cdpause", 0x9D1, "0000", "111101", 0, "W", 1, "cdplayer" },
     { "cdpause_on", 0x711, "0000", "101101", 0, NULL, 1, "cdplayer" },
@@ -127,7 +132,6 @@ static const command cmdTable [] = {
     { "cdautostp_off", 0x231, "0000", "001110", 0, "V", 1, "cdplayer" },
     { "cdpause_wom", 0x431, "0000", "110110", 0, NULL, 1, "cdplayer" },
     { "cdload", 0xB11, "0000", "011110", 1, "E", 1, "cdplayer" },
-    { "cd", 0x0, NULL, NULL, 1, "X", 1, "cdplayer" },
     // Tape1 Reel to Reel B77
     { "tape1poweroff", 0x0, "1000", "111111", 0, "NULL", 1, "tape1" },
     { "tape1play",  0x0,  "0000", "101011", 0, "P", 1, "tape1" },
@@ -151,7 +155,6 @@ static const command cmdTable [] = {
     { "tape2loc1",	0x0, "0000", "000111", 0, "Q", 1, "tape2" },
     { "tape2loc2",	0x0, "0000", "111011", 0, "Z", 1, "tape2" },
     { "tape2loop",	0x0, "0000", "001011", 0, "L", 1, "tape2" },
-    { "tape2", 0x0, NULL, NULL, 1, "X", 1, "tape2" },
     // Phono Plattenspieler B291
     { "phonopoweroff", 0x0, "1000", "111111", 0, NULL, 1, "phono" },
     { "phonorew",  0x0,  "0000", "100011", 0, NULL, 1, "phono" },

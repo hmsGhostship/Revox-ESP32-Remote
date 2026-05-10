@@ -34,7 +34,7 @@
 bool State = 0;
 bool buttonHold = 0;
 bool cmdRelease = 0;
-bool irRecvOnce = 0;
+bool cmdOnce = 0;
 bool wsopen =0;
 unsigned long previousMillis = 0;
 const long interval = 130;
@@ -73,7 +73,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       buttonHold = 1;
       } else if (strncmp((char*)data, "Release", 7) == 0){
       buttonHold = 0;
-      //cmdRelease = 1;
+      cmdRelease = 1;
       }
     }
 
@@ -350,65 +350,53 @@ void loop() {
       ws.textAll(b203data);
       b203data = '\0';
       }
-
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval){
-  previousMillis = currentMillis; // Zeit merken
-
-    if (irrecv.decode(&results)) {
-
-    irrecv.resume();  // Receive the next value
-         
-      int a = 0;
-      while( cmdTable[a].irRecvCode != 0 ) {
+      
+      if ((buttonHold == 1) || (irrecv.decode(&results)) || (cmdRelease == 1)) {
+        
+        irrecv.resume();  // Receive the next value
+        
+        unsigned long currentMillis = millis();
+        
+        if (currentMillis - previousMillis >= interval){
+          previousMillis = currentMillis; // Zeit merken
+          
+          int a = 0;
+          while( cmdTable[a].btnID != NULL ) {
             
-        if (results.value == cmdTable[a].irRecvCode ) {
-          if ( irRecvOnce == 0 ) {
+            if (( strcmp( buttonName, cmdTable[a].btnID ) == 0) || ( results.value != 0 && results.value == cmdTable[a].irRecvCode )) {
+
             if (( cmdTable[a].address != NULL ) && ( cmdTable[a].cmdFlag == 0 && (buttonHold == 1))) {
-            sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
+              sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
               if ( cmdTable[a].once == 1 ) {
-              irRecvOnce = 1;
+              buttonHold = 0;
               }
             }
-          }
-        break;
+            break;
         }
-        ++a;
-      }
+    
+          if (( cmdTable[a].cmdFlag > 0 ) && (cmdRelease == 1)) {
 
-      } else if (buttonHold == 1) {
-      irRecvOnce = 0;
-      int a = 0;
-        while( cmdTable[a].btnID != NULL ) {
-          if (strcmp(buttonName, cmdTable[a].btnID) == 0) { 
-          int i = 0;
+            int i = 0;
             while( outputTable[i].descr != NULL) {
-              if (( strcmp ( cmdTable[a].device, outputTable[i].descr ) == 0)) {
-                if (cmdTable[a].cmdFlag > 0 ){
+
+              if ( strcmp ( cmdTable[a].device, outputTable[i].descr ) == 0) {
+                if (cmdTable[i].cmdFlag == 1) {
                 Serial2.print( outputTable[i].out );
+                Serial.print( outputTable[i].out );
+               }
                 Serial2.print( cmdTable[a].serCmd );
                 Serial2.print("\r");
-                Serial.print( outputTable[i].out );
                 Serial.println( cmdTable[a].serCmd );
-                  if ( cmdTable[a].once == 1 ) {
-                  buttonHold = 0;
-                  }
-                } else if ((cmdTable[a].cmdFlag == 0 )) {
-                  sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
-                  Serial.print(cmdTable[a].address);
-                  Serial.println(cmdTable[a].ITTcode);
-                    if ( cmdTable[a].once == 1 ) {
-                    buttonHold = 0;
-                    }
-                  }
+                if ( cmdTable[a].once == 1 ) {
+                cmdRelease = 0;
+                }
               break;
               }
               ++i;
             }
-            break;
           }
-          ++a;
-        }
-    } else irRecvOnce = 0;
+      ++a;  // nächster Eintrag
+      }
+    }
   }
 };

@@ -33,13 +33,12 @@
 
 bool State = 0;
 bool buttonHold = 0;
-bool cmdRelease = 0;
-bool cmdOnce = 0;
+//bool cmdRelease = 0;
+bool irRecvOnce = 1;
 bool wsopen =0;
 unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
-char test[18];
 String b203data;
 
 //byte xonxoffstate = 0; // 1 means don't send data
@@ -73,7 +72,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       buttonHold = 1;
       } else if (strncmp((char*)data, "Release", 7) == 0){
       buttonHold = 0;
-      cmdRelease = 1;
+      //cmdRelease = 1;
       }
     }
 
@@ -96,34 +95,34 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     else if (strncmp((char*)data, "tape2", 5) == 0) {
               char b215settingsBytes[2];
               strncpy( b215settingsBytes, (char*)data + 5, sizeof(b215settingsBytes));
-              int i3 = 0;
-              while( outputTable[i3].descr != NULL) {
-                if ( strcmp ( "tape2", outputTable[i3].descr ) == 0) {
-                  Serial2.print( outputTable[i3].out );
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ( "tape2", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
                   Serial2.print( b215settingsBytes );
                   Serial2.print("\r");
-                  Serial.print( outputTable[i3].out );
+                  Serial.print( outputTable[i].out );
                   Serial.print( b215settingsBytes );
                 break;
                 }
-              ++i3;
+              ++i;
               }
     }
 
     else if (strncmp((char*)data, "cdplayer", 8) == 0) {
               char b226settingsBytes[2];
               strncpy( b226settingsBytes, (char*)data + 8, sizeof(b226settingsBytes)); 
-              int i4 = 0;
-              while( outputTable[i4].descr != NULL) {
-                if ( strcmp ("cdplayer", outputTable[i4].descr ) == 0) {
-                  Serial2.print( outputTable[i4].out );
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ("cdplayer", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
                   Serial2.print( b226settingsBytes );
                   Serial2.print("\r");
-                  Serial.print( outputTable[i4].out );
+                  Serial.print( outputTable[i].out );
                   Serial.print( b226settingsBytes );
                 break;
                 }
-              ++i4;
+              ++i;
               }
     }
 
@@ -195,17 +194,17 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       //Serial.println("Message: " + message);
       if (strncmp((char*)data, "Release", 7) == 0){
       strncpy(buttonName, (char*)data + 7, sizeof(buttonName));
-        int i2 = 0;
-        while( outputTable[i2].descr != NULL) {
-          if (( strcmp ( buttonName, outputTable[i2].descr ) == 0) && ( outputTable[i2].feedback == 1)){
-          Serial2.print( outputTable[i2].out );
+        int i = 0;
+        while( outputTable[i].descr != NULL) {
+          if (( strcmp ( buttonName, outputTable[i].descr ) == 0) && ( outputTable[i].feedback == 1)){
+          Serial2.print( outputTable[i].out );
           Serial2.print("X");
           Serial2.print("\r");
-          Serial.print(outputTable[i2].out);
+          Serial.print(outputTable[i].out);
           Serial.println("X");
           break;
           }
-          ++i2;
+          ++i;
         }
       }
     }
@@ -268,6 +267,45 @@ struct B203SetData {
 
 B203SetData b203settings = { "0", "0", "0", "0" };
 
+void dump(decode_results *results) {
+  // Dumps out the decode_results structure.
+  // Call this after IRrecv::decode()
+  uint16_t count = results->rawlen;
+  if (results->decode_type == UNKNOWN) {
+    Serial.print("Unknown encoding: ");
+  } else if (results->decode_type == NEC) {
+    Serial.print("Decoded NEC: ");
+  } else if (results->decode_type == SONY) {
+    Serial.print("Decoded SONY: ");
+  } else if (results->decode_type == RC5) {
+    Serial.print("Decoded RC5: ");
+  } else if (results->decode_type == RC5X) {
+    Serial.print("Decoded RC5X: ");
+  } else if (results->decode_type == RC6) {
+    Serial.print("Decoded RC6: ");
+  } else if (results->decode_type == RCMM) {
+    Serial.print("Decoded RCMM: ");
+  } else if (results->decode_type == PANASONIC) {
+    Serial.print("Decoded PANASONIC - Address: ");
+    Serial.print(results->address, HEX);
+    Serial.print(" Value: ");
+  } else if (results->decode_type == LG) {
+    Serial.print("Decoded LG: ");
+  } else if (results->decode_type == JVC) {
+    Serial.print("Decoded JVC: ");
+  } else if (results->decode_type == AIWA_RC_T501) {
+    Serial.print("Decoded AIWA RC T501: ");
+  } else if (results->decode_type == WHYNTER) {
+    Serial.print("Decoded Whynter: ");
+  } else if (results->decode_type == NIKAI) {
+    Serial.print("Decoded Nikai: ");
+  }
+  serialPrintUint64(results->value, 16);
+  Serial.print(" (");
+  Serial.print(results->bits, DEC);
+  Serial.println(" bits)");
+
+}
 
 void setup() {
   // Serial port for debugging purposes
@@ -298,7 +336,6 @@ void setup() {
   Serial.println("IR Empfaenger aktiviert");
   // Start the receiver
 
-
  // Connect to WiFi network
  // Connect to Wi-Fi
   WiFi.begin(ssid, passPhrase);
@@ -313,17 +350,6 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   setupServerRoutes();
-
-  // Route for root / web page
-	/*server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { 
-	   Serial.println("ESP32 Web Server: New request received:");  // for debugging 
-	   Serial.println("GET /");        // for debugging 
-	   request->send(LittleFS, "/index.html", ""); 
-	 });*/
-
-  /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/index.html", String(), false, processor);
-  });*/
 
   initWebSocket();
 
@@ -350,53 +376,64 @@ void loop() {
       ws.textAll(b203data);
       b203data = '\0';
       }
-      
-      if ((buttonHold == 1) || (irrecv.decode(&results)) || (cmdRelease == 1)) {
-        
-        irrecv.resume();  // Receive the next value
-        
-        unsigned long currentMillis = millis();
-        
-        if (currentMillis - previousMillis >= interval){
-          previousMillis = currentMillis; // Zeit merken
-          
-          int a = 0;
-          while( cmdTable[a].btnID != NULL ) {
-            
-            if (( strcmp( buttonName, cmdTable[a].btnID ) == 0) || ( results.value != 0 && results.value == cmdTable[a].irRecvCode )) {
 
-            if (( cmdTable[a].address != NULL ) && ( cmdTable[a].cmdFlag == 0 && (buttonHold == 1))) {
-              sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
-              if ( cmdTable[a].once == 1 ) {
-              buttonHold = 0;
-              }
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval){
+  previousMillis = currentMillis; // Zeit merken
+
+    if (irrecv.decode(&results)) {
+
+    if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+        Serial.println("Button held - Repeat detected");
+        // Handle repeat (e.g., continue increasing volume)
+    }
+    //dump(&results);
+
+
+      int i = 0;
+      while( cmdTable[i].btnID != NULL ) {
+        if (results.value == cmdTable[i].irRecvCode ) {
+          if (( cmdTable[i].address != NULL ) && ( cmdTable[i].cmdFlag == 0 ) && ( irRecvOnce == 1 )) {
+          sendIR( cmdTable[i].address, cmdTable[i].ITTcode );
+            if ( cmdTable[i].repeat == 0 ) {
+            irRecvOnce = 0;
             }
-            break;
+          }
+        break;
         }
-    
-          if (( cmdTable[a].cmdFlag > 0 ) && (cmdRelease == 1)) {
-
-            int i = 0;
+        ++i;
+      }
+      irrecv.resume();  // Receive the next value
+      } else if (buttonHold == 1) {
+      int a = 0;
+        while( cmdTable[a].btnID != NULL ) {
+          if (strcmp(buttonName, cmdTable[a].btnID) == 0) { 
+          int i = 0;
             while( outputTable[i].descr != NULL) {
-
-              if ( strcmp ( cmdTable[a].device, outputTable[i].descr ) == 0) {
-                if (cmdTable[i].cmdFlag == 1) {
+              if (( strcmp ( cmdTable[a].device, outputTable[i].descr ) == 0)) {
+                if (cmdTable[a].cmdFlag > 0 ){
                 Serial2.print( outputTable[i].out );
-                Serial.print( outputTable[i].out );
-               }
                 Serial2.print( cmdTable[a].serCmd );
                 Serial2.print("\r");
-                Serial.println( cmdTable[a].serCmd );
-                if ( cmdTable[a].once == 1 ) {
-                cmdRelease = 0;
-                }
+                  if ( cmdTable[a].repeat == 0 ) {
+                  buttonHold = 0;
+                  }
+                } else if ((cmdTable[a].cmdFlag == 0 )) {
+                  sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
+                    if ( cmdTable[a].repeat == 0 ) {
+                    buttonHold = 0;
+                    }
+                  }
               break;
               }
               ++i;
             }
+            break;
           }
-      ++a;  // nächster Eintrag
+          ++a;
+        }
+    } else {
+      irRecvOnce = 1;
       }
-    }
   }
 };

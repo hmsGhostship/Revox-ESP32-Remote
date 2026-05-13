@@ -7,7 +7,7 @@ void initAddr();
 
 
 // Pin-Definitionen
-const int IRoutPin = 4;
+const int IRoutPin = 26;
 
 // Funktionsprototypen
 void setupIRoutPin();

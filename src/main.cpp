@@ -23,9 +23,11 @@
   #include <SPIFFS.h>
 #endif 
 
-#include <IRremoteESP8266.h>
-#include <IRrecv.h>
-#include <IRutils.h>
+//#include <IRremoteESP8266.h>
+//#include <IRrecv.h>
+//#include <IRutils.h>
+//#include <IRremote.h>
+#include <IRRemote.hpp>
 
 #include "secrets.h"
 #include "IRsend.h"
@@ -33,13 +35,13 @@
 
 bool State = 0;
 bool buttonHold = 0;
-bool cmdRelease = 0;
-bool irRecvOnce = 0;
+//bool cmdRelease = 0;
+bool irRecvOnce = 1;
 bool wsopen =0;
 unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
-char test[18];
+int irid =0;
 String b203data;
 
 //byte xonxoffstate = 0; // 1 means don't send data
@@ -47,12 +49,13 @@ String b203data;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-const uint16_t kRecvPin = 25;
-const uint16_t kCaptureBufferSize = 1024;
-const uint8_t kTimeout = 50;
+const int PIN_RECV = 25;
+//const uint16_t kCaptureBufferSize = 1024;
+//const uint8_t kTimeout = 50;
 
-IRrecv irrecv(kRecvPin);
-decode_results results;
+
+//IRrecv irrecv(kRecvPin);
+//decode_results results;
 
 /*void notifyClients() {
   Serial.println("notifyData: " + b203data);
@@ -96,34 +99,34 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     else if (strncmp((char*)data, "tape2", 5) == 0) {
               char b215settingsBytes[2];
               strncpy( b215settingsBytes, (char*)data + 5, sizeof(b215settingsBytes));
-              int i3 = 0;
-              while( outputTable[i3].descr != NULL) {
-                if ( strcmp ( "tape2", outputTable[i3].descr ) == 0) {
-                  Serial2.print( outputTable[i3].out );
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ( "tape2", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
                   Serial2.print( b215settingsBytes );
                   Serial2.print("\r");
-                  Serial.print( outputTable[i3].out );
+                  Serial.print( outputTable[i].out );
                   Serial.print( b215settingsBytes );
                 break;
                 }
-              ++i3;
+              ++i;
               }
     }
 
     else if (strncmp((char*)data, "cdplayer", 8) == 0) {
               char b226settingsBytes[2];
               strncpy( b226settingsBytes, (char*)data + 8, sizeof(b226settingsBytes)); 
-              int i4 = 0;
-              while( outputTable[i4].descr != NULL) {
-                if ( strcmp ("cdplayer", outputTable[i4].descr ) == 0) {
-                  Serial2.print( outputTable[i4].out );
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ("cdplayer", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
                   Serial2.print( b226settingsBytes );
                   Serial2.print("\r");
-                  Serial.print( outputTable[i4].out );
+                  Serial.print( outputTable[i].out );
                   Serial.print( b226settingsBytes );
                 break;
                 }
-              ++i4;
+              ++i;
               }
     }
 
@@ -195,17 +198,17 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       //Serial.println("Message: " + message);
       if (strncmp((char*)data, "Release", 7) == 0){
       strncpy(buttonName, (char*)data + 7, sizeof(buttonName));
-        int i2 = 0;
-        while( outputTable[i2].descr != NULL) {
-          if (( strcmp ( buttonName, outputTable[i2].descr ) == 0) && ( outputTable[i2].feedback == 1)){
-          Serial2.print( outputTable[i2].out );
+        int i = 0;
+        while( outputTable[i].descr != NULL) {
+          if (( strcmp ( buttonName, outputTable[i].descr ) == 0) && ( outputTable[i].feedback == 1)){
+          Serial2.print( outputTable[i].out );
           Serial2.print("X");
           Serial2.print("\r");
-          Serial.print(outputTable[i2].out);
+          Serial.print(outputTable[i].out);
           Serial.println("X");
           break;
           }
-          ++i2;
+          ++i;
         }
       }
     }
@@ -254,6 +257,25 @@ void setupServerRoutes(){
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ 
       request->send(LittleFS, "/index.html");
     });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/b203.html", "text/html");
+    });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/cd.html", "text/html");
+    });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/phono.html", "text/html");
+    });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/tape1.html", "text/html");
+    });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/tape2.html", "text/html");
+    });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/tuner.html", "text/html");
+    });
+
     // Wenn die angeforderte Seite nicht vorhanden ist, `notFound()` aufrufen
     server.onNotFound(notFound);
     server.serveStatic("/", LittleFS, "/");
@@ -268,14 +290,13 @@ struct B203SetData {
 
 B203SetData b203settings = { "0", "0", "0", "0" };
 
-
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200); // Start serial
   /*while (!Serial)  // Wait for the serial connection to be establised.
    delay(50);*/
 
-  pinMode(kRecvPin, INPUT);
+  //pinMode(kRecvPin, INPUT);
 
   setupIRoutPin();
   
@@ -294,10 +315,10 @@ void setup() {
     return;
   }
  
-  irrecv.enableIRIn();
+  //irrecv.enableIRIn();
+  IrReceiver.begin(PIN_RECV, ENABLE_LED_FEEDBACK);
   Serial.println("IR Empfaenger aktiviert");
   // Start the receiver
-
 
  // Connect to WiFi network
  // Connect to Wi-Fi
@@ -313,17 +334,6 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   setupServerRoutes();
-
-  // Route for root / web page
-	/*server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { 
-	   Serial.println("ESP32 Web Server: New request received:");  // for debugging 
-	   Serial.println("GET /");        // for debugging 
-	   request->send(LittleFS, "/index.html", ""); 
-	 });*/
-
-  /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/index.html", String(), false, processor);
-  });*/
 
   initWebSocket();
 
@@ -355,29 +365,36 @@ void loop() {
   if (currentMillis - previousMillis >= interval){
   previousMillis = currentMillis; // Zeit merken
 
-    if (irrecv.decode(&results)) {
+    if (IrReceiver.decode()) {
+      uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
+      Serial.println(combined, HEX );
 
-    irrecv.resume();  // Receive the next value
-         
-      int a = 0;
-      while( cmdTable[a].irRecvCode != 0 ) {
-            
-        if (results.value == cmdTable[a].irRecvCode ) {
-          if ( irRecvOnce == 0 ) {
-            if (( cmdTable[a].address != NULL ) && ( cmdTable[a].cmdFlag == 0 && (buttonHold == 1))) {
-            sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
-              if ( cmdTable[a].once == 1 ) {
-              irRecvOnce = 1;
-              }
-            }
-          }
-        break;
+      if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+        // Aktion für gehaltene Taste hier einfügen (z.B. schnelleres Drehen)
+        //Serial.println("Taste gehalten");
+        if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
+        sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+        Serial.println( cmdTable[irid].ITTcode );
+        Serial.println( cmdTable[irid].btnID );
         }
-        ++a;
+      } else {
+        //Serial.println("Neuer Tastendruck");
+        int i = 0;
+        while( cmdTable[i].btnID != NULL ) {
+          if ((combined == cmdTable[i].irRecvCode ) && (combined != 0)) {
+            if (( cmdTable[i].address != NULL ) && ( cmdTable[i].cmdFlag == 0 )) {
+            sendIR( cmdTable[i].address, cmdTable[i].ITTcode );
+            Serial.println( cmdTable[i].ITTcode );
+            Serial.println(cmdTable[i].btnID );
+            }
+          break;
+          }
+        ++i;
+        }
+      irid = i;
       }
-
+      IrReceiver.resume(); // Receive the next value 
       } else if (buttonHold == 1) {
-      irRecvOnce = 0;
       int a = 0;
         while( cmdTable[a].btnID != NULL ) {
           if (strcmp(buttonName, cmdTable[a].btnID) == 0) { 
@@ -390,14 +407,12 @@ void loop() {
                 Serial2.print("\r");
                 Serial.print( outputTable[i].out );
                 Serial.println( cmdTable[a].serCmd );
-                  if ( cmdTable[a].once == 1 ) {
+                  if ( cmdTable[a].repeat == 0 ) {
                   buttonHold = 0;
                   }
                 } else if ((cmdTable[a].cmdFlag == 0 )) {
                   sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
-                  Serial.print(cmdTable[a].address);
-                  Serial.println(cmdTable[a].ITTcode);
-                    if ( cmdTable[a].once == 1 ) {
+                    if ( cmdTable[a].repeat == 0 ) {
                     buttonHold = 0;
                     }
                   }
@@ -409,6 +424,6 @@ void loop() {
           }
           ++a;
         }
-    } else irRecvOnce = 0;
+      }
   }
 };

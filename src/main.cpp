@@ -1,6 +1,6 @@
 /*********
-  Rui Santos & Sara Santos - Random Nerd Tutorials
-  Complete project details at https://RandomNerdTutorials.com/esp32-websocket-server-arduino/
+  H. Haefner ESP32 IR Remote for Revox B203 and B2xx Series
+  Complete project details at 
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 *********/
 
@@ -9,7 +9,6 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-// HardwareSerial Serial2(16, 17);
 #define RXD2 16
 #define TXD2 17
 #define REVOX_BAUD 1200
@@ -22,11 +21,6 @@
 #else
   #include <SPIFFS.h>
 #endif 
-
-//#include <IRremoteESP8266.h>
-//#include <IRrecv.h>
-//#include <IRutils.h>
-//#include <IRremote.h>
 #include <IRRemote.hpp>
 
 #include "secrets.h"
@@ -35,40 +29,24 @@
 
 bool State = 0;
 bool buttonHold = 0;
-//bool cmdRelease = 0;
-bool irRecvOnce = 1;
 bool wsopen =0;
 unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
 int irid =0;
 String b203data;
+const int PIN_RECV = 25;
 
 //byte xonxoffstate = 0; // 1 means don't send data
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-const int PIN_RECV = 25;
-//const uint16_t kCaptureBufferSize = 1024;
-//const uint8_t kTimeout = 50;
-
-
-//IRrecv irrecv(kRecvPin);
-//decode_results results;
-
-/*void notifyClients() {
-  Serial.println("notifyData: " + b203data);
-  ws.textAll("notifyData: " + b203data);
-}*/
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     data[len] = 0;
-    //String message = (char*)data;
-    //Serial.println("Message: " + message);
-
     if (strncmp((char*)data, "button", 6) == 0) {
       data +=6;
       if (strncmp((char*)data, "Push", 4) == 0){
@@ -194,8 +172,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
 
     else if (strncmp((char*)data, "page", 4) == 0) {
       data +=4;
-      //String message = (char*)data;
-      //Serial.println("Message: " + message);
       if (strncmp((char*)data, "Release", 7) == 0){
       strncpy(buttonName, (char*)data + 7, sizeof(buttonName));
         int i = 0;
@@ -213,8 +189,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       }
     }
   }
-  //String message = (char*)data;
-  //Serial.println("Message: " + message);
 }
       
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
@@ -275,7 +249,6 @@ void setupServerRoutes(){
       server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
       request->send(LittleFS, "/tuner.html", "text/html");
     });
-
     // Wenn die angeforderte Seite nicht vorhanden ist, `notFound()` aufrufen
     server.onNotFound(notFound);
     server.serveStatic("/", LittleFS, "/");
@@ -293,10 +266,7 @@ B203SetData b203settings = { "0", "0", "0", "0" };
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200); // Start serial
-  /*while (!Serial)  // Wait for the serial connection to be establised.
-   delay(50);*/
-
-  //pinMode(kRecvPin, INPUT);
+  delay(50);
 
   setupIRoutPin();
   
@@ -370,28 +340,24 @@ void loop() {
       Serial.println(combined, HEX );
 
       if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
-        // Aktion für gehaltene Taste hier einfügen (z.B. schnelleres Drehen)
-        //Serial.println("Taste gehalten");
         if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
         sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
         Serial.println( cmdTable[irid].ITTcode );
         Serial.println( cmdTable[irid].btnID );
         }
       } else {
-        //Serial.println("Neuer Tastendruck");
-        int i = 0;
-        while( cmdTable[i].btnID != NULL ) {
-          if ((combined == cmdTable[i].irRecvCode ) && (combined != 0)) {
-            if (( cmdTable[i].address != NULL ) && ( cmdTable[i].cmdFlag == 0 )) {
-            sendIR( cmdTable[i].address, cmdTable[i].ITTcode );
-            Serial.println( cmdTable[i].ITTcode );
-            Serial.println(cmdTable[i].btnID );
+        irid = 0;
+        while( cmdTable[irid].btnID != NULL ) {
+          if ((combined == cmdTable[irid].irRecvCode ) && (combined != 0)) {
+            if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
+            sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+            Serial.println( cmdTable[irid].ITTcode );
+            Serial.println(cmdTable[irid].btnID );
             }
           break;
           }
-        ++i;
+        ++irid;
         }
-      irid = i;
       }
       IrReceiver.resume(); // Receive the next value 
       } else if (buttonHold == 1) {

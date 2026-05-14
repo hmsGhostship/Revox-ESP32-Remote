@@ -264,8 +264,8 @@ struct B203SetData {
 B203SetData b203settings = { "0", "0", "0", "0" };
 
 void setup() {
-  // Serial port for debugging purposes
-  Serial.begin(115200); // Start serial
+
+  Serial.begin(115200);   // Serial port for debugging purposes
   delay(50);
 
   setupIRoutPin();
@@ -285,13 +285,11 @@ void setup() {
     return;
   }
  
-  //irrecv.enableIRIn();
   IrReceiver.begin(PIN_RECV, ENABLE_LED_FEEDBACK);
   Serial.println("IR Empfaenger aktiviert");
   // Start the receiver
 
  // Connect to WiFi network
- // Connect to Wi-Fi
   WiFi.begin(ssid, passPhrase);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -323,7 +321,6 @@ void loop() {
   if (Serial2.available() > 0) {
     b203data = Serial2.readStringUntil('\n'); // Reads until LF or timeout
     Serial.println(b203data);
-    //notifyClients();
   }
   
   if ((wsopen == 1 ) && (b203data.length() > 0 )) {
@@ -342,8 +339,6 @@ void loop() {
       if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
         if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
         sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
-        Serial.println( cmdTable[irid].ITTcode );
-        Serial.println( cmdTable[irid].btnID );
         }
       } else {
         irid = 0;
@@ -351,8 +346,6 @@ void loop() {
           if ((combined == cmdTable[irid].irRecvCode ) && (combined != 0)) {
             if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
             sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
-            Serial.println( cmdTable[irid].ITTcode );
-            Serial.println(cmdTable[irid].btnID );
             }
           break;
           }

@@ -334,18 +334,26 @@ void loop() {
 
     if (IrReceiver.decode()) {
       uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
-      Serial.println(combined, HEX );
+      //Serial.println(combined, HEX );
 
       if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
         if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
         sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+        Serial.println("Repeated");
+        Serial.println(cmdTable[irid].address);
+        Serial.println(cmdTable[irid].ITTcode);
         }
       } else {
         irid = 0;
+        Serial.println(combined, HEX );
         while( cmdTable[irid].btnID != NULL ) {
+          //Serial.println(irid);
           if ((combined == cmdTable[irid].irRecvCode ) && (combined != 0)) {
             if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
             sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+            Serial.println("First press");
+            Serial.println(cmdTable[irid].address);
+            Serial.println(cmdTable[irid].ITTcode);
             }
           break;
           }

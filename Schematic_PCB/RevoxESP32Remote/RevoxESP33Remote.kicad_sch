@@ -11114,7 +11114,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal"
 			(at 144.272 92.71 90)
 			(hide yes)
 			(show_name no)
@@ -12359,7 +12359,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal"
 			(at 167.132 92.71 90)
 			(hide yes)
 			(show_name no)
@@ -12787,7 +12787,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P5.00mm"
 			(at 246.0752 80.01 0)
 			(hide yes)
 			(show_name no)

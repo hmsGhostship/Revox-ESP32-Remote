@@ -18,6 +18,7 @@
     testEventb203();
     getb215();
     getb226();
+    getb285();
   }
 
     function initWebSocket() {
@@ -59,7 +60,7 @@
       } else if  (Number(Identifier) == A725 ){
 
       } else if  (Number(Identifier) == B285 ){
-
+        getB285Settings();
       } else if  (Number(Identifier) == B215 ){
         getB215Settings();
       } else if  (Number(Identifier) == B225_2 ){
@@ -122,6 +123,17 @@ function getb226() {
     if (websocket.readyState === WebSocket.OPEN) {
     console.log( "cdplayerX" );
     websocket.send("cdplayerX");
+    }
+  });
+}
+
+function getb285() {
+
+  document.getElementById('b285_get')?.addEventListener('click', () => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "receiverX" );
+    websocket.send("receiverX");
     }
   });
 }
@@ -357,4 +369,20 @@ function getB226Settings() {
         const remainingtimess = rawdata.slice(11, 13);
         const remainingtime = (remainingtimemm + ":" + remainingtimess);
         document.getElementById("remainingtime").value = remainingtime;
+}
+
+function getB285Settings() {
+        const rawdata = event.data.slice(3);
+        const b285source = rawdata.charAt(0);
+        document.getElementById("b285source").value = b285source;
+        const speakers = rawdata.charAt(1);
+        document.getElementById("speakers").value = speakers;
+        const volume = rawdata.slice(2, 4);
+        document.getElementById("volume").value = volume;
+        const tunerstation = rawdata.slice(4, 6);
+        document.getElementById("tunerstation").value = tunerstation;
+        const stationid = rawdata.slice(6, 10);
+        document.getElementById("stationid").value = stationid;
+        const frequency = rawdata.slice(10, 15);
+        document.getElementById("frequency").value = frequency;
 }

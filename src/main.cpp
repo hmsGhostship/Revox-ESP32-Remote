@@ -107,7 +107,23 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
               ++i;
               }
     }
-
+    
+    else if (strncmp((char*)data, "receiver", 8) == 0) {
+              char b285settingsBytes[2];
+              strncpy( b285settingsBytes, (char*)data + 8, sizeof(b285settingsBytes)); 
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ("receiver", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
+                  Serial2.print( b285settingsBytes );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i].out );
+                  Serial.print( b285settingsBytes );
+                break;
+                }
+              ++i;
+              }
+    }
 
     else if (strncmp((char*)data, "testEvent", 9) == 0) {
       char testEventBytes[5];

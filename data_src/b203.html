@@ -85,7 +85,7 @@
 				<option value="4">Lautsprecher aus</option>
 				</select>
 
-				<label for="switch">IR-Empf&auml;nger</label>
+				<label for="IR">IR-Empf&auml;nger</label>
 				<label class="switch">
 					<input type="checkbox" id='IR' name="toggle">
   					<div class="slider round">
@@ -99,11 +99,11 @@
 			</div>
 
 			<div class='select-group-container span2'>
-				<label for="setdate">Datum:</label>
+				<label for="setDate">Datum:</label>
 				<input class="b203_event" type="date" id="set_date" name="select" step="1" value="2026-01-01" required>
 				<p><button name='setDate' id='setDate' class='set_button span12'>Datum stellen</button></p>
 				
-				<label for="settime">Uhrzeit:</label>
+				<label for="setTime">Uhrzeit:</label>
 				<input class="b203_event" type="time" id="set_time" name="select" step="1" value="12:00:00" required>
 				<p><button name='setTime' id='setTime' class='set_button span12'>Uhreit stellen</button></p>
 			</div>
@@ -132,7 +132,7 @@
   			<option value="D">Einmalig</option>
 			</select>
 
-			<label for="weekday">Wochentag:</label>
+			<legend>Wochentag:</legend>
 			<div class="checkbox-group" id="weekday">
   			<label><input type="checkbox" name="day" value="so"> So</label>
 			<label><input type="checkbox" name="day" value="mo"> Mo</label>
@@ -166,7 +166,8 @@
 				</div>
 			</div>
 
-			<label for="output">Ausgang/Ziel:</label>
+			
+			<legend>Ausgang/Ziel:</legend>
 			<div class="checkbox-group" id="output">
   			<label><input type="checkbox" name="out" value="outTape1">Tape 1</label>
 			<label><input type="checkbox" name="out" value="outTape2">Tape 2</label>

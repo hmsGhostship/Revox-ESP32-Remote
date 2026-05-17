@@ -17,7 +17,7 @@
 		<a href='phono.html'><button id='phono' name='page' class='button span1'>Phono</button></a>
 		<a href='cd.html'><button id='cdplayer' name='page' class='button span1'>CD</button></a>
 		<a href='index.html'><button id='amplifier' name='page' class='button span1'>Amplifier</button></a>
-		<a href='b203.html'><button id='pb203' name='page' class='button span1'>B203</button></a>
+		<a href='b203.html'><button id='b203' name='page' class='button span1'>B203</button></a>
 		</div>
 
 		<div class="tab">
@@ -61,7 +61,6 @@
 				<p><button name='button' id='recv27' class='button span3'>27</button></p>
 				<p><button name='button' id='recv28' class='button span3'>28</button></p>
 				<p><button name='button' id='recv29' class='button span3'>29</button></p>
-
 	    	</div>
 
 			<div class='button-group-container-dev span2'>
@@ -69,8 +68,20 @@
 				<p><button name='button' id='recventer' class='button span6'>Enter</button></p>
 				<p><button name='button' id='recvvoldn' class='button span6'>Volume -</button></p>
 				<p><button name='button' id='recvvolup' class='button span6'>Volume +</button></p>
-				<label for="volumeSlider" class="slide-label">Lautstärke:</label>
-				<input type="range" min="0" max="99" value="50" id="volumeSlider" class='slide'>
+				<label for="volumeSlider" class="slide-label">Lautst&auml;rke:</label>
+				<input type="range" min="0" max="99" value="50" id="volumeSlider" name="volSlider" class='slide'>
+
+				
+			<div class='select-group-container span2'>
+				<label for="getspeakers">Lautsprecher:</label>
+				<select class="b203set" id='getspeakers' name="speakers">
+				<option value="L0">Lautsprecher aus</option>
+  				<option value="L1">Lautsprecher A</option>
+				<option value="L2">Lautsprecher B</option>
+				<option value="L3">Lautsprecher A & B</option>
+				</select>
+			</div>
+
 			</div>
 		
 			<div class='button-group-container-dev span2'>
@@ -103,12 +114,11 @@
 			</div>
 		</div>
 
-		<div id="B285Statustab" class="tabcontent" style="display:block">
+		<div id="B285Statustab" class="tabcontent">
 		
 			<div class='select-group-container span2'>
 
 				<span class='select-group-title-dev'>Status</span>
-				<!--<label><input type="checkbox" name="autoupdate" > Autoupdate</label>-->
 		
 				<label for="b285source">Signalquelle</label>
 				<select class="b203set" id="b285source" name="select" disabled>
@@ -123,27 +133,21 @@
 				<option value="8">Monitor Tape 2</option>
 				<option value="9">Status unerkannt</option>
 				</select>
-
 				<label for="speakers">Lautsprecher:</label>
-				<select class="b203set" id='speakers' name="select">
+				<select class="b203set" id='speakers' name="select" disabled>
   				<option value="0">Lautsprecher aus</option>
   				<option value="1">Lautsprecher A</option>
 				<option value="2">Lautsprecher B</option>
 				<option value="3">Lautsprecher A & B</option>
 				</select>
-
 				<label for="volume">Volume</label>
 				<input type=text id="volume" class="b203set"  value="" disabled>
-
 				<label for="tunerstation">Tuner-Station</label>
 				<input type=text id="tunerstation" class="b203set"  value="" disabled>
-
 				<label for="stationid">Stations-Kennung</label>
 				<input type=text id="stationid" class="b203set"  value="" disabled>
-
 				<label for="frequency">Frequenz</label>
 				<input type=text id="frequency" class="b203set"  value="" disabled>
-
 				<p><button name='getb285settings' id='b285_get' class='set_button span12'>Laden</button></p>
 			</div>
 		</div>

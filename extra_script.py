@@ -35,7 +35,7 @@ def gzip_webfiles( source, target, env ):
 
     # Types of files that need to be compressed
 
-    filetypes_to_gzip = [ 'css', 'html', 'js' ]
+    filetypes_to_gzip = [ 'css', 'html', 'js', 'ico' ]
 
     print( '\nGZIP: Starting the gzipping process for the LittleFS image...\n' )
 

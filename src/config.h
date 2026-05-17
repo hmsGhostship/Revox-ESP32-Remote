@@ -16,7 +16,8 @@ static const outputs outputTable [] = {
     { "tape2", "2", 1 },
     { "amplifier", "3", 0 },
     { "tuner", "4", 0 },
-    { "phono", "5", 0 },
+    { "receiver", "5", 1 },
+    { "phono", "6", 1},
     { "tape1", "9", 0 },
     { NULL, NULL }
     };
@@ -38,7 +39,7 @@ static const command cmdTable [] = {
     // Timer Controller B203
     // btnID, irRecvCode, address,  ITTcode,  cmdFlag, serCmd,  once, device
     // btnID = Button ID
-    // irRecvCode == IIR code of the transmitting remote control
+    // irRecvCode == IR code of the transmitting remote control
     // address = IR/SerielLink ITT-address
     // ITTcode = IR/SerialLink ITT-Code
     // cmdFlag 0= CMD disabled, 1 = send adress+CMD // SerialLink 0 = enabled, 1 (or >0) = disabled
@@ -139,7 +140,7 @@ static const command cmdTable [] = {
     { "cdlocate", 0x93A000B, "0000", "111110", 0, "H", 0, "cdplayer" },         //88
     { "cdautostp_on", 0x93A000E, "0000", "101110", 0, "U", 0, "cdplayer" },     //89
     { "cdautostp_off", 0x93A0022, "0000", "001110", 0, "V", 0, "cdplayer" },    //90
-    { "cdload", 0x93A0016, "0000", "011110", 0, "E", 0, "cdplayer" },           //91
+    { "cdload", 0x93A0016, "0000", "011110", 1, "E", 0, "cdplayer" },           //91
     // Tape1 Reel to Reel B77
     { "tape1poweroff", 0xE000F, "1000", "111111", 0, "NULL", 0, "tape1" },      //92
     { "tape1play",  0x100023,  "1000", "101011", 0, "P", 0, "tape1" },          //93
@@ -169,11 +170,11 @@ static const command cmdTable [] = {
     { "tape2loop",	0x100037, "0000", "001011", 0, "L", 0, "tape2" },           //116
     // Phono Plattenspieler B291
     { "phonopoweroff", 0x540015, "1000", "111111", 0, NULL, 0, "phono" },       //117
-    { "phonorew",  0x540034,  "0000", "100011", 0, NULL, 0, "phono" },          //118
-    { "phonoforw",	0x540033, "0000", "000011", 0, NULL, 0, "phono" },          //119
+    { "phonoforw",  0x540034,  "1000", "100011", 0, NULL, 1, "phono" },          //118
+    { "phonoback",	0x540033, "1000", "000011", 0, NULL, 1, "phono" },          //119
     { "phonovoldn", 0x540012, "1000", "000010", 0, NULL, 1, "phono" },          //120
     { "phonovolup", 0x540013, "1000", "100010", 0, NULL, 1, "phono" },          //121
-    { "phonolift",	0x540036, "0000", "111101", 0, NULL, 0, "phono" },          //122
+    { "phonolift",	0x540036, "1000", "111101", 0, NULL, 0, "phono" },          //122
      // Receiver B285/B286
     { "recvpoweroff", 0x0, "1000", "111111", 0, "O", 0, "receiver" },     //123
     { "recv1", 0x0,  "1000", "011101", 0, "E01", 0, "receiver" },           //124

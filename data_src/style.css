@@ -7,7 +7,6 @@
 body {
   padding-left:15px;
   padding-right:20px;
-  margin: 10;
   font-family: Geneva,'Lucida Sans','Lucida Grande',sans-serif;
   font-size: 50px;
   line-height: 30px;
@@ -102,7 +101,6 @@ label {
 .button-group-container-misc {
     border: 2px solid #0a0a0a;
     padding: 5px 28px;
-    /*padding: 0px;*/
     padding-left: 35px;
     padding-right: 0px;
     border-radius: 8px;
@@ -117,7 +115,6 @@ label {
 
 .select-group-container {
     border: 2px solid #0a0a0a;
-    padding: 5px;
     padding: 25px;
     padding-left: 35px;
     padding-right: 0px;
@@ -136,7 +133,6 @@ label {
     border: 1px solid #ccc;
     width: 500px;
     font-size: 25px;
-    text-align-last:center;
 }
 
 .select-group-title-dev {
@@ -153,14 +149,12 @@ label {
     align-items: center;
     justify-content: center;
     border: 2px solid #0a0a0a;
-    padding: 5px;
     padding: 25px;
     padding-left: 35px;
     padding-right: 0px;
     border-radius: 8px;
     box-sizing: border-box;
     display: inline-block;
-    text-align-last:center;
     background-color: rgb(142, 142, 142);
 }
 
@@ -480,6 +474,11 @@ input:checked + .slider .off {
   animation: fadeEffect 1s; /* Fading effect takes 1 second */
 }
 
+.tabcontent.active,
+.tabcontent:first-of-type {
+  display: block;
+}
+
 /* Go from zero to full opacity */
 @keyframes fadeEffect {
   from {opacity: 0;}
@@ -640,4 +639,9 @@ input[type='checkbox'] {
     font-size: 18px;
     font-weight: bold;
     color: #333;
+}
+
+legend {
+    font-size: 1.2rem; /* Passen Sie den Wert nach Bedarf an */
+    font-weight: bold; /* Optional: Text fett machen */
 }

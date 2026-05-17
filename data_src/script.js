@@ -18,7 +18,10 @@
     testEventb203();
     getb215();
     getb226();
+    getb291();
     getb285();
+    setB285Speakers();
+    setB285Volume();
   }
 
     function initWebSocket() {
@@ -70,7 +73,7 @@
       } else if  (Number(Identifier) == A725_2 ){
 
       } else if  (Number(Identifier) == B291 ){
-
+        getB291Settings();
       } else if  (Number(Identifier) >= B203) {
         getB203Settings();
       }
@@ -82,10 +85,35 @@ function setIRstate() {
           const Id = event.target.id;
           const Value = event.target.checked;
           const Name = event.target.name;
-          const Class = event.target.className;
           if (websocket.readyState === WebSocket.OPEN) {
           console.log(Name + Value + Id);
           websocket.send(Name + Value + Id);
+         }
+      });
+}
+
+function setB285Speakers() {
+
+  document.getElementById('speakers')?.addEventListener('change', () => {
+          const Id = event.target.id;
+          const Value = event.target.value;
+          const Name = event.target.name;
+          if (websocket.readyState === WebSocket.OPEN) {
+          console.log(Name + Value);
+          websocket.send(Name + Value);
+         }
+      });
+}
+
+function setB285Volume() {
+
+  document.getElementById('volumeSlider')?.addEventListener('change', () => {
+          const Id = event.target.id;
+          const Value = event.target.value;
+          const Name = event.target.name;
+          if (websocket.readyState === WebSocket.OPEN) {
+          console.log(Name + "V" + Value);
+          websocket.send(Name + "V" +Value);
          }
       });
 }
@@ -123,6 +151,17 @@ function getb226() {
     if (websocket.readyState === WebSocket.OPEN) {
     console.log( "cdplayerX" );
     websocket.send("cdplayerX");
+    }
+  });
+}
+
+function getb291() {
+
+  document.getElementById('b291_get')?.addEventListener('click', () => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "phonoX" );
+    websocket.send("phonoX");
     }
   });
 }
@@ -193,10 +232,10 @@ function delEventb203() {
 
   document.getElementById('b203delevent')?.addEventListener('click', () => {
     const Name = event.target.name;
-    const b203call = document.querySelector('select[id="b203evn"]').value;
+    const b203del = document.querySelector('select[id="b203evn"]').value;
     if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0E" + b203call + "E" );
-    websocket.send( Name + "0E" + b203call + "E" );
+    console.log( Name + "0E" + b203del + "E" );
+    websocket.send( Name + "0E" + b203del + "E" );
     }
   });
 }
@@ -375,8 +414,8 @@ function getB285Settings() {
         const rawdata = event.data.slice(3);
         const b285source = rawdata.charAt(0);
         document.getElementById("b285source").value = b285source;
-        const speakers = rawdata.charAt(1);
-        document.getElementById("speakers").value = speakers;
+        const getspeakers = rawdata.charAt(1);
+        document.getElementById("getspeakers").value = getspeakers;
         const volume = rawdata.slice(2, 4);
         document.getElementById("volume").value = volume;
         const tunerstation = rawdata.slice(4, 6);
@@ -385,4 +424,14 @@ function getB285Settings() {
         document.getElementById("stationid").value = stationid;
         const frequency = rawdata.slice(10, 15);
         document.getElementById("frequency").value = frequency;
+}
+
+function getB291Settings() {
+        const rawdata = event.data.slice(3);
+        const fiststatebyte = rawdata.charAt(0);
+        const nibble1 = (fiststatebyte >> 4) & 0x0F;
+        const nibble2 = fiststatebyte & 0x0F;
+        const secondstatebyte = rawdata.charAt(1);
+        const nibble3 = (secondstatebyte >> 4) & 0x0F;
+        const nibble4 = secondstatebyte & 0x0F;
 }

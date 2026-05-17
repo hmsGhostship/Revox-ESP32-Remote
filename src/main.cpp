@@ -47,6 +47,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     data[len] = 0;
+
     if (strncmp((char*)data, "button", 6) == 0) {
       data +=6;
       if (strncmp((char*)data, "Push", 4) == 0){
@@ -54,8 +55,41 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       buttonHold = 1;
       } else if (strncmp((char*)data, "Release", 7) == 0){
       buttonHold = 0;
-      //cmdRelease = 1;
       }
+    }
+
+ else if (strncmp((char*)data, "speakers", 8) == 0) {
+              char b285Speaker[3];
+              strncpy( b285Speaker, (char*)data + 8, sizeof(b285Speaker));
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ( "receiver", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
+                  Serial2.print( b285Speaker );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i].out );
+                  Serial.println( b285Speaker );
+                break;
+                }
+              ++i;
+              }
+    }
+
+    else if (strncmp((char*)data, "volSlider", 9) == 0) {
+              char b285Volume[4];
+              strncpy( b285Volume, (char*)data + 9, sizeof(b285Volume));
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ( "receiver", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
+                  Serial2.print( b285Volume );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i].out );
+                  Serial.println( b285Volume );
+                break;
+                }
+              ++i;
+              }
     }
 
     else if (strncmp((char*)data, "setup", 5) == 0) {
@@ -187,9 +221,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
 
     else if (strncmp((char*)data, "page", 4) == 0) {
-      data +=4;
+    Serial.println((char*)data);      data +=4;
       if (strncmp((char*)data, "Release", 7) == 0){
       strncpy(buttonName, (char*)data + 7, sizeof(buttonName));
+      Serial.println(buttonName);
         int i = 0;
         while( outputTable[i].descr != NULL) {
           if (( strcmp ( buttonName, outputTable[i].descr ) == 0) && ( outputTable[i].feedback == 1)){
@@ -265,9 +300,25 @@ void setupServerRoutes(){
       server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
       request->send(LittleFS, "/tuner.html", "text/html");
     });
+      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/receiver.html", "text/html");
+    });
+
     // Wenn die angeforderte Seite nicht vorhanden ist, `notFound()` aufrufen
     server.onNotFound(notFound);
     server.serveStatic("/", LittleFS, "/");
+}
+
+void goToLightSleep() {
+  Serial.println("Gehe in den Light Sleep...");
+  delay(100); // Warten, bis serielle Ausgaben beendet sind
+
+  // Light Sleep starten
+  esp_light_sleep_start();
+  
+  // Der Code pausiert hier, bis der Weck-Pin ausgelöst wird.
+  // Nach dem Aufwachen geht es hier direkt weiter.
+  Serial.println("Wieder aufgewacht!");
 }
 
 struct B203SetData {
@@ -327,11 +378,18 @@ void setup() {
   Serial.println();
   Serial.print("Revox-Remote ist bereit");
   Serial.println();
+
+  esp_sleep_enable_wifi_wakeup();
+  gpio_wakeup_enable((gpio_num_t)PIN_RECV, GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
+  btStop(); 
     
 }
 
 void loop() {
   
+  //goToLightSleep();
+
   ws.cleanupClients();
   
   if (Serial2.available() > 0) {

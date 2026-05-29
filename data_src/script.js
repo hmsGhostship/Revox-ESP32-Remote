@@ -35,7 +35,7 @@
 // When websocket is established, call the getReadings() function
   function onOpen(event) {
     console.log('Connection opened');
-    websocket.send('ConnectionOpened');
+    websocket.send('get_data');
   }
 
   function onClose(event) {
@@ -155,17 +155,6 @@ function getb226() {
   });
 }
 
-function getb291() {
-
-  document.getElementById('b291_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "phonoX" );
-    websocket.send("phonoX");
-    }
-  });
-}
-
 function getb285() {
 
   document.getElementById('b285_get')?.addEventListener('click', () => {
@@ -186,6 +175,47 @@ function getb203() {
     websocket.send( Name + "0X");
     }
   });
+}
+
+function getb291() {
+
+  document.getElementById('b291_get')?.addEventListener('click', () => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "phonoX" );
+    websocket.send( "phonoX");
+    }
+  });
+}
+
+
+function getb226tabevent() {
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "cdplayerX" );
+    websocket.send("cdplayerX");
+    }
+}
+
+function getb215tabevent() {
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "tape2X" );
+    websocket.send("tape2X");
+    }
+}
+
+function getb203tabevent() {
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "getsettings0X" );
+    websocket.send( "getsettings0X");
+    }
+}
+
+
+function getb285tabevent() {
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "receiverX" );
+    websocket.send("receiverX");
+    }
 }
 
 function setDateb203() {
@@ -318,7 +348,7 @@ const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
 
 function openB203(evt, TabName) {
   // Declare all variables
-  var i, tabcontent, tablinks;
+  var i, tabcontent, tablinks, tabname;
 
   // Get all elements with class="tabcontent" and hide them
   tabcontent = document.getElementsByClassName("tabcontent");
@@ -335,7 +365,22 @@ function openB203(evt, TabName) {
   // Show the current tab, and add an "active" class to the button that opened the tab
   document.getElementById(TabName).style.display = "block";
   evt.currentTarget.className += " active";
-} 
+
+  tabname = document.getElementById(TabName).id;
+  if (tabname == "B226Statustab"){
+  console.log(tabname);
+  getb226tabevent();
+  } else if (tabname == "B203Setuptab") {
+  console.log(tabname);
+  getb203tabevent();
+  } else if (tabname == "B215Statustab") {
+  console.log(tabname);
+  getb215tabevent();
+  } else if (tabname == "B285Statustab") {
+  console.log(tabname);
+  getb285tabevent();
+  } 
+}
 
 function swapPairs(str) {
   if (str.length < 6) return "String zu kurz";
@@ -429,9 +474,16 @@ function getB285Settings() {
 function getB291Settings() {
         const rawdata = event.data.slice(3);
         const fiststatebyte = rawdata.charAt(0);
+        const secondstatebyte = rawdata.charAt(1);
         const nibble1 = (fiststatebyte >> 4) & 0x0F;
         const nibble2 = fiststatebyte & 0x0F;
-        const secondstatebyte = rawdata.charAt(1);
         const nibble3 = (secondstatebyte >> 4) & 0x0F;
         const nibble4 = secondstatebyte & 0x0F;
+        if (nibble1 == 1) {
+        document.getElementById("b291speed").value = nibble2;
+        console.log(nibble2);
+        document.getElementById("b291state").value = nibble3;
+        console.log(nibble3);
+        } else if (nibble1 == 5) {
+        }
 }

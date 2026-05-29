@@ -116,6 +116,7 @@ label {
 .select-group-container {
     border: 2px solid #0a0a0a;
     padding: 25px;
+
     padding-left: 35px;
     padding-right: 0px;
     border-radius: 8px;
@@ -149,12 +150,14 @@ label {
     align-items: center;
     justify-content: center;
     border: 2px solid #0a0a0a;
+    padding: 5px;
     padding: 25px;
     padding-left: 35px;
     padding-right: 0px;
     border-radius: 8px;
     box-sizing: border-box;
     display: inline-block;
+    text-align-last:center;
     background-color: rgb(142, 142, 142);
 }
 
@@ -428,8 +431,6 @@ input:checked + .slider .off {
 .slider.round:before {
   border-radius: 50%;
 }
-
-
 
 
 /* Style the tab */

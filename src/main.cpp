@@ -9,8 +9,8 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#define RXD2 16
-#define TXD2 17
+#define RXD2 17
+#define TXD2 16
 #define REVOX_BAUD 1200
 
 #define USE_LittleFS
@@ -29,13 +29,17 @@
 
 bool State = 0;
 bool buttonHold = 0;
-bool wsopen =0;
+bool getFlag = 0;
 unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
 int irid =0;
 String b203data;
 const int PIN_RECV = 25;
+const int PIN_CTS = 26;
+const int PIN_RTS = 27;
+const int OE_FXMA108 = 0;
+bool Set_OE_FXMA108 = true;
 
 //byte xonxoffstate = 0; // 1 means don't send data
 
@@ -106,6 +110,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       Serial2.print(settingsBytes);
       Serial2.print("\r");
       Serial.println(settingsBytes);
+      if ( strcmp(settingsBytes, "0X") == 0 ) {
+      getFlag = 1;
+      }
     }
 
     else if (strncmp((char*)data, "tape2", 5) == 0) {
@@ -119,6 +126,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
                   Serial2.print("\r");
                   Serial.print( outputTable[i].out );
                   Serial.print( b215settingsBytes );
+                  if (strcmp( b215settingsBytes, "X") == 0) {
+                  getFlag = 1;
+                  }
                 break;
                 }
               ++i;
@@ -136,6 +146,29 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
                   Serial2.print("\r");
                   Serial.print( outputTable[i].out );
                   Serial.print( b226settingsBytes );
+                  if (strcmp(b226settingsBytes, "X") == 0) {
+                  getFlag = 1;
+                  }
+                break;
+                }
+              ++i;
+              }
+    }
+
+    else if (strncmp((char*)data, "phono", 5) == 0) {
+              char b291settingsBytes[2];
+              strncpy( b291settingsBytes, (char*)data + 5, sizeof(b291settingsBytes)); 
+              int i = 0;
+              while( outputTable[i].descr != NULL) {
+                if ( strcmp ("phono", outputTable[i].descr ) == 0) {
+                  Serial2.print( outputTable[i].out );
+                  Serial2.print( b291settingsBytes );
+                  Serial2.print("\r");
+                  Serial.print( outputTable[i].out );
+                  Serial.print( b291settingsBytes );
+                  if (strcmp(b291settingsBytes, "X") == 0) {
+                  getFlag = 1;
+                  }
                 break;
                 }
               ++i;
@@ -153,6 +186,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
                   Serial2.print("\r");
                   Serial.print( outputTable[i].out );
                   Serial.print( b285settingsBytes );
+                  if (strcmp(b285settingsBytes, "X") == 0) {
+                  getFlag = 1;
+                  }
                 break;
                 }
               ++i;
@@ -247,11 +283,14 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
   switch (type) {
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-      wsopen = 1;
+      //wsopen = 1;
+      if (b203data.length() > 0 ) {
+      ws.textAll(b203data);
+      b203data = '\0';
+      }
       break;
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
-      wsopen = 0;
       break;
     case WS_EVT_DATA:
       handleWebSocketMessage(arg, data, len);
@@ -336,12 +375,23 @@ void setup() {
   delay(50);
 
   setupIRoutPin();
+
+  pinMode(PIN_RTS, INPUT);
+  pinMode(PIN_CTS, OUTPUT);
+
+  pinMode(OE_FXMA108, OUTPUT);
+  if (Set_OE_FXMA108 == true){
+    digitalWrite(OE_FXMA108, LOW);
+  } else if (Set_OE_FXMA108 == false) {
+    digitalWrite(OE_FXMA108, HIGH);
+  }
   
  Serial2.begin(REVOX_BAUD, SERIAL_8N1, RXD2, TXD2);
 
  if (Serial2) {
   Serial.println("Revox Serial startet");
  }
+
   Serial2.setTimeout(5000);
   //Serial2.write(0x13);
   //Serial2.write(0x11);
@@ -394,12 +444,14 @@ void loop() {
   
   if (Serial2.available() > 0) {
     b203data = Serial2.readStringUntil('\n'); // Reads until LF or timeout
-    Serial.println(b203data);
+    //Serial.println(b203data);
   }
   
-  if ((wsopen == 1 ) && (b203data.length() > 0 )) {
+  if ((b203data.length() > 0 ) &&  (getFlag == 1)) {
+      Serial.println(b203data);
       ws.textAll(b203data);
       b203data = '\0';
+      getFlag = 0;
       }
 
   unsigned long currentMillis = millis();

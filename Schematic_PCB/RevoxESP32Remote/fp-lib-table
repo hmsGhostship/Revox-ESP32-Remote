@@ -1,0 +1,6 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "iHaospace") (type "KiCad") (uri "C:/Users/hansh/Documents/KiCad/10.0/footprints/iHaospace.pretty") (options "") (descr ""))
+	(lib (name "MyFootprints") (type "KiCad") (uri "C:/Users/hansh/Documents/KiCad/10.0/footprints/MyFootprints.pretty") (options "") (descr ""))
+	(lib (name "MyFootprints") (type "KiCad") (uri "C:/Users/hansh/Documents/KiCad/10.0/footprints/MyFootprints.pretty") (options "") (descr ""))
+)

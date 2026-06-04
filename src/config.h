@@ -157,14 +157,14 @@ static const command cmdTable [] = {
     { "tape2loop",	0x100037, "0000", "001011", 0, "L", 0, "tape2" },           //116
     // Phono Plattenspieler B291
     { "phonopoweroff", 0x540015, "1000", "111111", 0, NULL, 0, "phono" },       //117
-    { "phonoforw",  0x540034,  "1000", "000011", 0, ">", 1, "phono" },         //120
-    { "phonoback",	0x540033, "1000", "100011", 0, "<", 1, "phono" },          //121
-    { "phonovoldn", 0x540012, "1000", "000010", 0, NULL, 1, "phono" },          //122
-    { "phonovolup", 0x540013, "1000", "100010", 0, NULL, 1, "phono" },          //123
-    { "phonolift",	0x540036, "1000", "111101", 0, NULL, 0, "phono" },          //124
+    { "phonoforw",  0x540034,  "1000", "000011", 0, ">", 1, "phono" },          //118
+    { "phonoback",	0x540033, "1000", "100011", 0, "<", 1, "phono" },           //119
+    { "phonovoldn", 0x540012, "1000", "000010", 0, NULL, 1, "phono" },          //120
+    { "phonovolup", 0x540013, "1000", "100010", 0, NULL, 1, "phono" },          //121
+    { "phonolift",	0x540036, "1000", "111101", 0, NULL, 0, "phono" },          //122
 
      // Receiver B285/B286
-    { "recvpoweroff", 0x0, "1000", "111111", 0, "O", 0, "receiver" },     //123
+    { "recvpoweroff", 0x0, "1000", "111111", 0, "O", 0, "receiver" },       //123
     { "recv1", 0x0,  "1000", "011101", 0, "E01", 0, "receiver" },           //124
     { "recv2", 0x0, "1000", "101101", 0, "E02", 0, "receiver" },            //125
     { "recv3", 0x0, "1000", "001101", 0, "E03", 0, "receiver" },            //126
@@ -174,49 +174,49 @@ static const command cmdTable [] = {
     { "recv7", 0x0, "1000", "000101", 0, "E07", 0, "receiver" },            //130
     { "recv8", 0x0, "1000", "111001", 0, "E08", 0, "receiver" },            //131
     { "recv9", 0x0,  "1000", "011001", 0, "E09", 0, "receiver" },           //132
-    { "recv0", 0x0,  "1000", "101001", 0, NULL, 0, "receiver" },           //133
-    { "recv10", 0x0,  NULL, NULL, 0, "E10", 0, "receiver" },           //124
-    { "recv11", 0x0,  NULL, NULL, 0, "E11", 0, "receiver" },           //124
-    { "recv12", 0x0, NULL, NULL, 0, "E12", 0, "receiver" },            //125
-    { "recv13", 0x0, NULL, NULL, 0, "E13", 0, "receiver" },            //126
-    { "recv14", 0x0, NULL, NULL, 0, "E14", 0, "receiver" },            //127
-    { "recv15", 0x0, NULL, NULL, 0, "E15", 0, "receiver" },            //128
-    { "recv16", 0x0, NULL, NULL, 0, "E16", 0, "receiver" },            //129
-    { "recv17", 0x0, NULL, NULL, 0, "E17", 0, "receiver" },            //130
-    { "recv18", 0x0, NULL, NULL, 0, "E18", 0, "receiver" },            //131
-    { "recv19", 0x0,  NULL, NULL, 0, "E19", 0, "receiver" },           //132
-    { "recv20", 0x0,  NULL, NULL, 0, "E20", 0, "receiver" },           //133
-    { "recv21", 0x0,  NULL, NULL, 0, "E21", 0, "receiver" },           //124
-    { "recv22", 0x0,  NULL, NULL, 0, "E22", 0, "receiver" },           //124
-    { "recv23", 0x0, NULL, NULL, 0, "E23", 0, "receiver" },            //125
-    { "recv24", 0x0, NULL, NULL, 0, "E24", 0, "receiver" },            //126
-    { "recv25", 0x0, NULL, NULL, 0, "E25", 0, "receiver" },            //127
-    { "recv26", 0x0, NULL, NULL, 0, "E26", 0, "receiver" },            //128
-    { "recv27", 0x0, NULL, NULL, 0, "E27", 0, "receiver" },            //129
-    { "recv28", 0x0, NULL, NULL, 0, "E28", 0, "receiver" },            //130
-    { "recv29", 0x0, NULL, NULL, 0, "E29", 0, "receiver" },            //131
-    { "recvscannext", 0x0, "1000", "100110", 0, "N", 0, "receiver" },     //134
-    { "recventer", 0x0, "1000", "000110", 0, "I", 0, "receiver" },        //135
-    { "recvtapemon2", 0x0, "1000", "111010", 0, "H", 0, "receiver"  },    //138
-    { "recvloudness", 0x0, "1000", "011010", 0, NULL, 0, "receiver"  },    //139
-    { "recvtape2", 0x0, "1000", "101010", 0, "B", 0, "receiver"  },       //140
-    { "recvcd", 0x0, "1000", "001010", 0, "C", 0, "receiver"  },          //141
-    { "recvbal_l", 0x0, "1000", "110010", 0, NULL, 1, "receiver" },        //142
-    { "recvbal_r", 0x0, "1000", "010010", 0, NULL, 1, "receiver" },        //143
-    { "recvvolup", 0x0, "1000", "100010", 0, NULL, 1, "receiver" },        //144
-    { "recvvoldn", 0x0, "1000", "000010", 0, NULL, 1, "receiver" },        //145
-    { "recvtape1", 0x0, "1000", "111100", 0, "A", 0, "receiver" },        //146
-    { "recvphono", 0x0, "1000", "101100", 0, "D", 0, "receiver" },        //147
-    { "recv20db", 0x0, "1000", "110100", 0, NULL, 0, "receiver" },         //148
-    { "recvtone", 0x0, "1000", "010100", 0, NULL, 0, "receiver" },         //149
-    { "recvtapemon1", 0x0, "1000", "100100", 0, "G", 0, "receiver" },     //150
-    { "recvhighblend", 0x0, "1000", "011000", 0, NULL, 0, "receiver" },    //151
-    { "recvmute", 0x0, "1000", "101000", 0, NULL, 0, "receiver" },         //152
-    { "recvspeakersa", 0x0, "1000", "001000", 0, NULL, 0, "receiver" },    //153
-    { "recvstore", 0x0, "1000", "11000", 0, NULL, 0, "receiver" },         //154
-    { "recvmono", 0x0, "1000", "010000", 0, NULL, 0, "receiver" },         //155
-    { "recvspeakersb", 0x0, "1000", "100000", 0, NULL, 0, "receiver" },    //156
-    { "recvtestmode", 0x0, "1000", "000000", 0, NULL, 0, "receiver" },     //157
+    { "recv0", 0x0,  "1000", "101001", 0, NULL, 0, "receiver" },            //133
+    { "recv10", 0x0,  NULL, NULL, 0, "E10", 0, "receiver" },                //124
+    { "recv11", 0x0,  NULL, NULL, 0, "E11", 0, "receiver" },                //124
+    { "recv12", 0x0, NULL, NULL, 0, "E12", 0, "receiver" },                 //125
+    { "recv13", 0x0, NULL, NULL, 0, "E13", 0, "receiver" },                 //126
+    { "recv14", 0x0, NULL, NULL, 0, "E14", 0, "receiver" },                 //127
+    { "recv15", 0x0, NULL, NULL, 0, "E15", 0, "receiver" },                 //128
+    { "recv16", 0x0, NULL, NULL, 0, "E16", 0, "receiver" },                 //129
+    { "recv17", 0x0, NULL, NULL, 0, "E17", 0, "receiver" },                 //130
+    { "recv18", 0x0, NULL, NULL, 0, "E18", 0, "receiver" },                 //131
+    { "recv19", 0x0,  NULL, NULL, 0, "E19", 0, "receiver" },                //132
+    { "recv20", 0x0,  NULL, NULL, 0, "E20", 0, "receiver" },                //133
+    { "recv21", 0x0,  NULL, NULL, 0, "E21", 0, "receiver" },                //124
+    { "recv22", 0x0,  NULL, NULL, 0, "E22", 0, "receiver" },                //124
+    { "recv23", 0x0, NULL, NULL, 0, "E23", 0, "receiver" },                 //125
+    { "recv24", 0x0, NULL, NULL, 0, "E24", 0, "receiver" },                 //126
+    { "recv25", 0x0, NULL, NULL, 0, "E25", 0, "receiver" },                 //127
+    { "recv26", 0x0, NULL, NULL, 0, "E26", 0, "receiver" },                 //128
+    { "recv27", 0x0, NULL, NULL, 0, "E27", 0, "receiver" },                 //129
+    { "recv28", 0x0, NULL, NULL, 0, "E28", 0, "receiver" },                 //130
+    { "recv29", 0x0, NULL, NULL, 0, "E29", 0, "receiver" },                 //131
+    { "recvscannext", 0x0, "1000", "100110", 0, "N", 0, "receiver" },       //134
+    { "recventer", 0x0, "1000", "000110", 0, "I", 0, "receiver" },          //135
+    { "recvtapemon2", 0x0, "1000", "111010", 0, "H", 0, "receiver"  },      //138
+    { "recvloudness", 0x0, "1000", "011010", 0, NULL, 0, "receiver"  },     //139
+    { "recvtape2", 0x0, "1000", "101010", 0, "B", 0, "receiver"  },         //140
+    { "recvcd", 0x0, "1000", "001010", 0, "C", 0, "receiver"  },            //141
+    { "recvbal_l", 0x0, "1000", "110010", 0, NULL, 1, "receiver" },         //142
+    { "recvbal_r", 0x0, "1000", "010010", 0, NULL, 1, "receiver" },         //143
+    { "recvvolup", 0x0, "1000", "100010", 0, NULL, 1, "receiver" },         //144
+    { "recvvoldn", 0x0, "1000", "000010", 0, NULL, 1, "receiver" },         //145
+    { "recvtape1", 0x0, "1000", "111100", 0, "A", 0, "receiver" },          //146
+    { "recvphono", 0x0, "1000", "101100", 0, "D", 0, "receiver" },          //147
+    { "recv20db", 0x0, "1000", "110100", 0, NULL, 0, "receiver" },          //148
+    { "recvtone", 0x0, "1000", "010100", 0, NULL, 0, "receiver" },          //149
+    { "recvtapemon1", 0x0, "1000", "100100", 0, "G", 0, "receiver" },       //150
+    { "recvhighblend", 0x0, "1000", "011000", 0, NULL, 0, "receiver" },     //151
+    { "recvmute", 0x0, "1000", "101000", 0, NULL, 0, "receiver" },          //152
+    { "recvspeakersa", 0x0, "1000", "001000", 0, NULL, 0, "receiver" },     //153
+    { "recvstore", 0x0, "1000", "11000", 0, NULL, 0, "receiver" },          //154
+    { "recvmono", 0x0, "1000", "010000", 0, NULL, 0, "receiver" },          //155
+    { "recvspeakersb", 0x0, "1000", "100000", 0, NULL, 0, "receiver" },     //156
+    { "recvtestmode", 0x0, "1000", "000000", 0, NULL, 0, "receiver" },      //157
     { NULL, 0x0, NULL,   NULL, 0, NULL, 0, NULL }
 };
 

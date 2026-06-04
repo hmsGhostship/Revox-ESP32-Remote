@@ -106,6 +106,18 @@ void loadPortConfig() {
     */
 
     index++;
+
+  }
+      Serial.println("--- Geparste Struct-Werte ---");
+    for (int i = 0; i < portTableSize; i++) {
+    Serial.print("Name: ");
+    Serial.print(portArray[i].name);
+    Serial.print(" | Beschreibung: ");
+    Serial.print(portArray[i].descr);
+    Serial.print(" | Port: ");
+    Serial.println(portArray[i].out);
+    Serial.print(" | Feedback: ");
+    Serial.println(portArray[i].feedback);
   }
 }
 
@@ -634,18 +646,6 @@ initLittleFS();
   btStop();
 
   loadPortConfig();
-
-  Serial.println("--- Geparste Struct-Werte ---");
-    for (int i = 0; i < portTableSize; i++) {
-    Serial.print("Name: ");
-    Serial.print(portArray[i].name);
-    Serial.print(" | Beschreibung: ");
-    Serial.print(portArray[i].descr);
-    Serial.print(" | Port: ");
-    Serial.println(portArray[i].out);
-    Serial.print(" | Feedback: ");
-    Serial.println(portArray[i].feedback);
-  }
 
 }
 

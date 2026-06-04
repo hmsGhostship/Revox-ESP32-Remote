@@ -1,5 +1,7 @@
-  var gateway = `ws://${window.location.hostname}/ws`;
-  var websocket;
+  //var gateway = `ws://${window.location.hostname}/ws`;
+  //var websocket
+  var gateway = "ws://" + window.location.hostname + "/ws";
+  var websocket = new WebSocket(gateway);
   // Init web socket when the page loads
   window.addEventListener('load', onLoad);
   let configData = [];
@@ -536,10 +538,10 @@ async function loadData() {
        	item 
        	tbody.innerHTML += `
          		<tr>
-            <td><input type="text" value="${item.name}" disabled></td>
-           	<td><input type="text" value="${item.descr}" disabled></td>
+            <td><input class="portselect" type="text" value="${item.name}" disabled></td>
+           	<td><input class="portselect" type="text" value="${item.descr}" disabled></td>
            	<td>
-       			<select onchange="updateValue(${index}, 'out', this.value)" >
+       			<select class="portselect" onchange="updateValue(${index}, 'out', this.value)" >
          		<option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
             <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
  	    	    <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>

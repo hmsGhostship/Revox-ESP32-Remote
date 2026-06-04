@@ -237,6 +237,7 @@ label {
 
 .button {
   border:2px solid #333;
+  cursor: pointer;
   padding-top:40px;
   padding-bottom:40px;
   font-size: 25px;
@@ -659,7 +660,7 @@ legend {
 }
 
 table {
-  width: 80%;
+  width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
   }
@@ -675,22 +676,38 @@ th {
   background-color: #f2f2f2;
   }
 
-.form-gruppe {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Abstand zwischen Label und den Elementen */
-  max-width: 300px;
+.portselect{
+    position: relative;
+    width: 170px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    color: #fff;
+    background: #292929;
+    text-align: center;
+    padding: 0 15px;
+    font-size: 20px;
+    cursor: pointer;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px; /* Abstand zwischen Checkbox und ihrem Text */
-  cursor: pointer;
+.portselect::after{
+    content: '';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
 }
 
-.container2 {
-  display: flex; /* Aktiviert die flexible Aufteilung */
-  font-size: 15px;
-  width: 100%;   /* Der Hauptbereich nimmt die volle Breite ein */
+.portselect:hover{
+    background: #222222;
+}
+
+.portselect.active{
+    background: #222222;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }

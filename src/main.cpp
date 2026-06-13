@@ -33,7 +33,6 @@
   #include <SPIFFS.h>
 #endif
 #include <ArduinoJson.h>
-#include "PinDefinitionsAndMore.h" 
 #include <IRRemote.hpp>
 
 #include "IRsend.h"

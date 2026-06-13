@@ -1,17 +1,10 @@
-  //var gateway = `ws://${window.location.hostname}/ws`;
-  //var websocket
-  //var gateway = "ws://" + window.location.hostname + "/ws";
-  //var gateway = "wss://192.168.178.147/ws"
-  //var websocket = new WebSocket(gateway);
-  
-let gateway = `ws://${window.location.hostname}/ws`;
+const gateway = `ws://${window.location.hostname}/ws`;
 let websocket;
 
+window.addEventListener('load', onLoad);
+let configData = [];
 
-  window.addEventListener('load', onLoad);
-  let configData = [];
-
-    function onLoad(event) {
+  function onLoad(event) {
     initWebSocket();
     getButton();
     setIRstate();
@@ -32,7 +25,7 @@ let websocket;
     setPorts();
   }
 
-    function initWebSocket() {
+  function initWebSocket() {
     console.log('Trying to open a WebSocket connection...');
     websocket = new WebSocket(gateway);
     websocket.onopen    = onOpen;
@@ -87,9 +80,9 @@ let websocket;
       }
   }
 
-function setIRstate() {
+  function setIRstate() {
 
-  document.getElementById('IR')?.addEventListener('change', () => {
+    document.getElementById('IR')?.addEventListener('change', () => {
           const Id = event.target.id;
           const Value = event.target.checked;
           const Name = event.target.name;
@@ -97,12 +90,12 @@ function setIRstate() {
           console.log(Name + Value + Id);
           websocket.send(Name + Value + Id);
          }
-      });
-}
+    });
+  }
 
-function setB285Speakers() {
+  function setB285Speakers() {
 
-  document.getElementById('speakers')?.addEventListener('change', () => {
+    document.getElementById('speakers')?.addEventListener('change', () => {
           const Id = event.target.id;
           const Value = event.target.value;
           const Name = event.target.name;
@@ -110,12 +103,12 @@ function setB285Speakers() {
           console.log(Name + Value);
           websocket.send(Name + Value);
          }
-      });
-}
+    });
+  }
 
-function setB285Volume() {
+  function setB285Volume() {
 
-  document.getElementById('volumeSlider')?.addEventListener('change', () => {
+    document.getElementById('volumeSlider')?.addEventListener('change', () => {
           const Id = event.target.id;
           const Value = event.target.value;
           const Name = event.target.name;
@@ -123,238 +116,238 @@ function setB285Volume() {
           console.log(Name + "V" + Value);
           websocket.send(Name + "V" +Value);
          }
+    });
+  }
+
+  function setPorts() {
+
+    document.getElementById('b203setport')?.addEventListener('click', () => {
+    // 1. Alle Elemente mit der gewünschten Klasse auswählen (z.B. "meine-klasse")
+    const elemente = document.querySelectorAll('.portConfig');
+    // 2. Die Werte der Elemente in ein Array oder Objekt extrahieren
+      const datenObjekte = Array.from(elemente).map((element) => {
+        return {
+          descr: element.getAttribute('data-descr'), // Beispiel für ein weiteres Attribut (data-*)
+          out: element.value, // Der Hauptwert/Text des Elements
+          feedback: element.getAttribute('data-feedback'), // Beispiel für ein weiteres Attribut (data-*)
+        };
       });
-}
-
-function setPorts() {
-
-document.getElementById('b203setport')?.addEventListener('click', () => {
-  // 1. Alle Elemente mit der gewünschten Klasse auswählen (z.B. "meine-klasse")
-  const elemente = document.querySelectorAll('.portConfig');
-  // 2. Die Werte der Elemente in ein Array oder Objekt extrahieren
-  const datenObjekte = Array.from(elemente).map((element) => {
-    return {
-      descr: element.getAttribute('data-descr'), // Beispiel für ein weiteres Attribut (data-*)
-      out: element.value, // Der Hauptwert/Text des Elements
-      feedback: element.getAttribute('data-feedback'), // Beispiel für ein weiteres Attribut (data-*)
-    };
-});
-// 3. Das Array/Objekt in einen JSON-String umwandeln
-const jsonErgebnis = JSON.stringify(datenObjekte, null, 2);
-console.log(jsonErgebnis);
-});
-}
+      // 3. Das Array/Objekt in einen JSON-String umwandeln
+      const jsonErgebnis = JSON.stringify(datenObjekte, null, 2);
+      console.log(jsonErgebnis);
+    });
+  }
 
 
-function setb203() {
+  function setb203() {
 
-  document.getElementById('b203_set')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const language = document.querySelector('select[id="language"]').value;
-    const easy = document.querySelector('select[id="easy"]').value;
-    const timer = document.querySelector('select[id="timer"]').value;
-    const poweron = document.querySelector('select[id="poweron"]').value;
+    document.getElementById('b203_set')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const language = document.querySelector('select[id="language"]').value;
+      const easy = document.querySelector('select[id="easy"]').value;
+      const timer = document.querySelector('select[id="timer"]').value;
+      const poweron = document.querySelector('select[id="poweron"]').value;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( Name + "0S" + language + easy + timer + poweron );
+        websocket.send( Name + "0S" + language + easy + timer + poweron );
+      }
+    });
+  }
+
+  function getb215() {
+
+    document.getElementById('b215_get')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+      console.log( "tape2X" );
+      websocket.send("tape2X");
+      }
+    });
+  }
+
+  function getb226() {
+
+    document.getElementById('b226_get')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( "cdplayerX" );
+        websocket.send("cdplayerX");
+      }
+    });
+  }
+
+  function getb285() {
+
+    document.getElementById('b285_get')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( "receiverX" );
+        websocket.send("receiverX");
+      }
+    });
+  }
+
+  function getb203() {
+
+    document.getElementById('b203_get')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( Name + "0X" );
+        websocket.send( Name + "0X");
+      }
+    });
+  }
+
+  function getb291() {
+
+    document.getElementById('b291_get')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( "phonoX" );
+        websocket.send( "phonoX");
+      }
+    });
+  }
+
+
+  function getb226tabevent() {
     if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0S" + language + easy + timer + poweron );
-    websocket.send( Name + "0S" + language + easy + timer + poweron );
+      console.log( "cdplayerX" );
+      websocket.send("cdplayerX");
     }
-  });
-}
+  }
 
-function getb215() {
-
-  document.getElementById('b215_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
+  function getb215tabevent() {
     if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "tape2X" );
-    websocket.send("tape2X");
+      console.log( "tape2X" );
+      websocket.send("tape2X");
     }
-  });
-}
+  }
 
-function getb226() {
+  function getb203tabevent() {
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( "getsettings0X" );
+        websocket.send( "getsettings0X");
+      }
+  }
 
-  document.getElementById('b226_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "cdplayerX" );
-    websocket.send("cdplayerX");
-    }
-  });
-}
-
-function getb285() {
-
-  document.getElementById('b285_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "receiverX" );
-    websocket.send("receiverX");
-    }
-  });
-}
-
-function getb203() {
-
-  document.getElementById('b203_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0X" );
-    websocket.send( Name + "0X");
-    }
-  });
-}
-
-function getb291() {
-
-  document.getElementById('b291_get')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "phonoX" );
-    websocket.send( "phonoX");
-    }
-  });
-}
-
-
-function getb226tabevent() {
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "cdplayerX" );
-    websocket.send("cdplayerX");
-    }
-}
-
-function getb215tabevent() {
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "tape2X" );
-    websocket.send("tape2X");
-    }
-}
-
-function getb203tabevent() {
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "getsettings0X" );
-    websocket.send( "getsettings0X");
-    }
-}
-
-function getWIFIConfig() {
+  function getWIFIConfig() {
       fetch('/get-config')
         .then(response => response.json())
         .then(data => {
           document.getElementById('ssid').value = data.ssid;
           document.getElementById('password').value = data.password;
         });
-}
+  }
 
 
 
-function getb285tabevent() {
+  function getb285tabevent() {
     if (websocket.readyState === WebSocket.OPEN) {
-    console.log( "receiverX" );
-    websocket.send("receiverX");
+      console.log( "receiverX" );
+      websocket.send("receiverX");
     }
-}
+  }
 
 
 
-function setDateb203() {
+  function setDateb203() {
 
- document.getElementById('setDate')?.addEventListener('click', () => {
-        const Name = event.target.name;
-        const setdate = document.querySelector("#set_date").value;
-        let millenShort  = setdate.slice(2)
-        let splitdate = millenShort.replace(/-/g, "");
-        const swaped = swapPairs(splitdate);
+    document.getElementById('setDate')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const setdate = document.querySelector("#set_date").value;
+      let millenShort  = setdate.slice(2)
+      let splitdate = millenShort.replace(/-/g, "");
+      const swaped = swapPairs(splitdate);
         if (websocket.readyState === WebSocket.OPEN) {
-        console.log( Name + "0D" + swaped );
-        websocket.send( Name + "0D" + swaped );
+          console.log( Name + "0D" + swaped );
+          websocket.send( Name + "0D" + swaped );
         }
     });
-}
+  }
 
-function setTimeb203() {
+  function setTimeb203() {
 
-  document.getElementById('setTime')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const setdate = document.querySelector("#set_time").value;
-    let formtime = setdate.replace(/:/g, "");
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0T" + formtime );
-    websocket.send( Name + "0T" + formtime );
-    }
-  });
-}
-
-function callEventb203() {
-
-  document.getElementById('b203callevent')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const b203call = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0C" + b203call );
-    websocket.send( Name + "0C" + b203call );
-    }
-  });
-}
-
-function delEventb203() {
-
-  document.getElementById('b203delevent')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const b203del = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0E" + b203del + "E" );
-    websocket.send( Name + "0E" + b203del + "E" );
-    }
-  });
-}
-
-function testEventb203() {
-
-  document.getElementById('b203testevent')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const b203test = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0V" + b203test  );
-    websocket.send( Name + "0V" + b203test );
-    }
-  });
-}
-
-function setEventb203() {
-
-  document.getElementById('b203setevent')?.addEventListener('click', () => {
-    const Name = event.target.name;
-    const b203evn = document.querySelector('select[id="b203evn"]').value;
-    const datatype = document.querySelector('select[id="datetype"]').value;
-    const weekday  = document.querySelectorAll('input[name="day"]');
-    let weekdayString = "";
-    weekday.forEach((checkbox) => {
-    weekdayString += checkbox.checked ? "1" : "0";
+    document.getElementById('setTime')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const setdate = document.querySelector("#set_time").value;
+      let formtime = setdate.replace(/:/g, "");
+        if (websocket.readyState === WebSocket.OPEN) {
+          console.log( Name + "0T" + formtime );
+          websocket.send( Name + "0T" + formtime );
+        }
     });
-    const signalsource = document.querySelector('select[id="signalsource"]').value;
-    const sourceadd = document.querySelector("#sourceadd").value;
-    const output  = document.querySelectorAll('input[name="out"]');
-    let outputString = "";
-    output.forEach((checkbox) => {
-    outputString += checkbox.checked ? "1" : "0";
+  }
+
+  function callEventb203() {
+
+    document.getElementById('b203callevent')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const b203call = document.querySelector('select[id="b203evn"]').value;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( Name + "0C" + b203call );
+        websocket.send( Name + "0C" + b203call );
+      }
     });
-    const eventstarttime = document.querySelector("#eventstarttime").value;
-    let formevstarttime = eventstarttime.replace(/:/g, "");
-    const eventsoptime = document.querySelector("#eventstoptime").value;
-    let formevstoptime = eventsoptime.replace(/:/g, "");
-    if (websocket.readyState === WebSocket.OPEN) {
-    console.log( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime);
-    websocket.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
-    }
-  });
-}
+  }
 
-function getButton() {
-  const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
+  function delEventb203() {
 
-  buttons.forEach(btn => {
+    document.getElementById('b203delevent')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const b203del = document.querySelector('select[id="b203evn"]').value;
+      if (websocket.readyState === WebSocket.OPEN) {
+      console.log( Name + "0E" + b203del + "E" );
+      websocket.send( Name + "0E" + b203del + "E" );
+      }
+    });
+  }
+
+  function testEventb203() {
+
+    document.getElementById('b203testevent')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const b203test = document.querySelector('select[id="b203evn"]').value;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( Name + "0V" + b203test  );
+        websocket.send( Name + "0V" + b203test );
+      }
+    });
+  }
+
+  function setEventb203() {
+
+    document.getElementById('b203setevent')?.addEventListener('click', () => {
+      const Name = event.target.name;
+      const b203evn = document.querySelector('select[id="b203evn"]').value;
+      const datatype = document.querySelector('select[id="datetype"]').value;
+      const weekday  = document.querySelectorAll('input[name="day"]');
+      let weekdayString = "";
+      weekday.forEach((checkbox) => {
+        weekdayString += checkbox.checked ? "1" : "0";
+      });
+      const signalsource = document.querySelector('select[id="signalsource"]').value;
+      const sourceadd = document.querySelector("#sourceadd").value;
+      const output  = document.querySelectorAll('input[name="out"]');
+      let outputString = "";
+      output.forEach((checkbox) => {
+        outputString += checkbox.checked ? "1" : "0";
+      });
+      const eventstarttime = document.querySelector("#eventstarttime").value;
+      let formevstarttime = eventstarttime.replace(/:/g, "");
+      const eventsoptime = document.querySelector("#eventstoptime").value;
+      let formevstoptime = eventsoptime.replace(/:/g, "");
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime);
+        websocket.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
+      }
+    });
+  }
+
+  function getButton() {
+    const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
+
+    buttons.forEach(btn => {
     
     // --- 1. BLOCK: DRÜCKEN (mousedown / touchstart) ---
     ['mousedown', 'touchstart'].forEach(eventType => {
@@ -380,219 +373,218 @@ function getButton() {
         const Id = event.currentTarget.id;
         const Name = event.currentTarget.name;
 
-        // WebSocket: Release senden
-        if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + 'Release' + Id);
-          websocket.send(Name + 'Release' + Id);
-        }
-
-        // --- HIER PASSIERT DIE WEITERLEITUNG ---
-        // Wir suchen den Link (<A>-Tag) um den Button herum
-        const linkElement = event.currentTarget.closest('a');
-        if (linkElement && linkElement.getAttribute('href')) {
-          const destination = linkElement.getAttribute('href');
-          
-          // Wichtig für das iPhone: 80ms warten, damit das 'Release'-Paket 
-          // den ESP32 sicher erreicht, bevor die Seite stirbt.
-          setTimeout(() => {
-            window.location.href = destination;
-          }, 80);
-        }
-      }, { passive: false });
-    });
-
-  });
-}
-
-function openB203(evt, TabName) {
-  // Declare all variables
-  var i, tabcontent, tablinks, tabname;
-
-  // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
-
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(TabName).style.display = "block";
-  evt.currentTarget.className += " active";
-
-  tabname = document.getElementById(TabName).id;
-  if (tabname == "B226Statustab"){
-  console.log(tabname);
-  getb226tabevent();
-  } else if (tabname == "B203Setuptab") {
-  console.log(tabname);
-  getb203tabevent();
-    } else if (tabname == "WIFIConfig") {
-  console.log(tabname);
-  getWIFIConfig();
-  } else if (tabname == "B215Statustab") {
-  console.log(tabname);
-  getb215tabevent();
-  } else if (tabname == "B285Statustab") {
-  console.log(tabname);
-  getb285tabevent();
-  } else if (tabname == "PortConfig") {
-  console.log(tabname);
-  loadData();
-  }
-}
-
-function swapPairs(str) {
-  if (str.length < 6) return "String zu kurz";
-  let p1 = str.substring(0, 2);
-  let p2 = str.substring(2, 4);
-  let p3 = str.substring(4, 6);
-  return p3 + p2 + p1;
-}
-
-function getB203Settings() {
-   const datetimestr = event.data.slice(3, 15);
-        // 1. String zerlegen mittels substring
-        const day = datetimestr.substring(0, 2);
-        const month = datetimestr.substring(2, 4);
-        const year = datetimestr.substring(4, 6);
-        const yearlong = ("20" + year);
-        const hour = datetimestr.substring(6, 8);
-        const minute = datetimestr.substring(8, 10);
-        const second = datetimestr.substring(10, 12);
-        // 2. Formatieren für HTML-Inputs
-        const dateValue = `${yearlong}-${month}-${day}`; // YYYY-MM-DD
-        const timeValue = `${hour}:${minute}:${second}`;       // HH:mm
-        // 3. Werte in die Elemente einsetzen
-        document.getElementById("set_date").value = dateValue;
-        document.getElementById("set_time").value = timeValue;
-        const rawdata = event.data.slice(-6);
-        const lang = rawdata.charAt(0);
-        document.getElementById("language").value = lang;
-        const easymod = rawdata.charAt(1);
-        document.getElementById("easy").value = easymod;
-        const time = rawdata.charAt(2);
-        document.getElementById("timer").value = time;
-        const pwron = rawdata.charAt(3);
-        document.getElementById("poweron").value = pwron;
-        const irled = rawdata.charAt(4);
-          if (irled == "0") {
-          document.getElementById("IR").checked = true;
-          } else if (irled == "1") {
-          document.getElementById("IR").checked = false;
+          // WebSocket: Release senden
+          if (websocket.readyState === WebSocket.OPEN) {
+            console.log(Name + 'Release' + Id);
+            websocket.send(Name + 'Release' + Id);
           }
-}
 
-function getB215Settings() {
-        const rawdata = event.data.slice(3);
-        const functions = rawdata.charAt(0);
-        document.getElementById("functions").value = functions;
-        const addfunctions = rawdata.charAt(1);
-        document.getElementById("addfunctions").value = addfunctions;
-        const cuestate = rawdata.charAt(2);
-        document.getElementById("cuestate").value = cuestate;
-        const tapecountermm = rawdata.slice(3, 5);
-        const tapecounterss = rawdata.slice(5, 7);
-        const tapecounter = (tapecountermm + ":" + tapecounterss)
-        document.getElementById("bandzaehler").value = tapecounter;
-}
-
-function getB226Settings() {
-        const rawdata = event.data.slice(3);
-        const b226state = rawdata.charAt(0);
-        document.getElementById("b226state").value = b226state;
-        const tracknumber = rawdata.slice(1, 3);
-        document.getElementById("tracknumber").value = tracknumber;
-        const indexnumber = rawdata.slice(3, 5);
-        document.getElementById("indexnumber").value = indexnumber;
-        const elapsedtimemm = rawdata.slice(5, 7);
-        const elapsedtimess = rawdata.slice(7, 9);
-        const elapsedtime = (elapsedtimemm + ":" + elapsedtimess);
-        document.getElementById("elapsedtime").value = elapsedtime;
-        const remainingtimemm = rawdata.slice(9, 11);
-        const remainingtimess = rawdata.slice(11, 13);
-        const remainingtime = (remainingtimemm + ":" + remainingtimess);
-        document.getElementById("remainingtime").value = remainingtime;
-}
-
-function getB285Settings() {
-        const rawdata = event.data.slice(3);
-        const b285source = rawdata.charAt(0);
-        document.getElementById("b285source").value = b285source;
-        const getspeakers = rawdata.charAt(1);
-        document.getElementById("getspeakers").value = getspeakers;
-        const volume = rawdata.slice(2, 4);
-        document.getElementById("volume").value = volume;
-        const tunerstation = rawdata.slice(4, 6);
-        document.getElementById("tunerstation").value = tunerstation;
-        const stationid = rawdata.slice(6, 10);
-        document.getElementById("stationid").value = stationid;
-        const frequency = rawdata.slice(10, 15);
-        document.getElementById("frequency").value = frequency;
-}
-
-function getB291Settings() {
-        const rawdata = event.data.slice(3);
-        const fiststatebyte = rawdata.charAt(0);
-        const secondstatebyte = rawdata.charAt(1);
-        const nibble1 = (fiststatebyte >> 4) & 0x0F;
-        const nibble2 = fiststatebyte & 0x0F;
-        const nibble3 = (secondstatebyte >> 4) & 0x0F;
-        const nibble4 = secondstatebyte & 0x0F;
-        if (nibble1 == 1) {
-        document.getElementById("b291speed").value = nibble2;
-        console.log(nibble2);
-        document.getElementById("b291state").value = nibble3;
-        console.log(nibble3);
-        } else if (nibble1 == 5) {
-        }
-}
-
-async function loadData() {
-        const response = await fetch('/portconfig.json');
-      	configData = await response.json();
-      	const tbody = document.getElementById('table-body');
-      	tbody.innerHTML = '';
-      	configData.forEach((item, index) => {
-       	item 
-       	tbody.innerHTML += `
-         		<tr>
-            <td><input class="portselect" type="text" value="${item.name}" disabled></td>
-           	<td><input class="portselect" type="text" value="${item.descr}" disabled></td>
-           	<td>
-       			<select class="portselect" onchange="updateValue(${index}, 'out', this.value)" >
-         		<option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
-            <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
- 	    	    <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
-						<option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
-						<option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
-						<option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
-						<option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
-						<option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
-						<option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
-						<option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
-            <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
-   		      </select>
-         		</td>
-         		<td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
-        		</tr>
-       		`;
+          // --- HIER PASSIERT DIE WEITERLEITUNG ---
+          // Wir suchen den Link (<A>-Tag) um den Button herum
+          const linkElement = event.currentTarget.closest('a');
+          if (linkElement && linkElement.getAttribute('href')) {
+            const destination = linkElement.getAttribute('href');
+          
+            // Wichtig für das iPhone: 80ms warten, damit das 'Release'-Paket 
+            // den ESP32 sicher erreicht, bevor die Seite stirbt.
+            setTimeout(() => {
+              window.location.href = destination;
+            }, 80);
+          }
+        }, { passive: false });
       });
-}
+    });
+  }
 
-function updateValue(index, field, value) {
-  configData[index][field] = value;
-}
+  function openB203(evt, TabName) {
+    // Declare all variables
+    var i, tabcontent, tablinks, tabname;
 
-async function saveData() {
-  await fetch('/api/save-data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(configData)
-  });
-  alert("Konfiguration gespeichert!");
-}
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(TabName).style.display = "block";
+    evt.currentTarget.className += " active";
+
+    tabname = document.getElementById(TabName).id;
+    if (tabname == "B226Statustab"){
+      console.log(tabname);
+      getb226tabevent();
+    } else if (tabname == "B203Setuptab") {
+      console.log(tabname);
+      getb203tabevent();
+    } else if (tabname == "WIFIConfig") {
+      console.log(tabname);
+      getWIFIConfig();
+    } else if (tabname == "B215Statustab") {
+      console.log(tabname);
+      getb215tabevent();
+    } else if (tabname == "B285Statustab") {
+      console.log(tabname);
+      getb285tabevent();
+    } else if (tabname == "PortConfig") {
+      console.log(tabname);
+      loadData();
+    }
+  }
+
+  function swapPairs(str) {
+    if (str.length < 6) return "String zu kurz";
+    let p1 = str.substring(0, 2);
+    let p2 = str.substring(2, 4);
+    let p3 = str.substring(4, 6);
+    return p3 + p2 + p1;
+  }
+
+  function getB203Settings() {
+    const datetimestr = event.data.slice(3, 15);
+    // 1. String zerlegen mittels substring
+    const day = datetimestr.substring(0, 2);
+    const month = datetimestr.substring(2, 4);
+    const year = datetimestr.substring(4, 6);
+    const yearlong = ("20" + year);
+    const hour = datetimestr.substring(6, 8);
+    const minute = datetimestr.substring(8, 10);
+    const second = datetimestr.substring(10, 12);
+    // 2. Formatieren für HTML-Inputs
+    const dateValue = `${yearlong}-${month}-${day}`; // YYYY-MM-DD
+    const timeValue = `${hour}:${minute}:${second}`;       // HH:mm
+    // 3. Werte in die Elemente einsetzen
+    document.getElementById("set_date").value = dateValue;
+    document.getElementById("set_time").value = timeValue;
+    const rawdata = event.data.slice(-6);
+    const lang = rawdata.charAt(0);
+    document.getElementById("language").value = lang;
+    const easymod = rawdata.charAt(1);
+    document.getElementById("easy").value = easymod;
+    const time = rawdata.charAt(2);
+    document.getElementById("timer").value = time;
+    const pwron = rawdata.charAt(3);
+    document.getElementById("poweron").value = pwron;
+    const irled = rawdata.charAt(4);
+    if (irled == "0") {
+      document.getElementById("IR").checked = true;
+    } else if (irled == "1") {
+          document.getElementById("IR").checked = false;
+    }
+  }
+
+  function getB215Settings() {
+    const rawdata = event.data.slice(3);
+    const functions = rawdata.charAt(0);
+    document.getElementById("functions").value = functions;
+    const addfunctions = rawdata.charAt(1);
+    document.getElementById("addfunctions").value = addfunctions;
+    const cuestate = rawdata.charAt(2);
+    document.getElementById("cuestate").value = cuestate;
+    const tapecountermm = rawdata.slice(3, 5);
+    const tapecounterss = rawdata.slice(5, 7);
+    const tapecounter = (tapecountermm + ":" + tapecounterss)
+    document.getElementById("bandzaehler").value = tapecounter;
+  }
+
+  function getB226Settings() {
+    const rawdata = event.data.slice(3);
+    const b226state = rawdata.charAt(0);
+    document.getElementById("b226state").value = b226state;
+    const tracknumber = rawdata.slice(1, 3);
+    document.getElementById("tracknumber").value = tracknumber;
+    const indexnumber = rawdata.slice(3, 5);
+    document.getElementById("indexnumber").value = indexnumber;
+    const elapsedtimemm = rawdata.slice(5, 7);
+    const elapsedtimess = rawdata.slice(7, 9);
+    const elapsedtime = (elapsedtimemm + ":" + elapsedtimess);
+    document.getElementById("elapsedtime").value = elapsedtime;
+    const remainingtimemm = rawdata.slice(9, 11);
+    const remainingtimess = rawdata.slice(11, 13);
+    const remainingtime = (remainingtimemm + ":" + remainingtimess);
+    document.getElementById("remainingtime").value = remainingtime;
+  }
+
+  function getB285Settings() {
+    const rawdata = event.data.slice(3);
+    const b285source = rawdata.charAt(0);
+    document.getElementById("b285source").value = b285source;
+    const getspeakers = rawdata.charAt(1);
+    document.getElementById("getspeakers").value = getspeakers;
+    const volume = rawdata.slice(2, 4);
+    document.getElementById("volume").value = volume;
+    const tunerstation = rawdata.slice(4, 6);
+    document.getElementById("tunerstation").value = tunerstation;
+    const stationid = rawdata.slice(6, 10);
+    document.getElementById("stationid").value = stationid;
+    const frequency = rawdata.slice(10, 15);
+    document.getElementById("frequency").value = frequency;
+  }
+
+  function getB291Settings() {
+    const rawdata = event.data.slice(3);
+    const fiststatebyte = rawdata.charAt(0);
+    const secondstatebyte = rawdata.charAt(1);
+    const nibble1 = (fiststatebyte >> 4) & 0x0F;
+    const nibble2 = fiststatebyte & 0x0F;
+    const nibble3 = (secondstatebyte >> 4) & 0x0F;
+    const nibble4 = secondstatebyte & 0x0F;
+    if (nibble1 == 1) {
+      document.getElementById("b291speed").value = nibble2;
+      console.log(nibble2);
+      document.getElementById("b291state").value = nibble3;
+      console.log(nibble3);
+    } else if (nibble1 == 5) {
+    }
+  }
+
+  async function loadData() {
+    const response = await fetch('/portconfig.json');
+    configData = await response.json();
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    configData.forEach((item, index) => {
+    item 
+    tbody.innerHTML += `
+    	<tr>
+      <td><input class="portselect" type="text" value="${item.name}" disabled></td>
+     	<td><input class="portselect" type="text" value="${item.descr}" disabled></td>
+     	<td>
+      <select class="portselect" onchange="updateValue(${index}, 'out', this.value)" >
+        <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
+        <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
+ 	      <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
+			  <option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
+				<option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
+				<option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
+				<option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
+				<option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
+				<option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
+				<option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
+        <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
+   		</select>
+      </td>
+      <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
+      </tr>
+       		`;
+    });
+  }
+
+  function updateValue(index, field, value) {
+    configData[index][field] = value;
+  }
+
+  async function saveData() {
+    await fetch('/api/save-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(configData)
+    });
+    alert("Konfiguration gespeichert!");
+  }

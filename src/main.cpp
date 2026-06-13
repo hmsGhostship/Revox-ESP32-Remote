@@ -13,6 +13,17 @@
 #define TXD2 16
 #define REVOX_BAUD 1200
 
+//#define DECODE_DENON        // Includes Sharp - requires around 250 bytes of program memory on ATmega328
+//#define DECODE_JVC          // ~ 200 bytes
+//#define DECODE_KASEIKYO     // Includes Panasonic ~ 300 bytes
+//#define DECODE_LG           // ~ 400 bytes
+#define DECODE_NEC          // Includes Apple and Onkyo ~ 250 bytes
+//#define DECODE_SAMSUNG      // ~ 300 bytes
+#define DECODE_SONY         // ~ 175 bytes
+//#define DECODE_RC5          // RC5 + MARANTZ: ~ 425 bytes
+//#define DECODE_RC6          // ~ 375 bytes
+
+
 #define USE_LittleFS
 #include <FS.h>
 #ifdef USE_LittleFS
@@ -22,6 +33,7 @@
   #include <SPIFFS.h>
 #endif
 #include <ArduinoJson.h>
+#include "PinDefinitionsAndMore.h" 
 #include <IRRemote.hpp>
 
 #include "IRsend.h"
@@ -46,8 +58,11 @@ const char* ssid_ap = "REVOXSETUP";
 const char* password_ap = "esp32revox";
 String wifi_ssid = "";
 String wifi_pass = "";
+const char* hostName = "revoxb203"; // Ihr Wunsch-Hostname
 const int portTableSize = 9;
 portcnf portArray[portTableSize];
+unsigned long lastPingTime = 0;
+const unsigned long pingInterval = 10000; // Alle 10 Sekunden pingen
 
 //byte xonxoffstate = 0; // 1 means don't send data
 
@@ -97,13 +112,6 @@ void loadPortConfig() {
     portArray[index].out[sizeof(portArray[index].out) - 1] = '\0';
     
     portArray[index].feedback = obj["feedback"] | false; // Fallback: false
-    
-    /*
-    portArray[index].name     = obj["name"];         // Fallback: 0
-    portArray[index].descr    = obj["descr"];         // Fallback: 0
-    portArray[index].out      = obj["out"];     // Fallback: 0.0
-    portArray[index].feedback = obj["feedback"] | false; // Fallback: false
-    */
 
     index++;
 
@@ -312,7 +320,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       }
     }
 
-    else if (strncmp((char*)data, "page", 4) == 0) {
+    /*else if (strncmp((char*)data, "page", 4) == 0) {
     Serial.println((char*)data);      data +=4;
       if (strncmp((char*)data, "Release", 7) == 0){
       strncpy(buttonName, (char*)data + 7, sizeof(buttonName));
@@ -327,7 +335,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
           }
         }
       }
-    }
+    }*/
   }
 }
 
@@ -555,9 +563,9 @@ void setup() {
 
   pinMode(OE_FXMA108, OUTPUT);
   if (Set_OE_FXMA108 == true){
-    digitalWrite(OE_FXMA108, LOW);
-  } else if (Set_OE_FXMA108 == false) {
     digitalWrite(OE_FXMA108, HIGH);
+  } else if (Set_OE_FXMA108 == false) {
+    digitalWrite(OE_FXMA108, LOW);
   }
   
  Serial2.begin(REVOX_BAUD, SERIAL_8N1, RXD2, TXD2);
@@ -571,6 +579,8 @@ void setup() {
   //Serial2.write(0x11);
   
 initLittleFS();
+
+WiFi.setHostname(hostName); 
 
   loadWIFIConfig();
 
@@ -654,6 +664,15 @@ void loop() {
   //goToLightSleep();
 
   ws.cleanupClients();
+
+   if (millis() - lastPingTime >= pingInterval) {
+        lastPingTime = millis();
+        
+        // Sendet einen leeren Ping-Frame an ALLE verbundenen Clients
+        // Antwortet ein iPhone nicht (z.B. weil es im Standby ist),
+        // merkt das die darunterliegende AsyncTCP-Schicht und schließt den Socket.
+        ws.pingAll(); 
+    }
   
   if (Serial2.available() > 0) {
     b203data = Serial2.readStringUntil('\n'); // Reads until LF or timeout
@@ -675,24 +694,47 @@ void loop() {
       uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
       //Serial.println(combined, HEX );
 
+        /*
+         * Print a summary of received data
+         */
+        if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+            Serial.println(F("Received noise or an unknown (or not yet enabled) protocol"));
+            // We have an unknown protocol here, print extended info
+            IrReceiver.printIRResultRawFormatted(&Serial, true);
+
+            IrReceiver.resume(); // Do it here, to preserve raw data for printing with printIRResultRawFormatted()
+        } else {
+            //IrReceiver.resume(); // Early enable receiving of the next IR frame
+
+            IrReceiver.printIRResultShort(&Serial);   // Requires additional 1436 bytes program memory
+            //IrReceiver.printIRSendUsage(&Serial);     // Calls printIRResultShort() and other functions, if protocol is UNKNOWN
+        }
+        Serial.println();
+
+        /*
+         * Finally, check the received data and perform actions according to the received command
+         */
+
+
       if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
         if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
-        sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+        sendRevoxFrame ( cmdTable[irid].address, cmdTable[irid].command, 1);
         Serial.println("Repeated");
-        Serial.println(cmdTable[irid].address);
-        Serial.println(cmdTable[irid].ITTcode);
+        Serial.print(cmdTable[irid].address);
+        Serial.println(cmdTable[irid].command);
         }
       } else {
         irid = 0;
         Serial.println(combined, HEX );
         while( cmdTable[irid].btnID != NULL ) {
-          //Serial.println(irid);
           if ((combined == cmdTable[irid].irRecvCode ) && (combined != 0)) {
-            if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
-            sendIR( cmdTable[irid].address, cmdTable[irid].ITTcode );
+            if (( cmdTable[irid].address < 0x11 ) && ( cmdTable[irid].cmdFlag == 0 )) {
+            sendRevoxFrame (cmdTable[irid].address, cmdTable[irid].command, 1);
+            //if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
+            //sendIR (cmdTable[irid].address, cmdTable[irid].command, 1);
             Serial.println("First press");
-            Serial.println(cmdTable[irid].address);
-            Serial.println(cmdTable[irid].ITTcode);
+            Serial.print(cmdTable[irid].address);
+            Serial.println(cmdTable[irid].command);
             }
           break;
           }
@@ -700,6 +742,7 @@ void loop() {
         }
       }
       IrReceiver.resume(); // Receive the next value 
+
       } else if (buttonHold == 1) {
       int a = 0;
         while( cmdTable[a].btnID != NULL ) {
@@ -716,12 +759,12 @@ void loop() {
                   buttonHold = 0;
                   }
                 } else if ((cmdTable[a].cmdFlag == 0 )) {
-                  sendIR( cmdTable[a].address, cmdTable[a].ITTcode );
-                  Serial.print( cmdTable[a].address );
-                  Serial.println( cmdTable[a].ITTcode );
-                    if ( cmdTable[a].repeat == 0 ) {
-                    buttonHold = 0;
-                    }
+                  sendRevoxFrame ( cmdTable[a].address, cmdTable[a].command, 1);
+                  //Serial.print( cmdTable[a].address );
+                  //Serial.println( cmdTable[a].command );
+                  if ( cmdTable[a].repeat == 0 ) {
+                  buttonHold = 0;
+                  }
                   }
               }
             }

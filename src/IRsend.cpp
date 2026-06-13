@@ -3,7 +3,6 @@
 void setupIRoutPin() {
     pinMode(IRoutPin1, OUTPUT);
     pinMode(IRoutPin2, OUTPUT);
-    //pinMode(BUTTON_PIN, INPUT_PULLUP); // Interner Pull-up
 }
 
 void IRoutPin(bool status) {
@@ -11,68 +10,62 @@ void IRoutPin(bool status) {
   digitalWrite(IRoutPin2, status);
 }
 
-void sendIR(String address, String ITTcode){
+// Hilfsfunktion: Erzeugt den reinen unmodulierten 15µs Infrarot-Puls
+void transmitRawPulse() {
+  IRoutPin(HIGH);
+  delayMicroseconds(PULSE_DURATION);
+  IRoutPin(LOW);
+}
 
-// FunktionsendIR("1000", "111111"); //Adressierung 1000 oder 0000=sekundäre Adresse bei Revox
+// Hilfsfunktion, um ein einzelnes Bit mit dem exakten Timing zu senden
+void sendSingleBit(bool bitValue) {
+  transmitRawPulse();
+  if (bitValue == 0) {
+    delayMicroseconds(LOGIC_0_DELAY);
+  } else {
+    delayMicroseconds(LOGIC_1_DELAY);
+  }
+}
 
-IRoutPin(LOW);  // Pin auf LOW setzen
-IRoutPin(HIGH); // Pin auf HIGH setzen
-delayMicroseconds(15);      // 15 Mikrosekunden Impuls
-IRoutPin(LOW);  // Pin auf LOW setzen
-delayMicroseconds(435);      // Vorbereitungspuls
+// REVOX-SENDEFUNKTION
+void sendRevoxFrame(uint8_t Address, uint8_t ircmd, int repetitions) {
 
-IRoutPin(HIGH); // Pin auf HIGH setzen
-delayMicroseconds(15);      // 15 Mikrosekunden warten
-IRoutPin(LOW);  // Pin auf LOW setzen
-delayMicroseconds(135);      // Startpuls
+  byte adresse = Address -1;
 
+  uint16_t dataPayload = ((ircmd & 0x3F) << 4) | (adresse & 0x0F);
 
-char serCode[10]; //Arrayvariable vorbereiten zum einzeln ablesen
-address.toCharArray(serCode, address.length() + 1);   
+  Serial.println(dataPayload, BIN);
 
+  // 1. DATEN-BLOCKS (Wiederholungen / Repetitions)
+  for (int r = 0; r < repetitions; r++) {
 
-for (byte i = 0; i < 4; i = i + 1) {
+  // 2. VORBEREITUNGSPULS (Pre-Data / Preamble)
+  // Wird einmalig am Anfang der gesamten Kette gesendet
+  transmitRawPulse();
+
+  delayMicroseconds(REVOX_LONG_PAUSE); // Erste 435 us Pause zum Aufwecken der Logik
   
-  IRoutPin(HIGH); // Pin auf HIGH setzen
-  delayMicroseconds(15);      // 15 Mikrosekunden warten
-  IRoutPin(LOW);  // Pin auf LOW setzen
+  // Startpuls ist immer eine '0' -> verlangt die kurze 135 µs Pause
+  sendSingleBit(0); 
 
-switch (serCode[i]){
-  case '0':
-  delayMicroseconds(285);      // 285 Mikrosekunden warten
-  break;
+    for (int b = 0; b <= 9; b++) {
+      bool currentBit = dataPayload & 1; // Liest Bit 0
+      sendSingleBit(currentBit);
+      dataPayload >>= 1;                // Holt das nächste Bit nach vorne
+    }
 
-  case '1':
-  delayMicroseconds(135);      // 135 Mikrosekunden warten
-  break;
-}
+    // 4. FINALEE STOPP-Sequenz
+    transmitRawPulse();
+    delayMicroseconds(REVOX_LONG_PAUSE); // Symmetrische 435 us Pause vor dem Abschluss
+    transmitRawPulse();
 
-}  // Ende Adressierung 1000=Bank1, oder 0000=Bank2 möglich
-
-ITTcode.toCharArray(serCode, ITTcode.length() + 1);
-
-for (byte i = 0; i < 6; i = i + 1) {
-
-  IRoutPin(HIGH); // Pin auf HIGH setzen
-  delayMicroseconds(15);      // 215Mikrosekunden warten
-  IRoutPin(LOW);  // Pin auf LOW setzen
-
-switch (serCode[i]){
-  case '0':
-  delayMicroseconds(285);      // 285 Mikrosekunden warten
-  break;
-  case '1':
-  delayMicroseconds(135);      // 135 Mikrosekunden warten
-  break;
-}
-} //ende ITTcode-Ausführung
-
-//Abschlusscode
-  IRoutPin(HIGH); // Pin auf HIGH setzen
-  delayMicroseconds(15);      // 15 Mikrosekunden warten
-  IRoutPin(LOW);  // Pin auf LOW setzen
-  delayMicroseconds(435);      // 435 Mikrosekunden Stoppuls
-  IRoutPin(HIGH); // Pin auf HIGH setzen
-  delayMicroseconds(15);      // 15 Mikrosekunden warten
-  IRoutPin(LOW);  // Pin auf LOW setzen
+    // Zwischenpause zwischen den Blöcken (Lead-out)
+    // Nur verzögern, wenn noch ein weiterer Wiederholungsblock folgt!
+    if (r < (repetitions - 1)) {
+      delayMicroseconds(FRAME_DELAY); // 10 us Pause bis zum nächsten Frame-Start
+    }
+  }
+  
+  // Kurze Nachlaufzeit zur Beruhigung der Empfängerstufe
+  delayMicroseconds(FRAME_DELAY);
 }

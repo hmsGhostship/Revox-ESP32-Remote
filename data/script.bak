@@ -352,57 +352,39 @@ function setEventb203() {
 }
 
 function getButton() {
-  const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
 
-  buttons.forEach(btn => {
-    
-    // --- 1. BLOCK: DRÜCKEN (mousedown / touchstart) ---
-    ['mousedown', 'touchstart'].forEach(eventType => {
-      btn.addEventListener(eventType, (event) => {
-        if (event.cancelable) event.preventDefault(); // Stoppt iOS-Doppelklicks
+const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
 
-        const Id = event.currentTarget.id;
-        const Name = event.currentTarget.name;
-
-        // WebSocket: Push senden
-        if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + 'Push' + Id);
-          websocket.send(Name + 'Push' + Id);
+    buttons.forEach(btn => {
+      btn.addEventListener('mousedown', (event) => {
+        const Id = event.target.id;
+        const Name = event.target.name;
+        const Class = event.target.className;
+        const isObjectEmpty = (Name) => {
+        return Object.keys(objectName).length === 0
         }
-      }, { passive: false });
+        if (websocket.readyState === WebSocket.OPEN) {
+        console.log(Name + 'Push' + Id );
+        websocket.send(Name + 'Push' + Id);
+        }
+      })
     });
 
-    // --- 2. BLOCK: LOSLASSEN (mouseup / touchend) ---
-    ['mouseup', 'touchend'].forEach(eventType => {
-      btn.addEventListener(eventType, (event) => {
-        if (event.cancelable) event.preventDefault();
-
-        const Id = event.currentTarget.id;
-        const Name = event.currentTarget.name;
-
-        // WebSocket: Release senden
+    buttons.forEach(btn => {
+      btn.addEventListener('mouseup', (event) => {
+        const Id = event.target.id;
+        const Name = event.target.name;
+        const Class = event.target.className;
+        const isObjectEmpty = (Name) => {
+        return Object.keys(objectName).length === 0
+        }
         if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + 'Release' + Id);
-          websocket.send(Name + 'Release' + Id);
+        console.log(Name + 'Release' + Id );
+        websocket.send(Name + 'Release' + Id);
         }
-
-        // --- HIER PASSIERT DIE WEITERLEITUNG ---
-        // Wir suchen den Link (<A>-Tag) um den Button herum
-        const linkElement = event.currentTarget.closest('a');
-        if (linkElement && linkElement.getAttribute('href')) {
-          const destination = linkElement.getAttribute('href');
-          
-          // Wichtig für das iPhone: 80ms warten, damit das 'Release'-Paket 
-          // den ESP32 sicher erreicht, bevor die Seite stirbt.
-          setTimeout(() => {
-            window.location.href = destination;
-          }, 80);
-        }
-      }, { passive: false });
+      })
     });
-
-  });
-}
+  }
 
 function openB203(evt, TabName) {
   // Declare all variables

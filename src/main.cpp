@@ -58,8 +58,13 @@ const char* password_ap = "esp32revox";
 String wifi_ssid = "";
 String wifi_pass = "";
 const char* hostName = "revoxb203"; // Ihr Wunsch-Hostname
-const int portTableSize = 9;
-portcnf portArray[portTableSize];
+//const int portTableSize = 6;
+//portcnf portArray[portTableSize];
+
+const int maxPortEntries = 20;               // Maximale RAM-Kapazität des Arrays
+portcnf portArray[maxPortEntries];           // Das feste Speicher-Array im RAM
+int portTableSize = 0;    
+
 unsigned long lastPingTime = 0;
 const unsigned long pingInterval = 10000; // Alle 10 Sekunden pingen
 
@@ -69,16 +74,16 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 void loadPortConfig() {
-
-    // 1. Datei öffnen
+  // Datei öffnen
   File file = LittleFS.open(PortConfigPath, "r");
   if (!file) {
     Serial.println("Port Configuration konnte nicht geöffnet werden");
     return;
   }
+  
   JsonDocument doc;
 
-   // 3. Datei parsen
+  // Datei parsen
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
     Serial.print("Fehler beim Parsen: ");
@@ -87,44 +92,53 @@ void loadPortConfig() {
     return;
   }
 
-  file.close(); // Datei wird nicht mehr benötigt
-  
-// 4. Ziel-Array definieren und befüllen
+  file.close(); // Datei schließen, da sie komplett im RAM (doc) liegt
   
   // Das geparste JSON als Array auslesen
   JsonArray array = doc.as<JsonArray>();
   
+  // WEG 1: Die physikalisch maximale Kapazität des Arrays in Bytes ermitteln
+  int maxArrayCapacity = sizeof(portArray) / sizeof(portArray[0]);
+
+  // Echte JSON-Größe auslesen und portTableSize dynamisch anpassen
+  if (array.size() > maxArrayCapacity) {
+    portTableSize = maxArrayCapacity; // Schutz vor Speicherüberlauf (Buffer Overflow)
+    Serial.print("Warnung: JSON zu groß! Begrenzt auf Maximum: ");
+    Serial.println(maxArrayCapacity);
+  } else {
+    portTableSize = array.size();     // Setzt die Größe exakt auf die echten Einträge (z.B. 6)
+  }
+  
+  // Array mit den echten Daten befüllen
   int index = 0;
   for (JsonObject obj : array) {
-    if (index >= portTableSize) break; // Array vor Überlauf schützen
+    if (index >= portTableSize) break; // Zusätzlicher Sicherheitsanker
 
-    // Daten aus dem JSON auslesen und in das Struct schreiben
-    // Copy the string, leaving room for the null-terminator '\0'
-    strncpy(portArray[index].name, obj["name"], sizeof(portArray[index].name) - 1);
-    // Enforce null-termination at the 5th character position
+    // Daten kopieren und Null-Terminierung garantieren
+    strncpy(portArray[index].name, obj["name"] | "", sizeof(portArray[index].name) - 1);
     portArray[index].name[sizeof(portArray[index].name) - 1] = '\0';
 
-    strncpy(portArray[index].descr, obj["descr"], sizeof(portArray[index].descr) - 1);
+    strncpy(portArray[index].descr, obj["descr"] | "", sizeof(portArray[index].descr) - 1);
     portArray[index].descr[sizeof(portArray[index].descr) - 1] = '\0';
     
-    strncpy(portArray[index].out, obj["out"], sizeof(portArray[index].out) - 1);
+    strncpy(portArray[index].out, obj["out"] | "", sizeof(portArray[index].out) - 1);
     portArray[index].out[sizeof(portArray[index].out) - 1] = '\0';
     
-    portArray[index].feedback = obj["feedback"] | false; // Fallback: false
+    portArray[index].feedback = obj["feedback"] | false;
 
     index++;
-
   }
-      Serial.println("--- Geparste Struct-Werte ---");
-    for (int i = 0; i < portTableSize; i++) {
-    Serial.print("Name: ");
-    Serial.print(portArray[i].name);
-    Serial.print(" | Beschreibung: ");
-    Serial.print(portArray[i].descr);
-    Serial.print(" | Port: ");
-    Serial.println(portArray[i].out);
-    Serial.print(" | Feedback: ");
-    Serial.println(portArray[i].feedback);
+
+  // Kontrollausgabe über die exakte, ermittelte Größe
+  Serial.print("Erfolgreich geladen. Aktuelle portTableSize: ");
+  Serial.println(portTableSize);
+
+  Serial.println("--- Geparste Struct-Werte ---");
+  for (int i = 0; i < portTableSize; i++) {
+    Serial.print("Name: "); Serial.print(portArray[i].name);
+    Serial.print(" | Beschreibung: "); Serial.print(portArray[i].descr);
+    Serial.print(" | Port: "); Serial.print(portArray[i].out);
+    Serial.print(" | Feedback: "); Serial.println(portArray[i].feedback);
   }
 }
 
@@ -132,7 +146,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     data[len] = 0;
-
     if (strncmp((char*)data, "button", 6) == 0) {
       data +=6;
       if (strncmp((char*)data, "Push", 4) == 0){

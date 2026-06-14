@@ -545,42 +545,37 @@ let configData = [];
   }
 
   async function loadData() {
-  // 1. Caching verhindern
-  const response = await fetch(`/portconfig.json?v=${Date.now()}`);
-  configData = await response.json();
-  
-  const tbody = document.getElementById('table-body');
-  
-  // 2. Alle Zeilen sauber in einem Array sammeln
-  const rows = configData.map((item, index) => {
-    return `
-      <tr>
-        <!-- autocomplete="off" verhindert Geister-Einträge vom Browser -->
-        <td><input class="portselect" type="text" value="${item.name}" autocomplete="off" disabled></td>
-        <td><input class="portselect" type="text" value="${item.descr}" autocomplete="off" disabled></td>
-        <td>
-          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
-            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
-            <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
-            <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
-            <option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
-            <option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
-            <option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
-            <option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
-            <option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
-            <option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
-            <option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
-            <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
-          </select>
-        </td>
-        <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
+    configData = [];
+    const response = await fetch('/portconfig.json');
+    configData = await response.json();
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    configData.forEach((item, index) => {
+    item 
+    tbody.innerHTML += `
+    	<tr>
+      <td><input class="portselect" type="text" value="${item.name}" disabled></td>
+     	<td><input class="portselect" type="text" value="${item.descr}" disabled></td>
+     	<td>
+      <select class="portselect" onchange="updateValue(${index}, 'out', this.value)" >
+        <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
+        <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
+ 	      <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
+			  <option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
+				<option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
+				<option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
+				<option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
+				<option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
+				<option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
+				<option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
+        <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
+   		</select>
+      </td>
+      <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
       </tr>
-    `;
-  });
-
-  // 3. Die Tabelle komplett in einem Rutsch überschreiben
-  tbody.innerHTML = rows.join('');
-}
+       		`;
+    });
+  }
 
   function updateValue(index, field, value) {
     configData[index][field] = value;

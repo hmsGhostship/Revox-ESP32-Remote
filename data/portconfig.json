@@ -6,13 +6,7 @@
     "feedback": true
   },
   {
-    "name": "B251",
-    "descr": "amplifier",
-    "out": "1",
-    "feedback": false
-  },
-  {
-    "name": "B285",
+    "name": "B285/(B251+B261)",
     "descr": "receiver",
     "out": "no",
     "feedback": true
@@ -25,21 +19,9 @@
   },
   {
     "name": "B215",
-    "descr": "tape2",
+    "descr": "tape1",
     "out": "3",
     "feedback": true
-  },
-  {
-    "name": "B261",
-    "descr": "tuner",
-    "out": "4",
-    "feedback": false
-  },
-  {
-    "name": "B77",
-    "descr": "tape1",
-    "out": "9",
-    "feedback": false
   },
   {
     "name": "B291",

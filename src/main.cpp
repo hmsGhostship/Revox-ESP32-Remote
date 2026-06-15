@@ -35,7 +35,7 @@
 #include <ArduinoJson.h>
 #include <IRRemote.hpp>
 
-#include "IRsend.h"
+#include "SerialLink.h"
 #include "config.h"
 
 bool State = 0;
@@ -568,7 +568,7 @@ void setup() {
   Serial.begin(115200);   // Serial port for debugging purposes
   delay(50);
 
-  setupIRoutPin();
+  setupSLoutPin();
 
   pinMode(PIN_RTS, INPUT);
   pinMode(PIN_CTS, OUTPUT);

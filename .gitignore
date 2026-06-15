@@ -3,6 +3,5 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-src/secrets.h 
 data_src/wifi_config.json
 data/wifi_config.json

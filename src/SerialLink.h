@@ -1,5 +1,5 @@
-#ifndef IRSEND_H
-#define IRSEND_H
+#ifndef SERIALLINK_H
+#define SERIALLINK_H
 
 #include <Arduino.h>
 
@@ -22,11 +22,11 @@ const uint8_t UNUSED_ADDRESS   = 0x11; // Nicht genutzte Adressse
 const uint8_t ADDR_5           = 0x05; // Spezialadresse 5
 
 // SerielLink Pin-Definitionen
-const int IRoutPin1 = 5;
-const int IRoutPin2 = 4;
+const int SLoutPin1 = 5;
+const int SLoutPin2 = 4;
 
 // Funktionsprototypen
-void setupIRoutPin();
+void setupSLoutPin();
 void sendRevoxFrame(uint8_t Address, uint8_t ircmd, int repetitions);
 //void sendIR(String Address, String ircmd, int repetitions);
 

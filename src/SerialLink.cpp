@@ -1,20 +1,20 @@
-#include "IRsend.h"
+#include "SerialLink.h"
 
-void setupIRoutPin() {
-    pinMode(IRoutPin1, OUTPUT);
-    pinMode(IRoutPin2, OUTPUT);
+void setupSLoutPin() {
+    pinMode(SLoutPin1, OUTPUT);
+    pinMode(SLoutPin2, OUTPUT);
 }
 
-void IRoutPin(bool status) {
-  digitalWrite(IRoutPin1, status);
-  digitalWrite(IRoutPin2, status);
+void SLoutPin(bool status) {
+  digitalWrite(SLoutPin1, status);
+  digitalWrite(SLoutPin2, status);
 }
 
 // Hilfsfunktion: Erzeugt den reinen unmodulierten 15µs Infrarot-Puls
 void transmitRawPulse() {
-  IRoutPin(HIGH);
+  SLoutPin(HIGH);
   delayMicroseconds(PULSE_DURATION);
-  IRoutPin(LOW);
+  SLoutPin(LOW);
 }
 
 // Hilfsfunktion, um ein einzelnes Bit mit dem exakten Timing zu senden

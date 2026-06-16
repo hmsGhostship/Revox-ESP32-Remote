@@ -19,7 +19,6 @@ const uint8_t ADDR_PUNKT_EASY  = 0x0A; // Gedrückte EASY / • Taste (Adresse 1
 const uint8_t ADDR_STERN_FIRST = 0x01; // Gedrückte * Taste (1. Frame sendet Adresse 1)
 const uint8_t ADDR_STERN_REP   = 0x10; // Gedrückte * Taste (Folge-Frames senden Adresse 16 / 0x10)
 const uint8_t UNUSED_ADDRESS   = 0x11; // Nicht genutzte Adressse
-const uint8_t ADDR_5           = 0x05; // Spezialadresse 5
 
 // SerielLink Pin-Definitionen
 const int SLoutPin1 = 5;

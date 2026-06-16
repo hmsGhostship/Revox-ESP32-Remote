@@ -209,6 +209,12 @@ let configData = [];
     });
   }
 
+  function getb291tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+      console.log( "phonoX" );
+      websocket.send("phonoX");
+    }
+  }
 
   function getb226tabevent() {
     if (websocket.readyState === WebSocket.OPEN) {
@@ -432,6 +438,9 @@ let configData = [];
     } else if (tabname == "B285Statustab") {
       console.log(tabname);
       getb285tabevent();
+    } else if (tabname == "B291Statustab") {
+      console.log(tabname);
+      getb291tabevent();
     } else if (tabname == "PortConfig") {
       console.log(tabname);
       loadData();

@@ -172,17 +172,11 @@ static const command cmdTable [] = {
     { "tape1loop",	0x100037, ADDR_STANDARD, 0x0B, CMD_FLAG_TAPE1, "L", 0, "tape1" },           //116
     // Phono Plattenspieler B291
     { "phonopoweroff", 0x540015, ADDR_STANDARD, 0x00, 0, NULL, 0, "phono" },       //117
-    { "phonoforw",  0x540034,  ADDR_STANDARD, 0x0F, CMD_FLAG_PHONO, ">", 1, "phono" },          //118
-    { "phonoback",	0x540033, ADDR_STANDARD, 0x0E, CMD_FLAG_PHONO, "<", 1, "phono" },           //119
     { "phonovoldn", 0x540012, ADDR_STANDARD, 0x2F, 0, NULL, 1, "phono" },          //120
     { "phonovolup", 0x540013, ADDR_STANDARD, 0x2E, 0, NULL, 1, "phono" },          //121
+    { "phonoforw",  0x540034,  ADDR_STANDARD, 0x0F, CMD_FLAG_PHONO, ">", 1, "phono" },          //118
+    { "phonoback",	0x540033, ADDR_STANDARD, 0x0E, CMD_FLAG_PHONO, "<", 1, "phono" },           //119
     { "phonolift",	0x540036, ADDR_STANDARD, 0x10, 0, NULL, 0, "phono" },          //122
-    { "phonovarion", 0x0, ADDR_5, 0x30, 0, NULL, 1, "phono" },           //119
-    { "phonovarioff", 0x0, ADDR_5, 0x31, 0, NULL, 1, "phono" },          //120
-    { "phono33", 0x0, ADDR_5, 0x32, 0, NULL, 1, "phono" },          //121
-    { "phono33spec", 0x0, ADDR_5, 0x33, 0, NULL, 0, "phono" },
-    { "phono45", 0x0, ADDR_5, 0x34, 0, NULL, 1, "phono" },          //121
-    { "phono45spec", 0x0, ADDR_5, 0x35, 0, NULL, 0, "phono" },  
     { NULL, 0x0, UNUSED_ADDRESS, 0x40, 0, NULL, 0, NULL }
 };
 

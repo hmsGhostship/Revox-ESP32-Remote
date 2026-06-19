@@ -753,31 +753,29 @@ void loop() {
 
       } else if (buttonHold == 1) {
       int a = 0;
-        while (cmdTable[a].btnID != NULL) {
+        while( cmdTable[a].btnID != NULL ) {
           if (strcmp(buttonName, cmdTable[a].btnID) == 0) {
             for (int i = 0; i < portTableSize; i++) {
+            int delimiter = portArray[i].indexOf('-');
             Serial.println(portArray[i].out);
             Serial.println(portArray[i].descr);
             Serial.println(cmdTable[a].device);
-            // ERSETZT STRCMP: Sucht, ob der Text aus cmdTable[a].device in portArray[i].descr enthalten ist
-              if ((strstr(cmdTable[a].device, portArray[i].descr) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
-              //if ((strstr(portArray[i].descr, cmdTable[a].device) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
-                if (cmdTable[a].cmdFlag > 0) {
-                Serial2.print(portArray[i].out);
-                Serial2.print(cmdTable[a].serCmd);
+                if (( strcmp ( cmdTable[a].device, portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
+                if (cmdTable[a].cmdFlag > 0 ){
+                Serial2.print( portArray[i].out );
+                Serial2.print( cmdTable[a].serCmd );
                 Serial2.print("\r");
-                Serial.print(portArray[i].out);
-                Serial.println(cmdTable[a].serCmd);
-                    if (cmdTable[a].repeat == 0) {
-                    buttonHold = 0;
-                    }
-                } 
-                else if (cmdTable[a].cmdFlag == 0) {
-                  sendRevoxFrame(cmdTable[a].address, cmdTable[a].command, 1);
-                  if (cmdTable[a].repeat == 0) {
+                Serial.print( portArray[i].out );
+                Serial.println( cmdTable[a].serCmd );
+                  if ( cmdTable[a].repeat == 0 ) {
                   buttonHold = 0;
                   }
-                }
+                } else if ((cmdTable[a].cmdFlag == 0 )) {
+                  sendRevoxFrame ( cmdTable[a].address, cmdTable[a].command, 1);
+                  if ( cmdTable[a].repeat == 0 ) {
+                  buttonHold = 0;
+                  }
+                  }
               }
             }
             break;

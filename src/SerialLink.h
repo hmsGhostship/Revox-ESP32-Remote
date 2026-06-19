@@ -18,6 +18,7 @@ const uint8_t ADDR_STANDARD    = 0x0F; // Standard-Tastendruck (z.B. Verstärker
 const uint8_t ADDR_PUNKT_EASY  = 0x0A; // Gedrückte EASY / • Taste (Adresse 10 dezimal)
 const uint8_t ADDR_STERN_FIRST = 0x01; // Gedrückte * Taste (1. Frame sendet Adresse 1)
 const uint8_t ADDR_STERN_REP   = 0x10; // Gedrückte * Taste (Folge-Frames senden Adresse 16 / 0x10)
+const uint8_t ADDR_SPECIAL_5   = 0x05;
 const uint8_t UNUSED_ADDRESS   = 0x11; // Nicht genutzte Adressse
 
 // SerielLink Pin-Definitionen

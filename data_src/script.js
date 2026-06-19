@@ -25,6 +25,105 @@ let configData = [];
     setPorts();
   }
 
+// 1. FEHLER BEHOBEN: Anführungszeichen bei "'" korrekt maskiert
+const escapeHtml = (str) => String(str).replace(/[&<>"']/g, m => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+})[m]);
+
+// ERGÄNZT: Diese Funktion wird von den Select-Feldern in der Tabelle benötigt
+function updateValue(index, key, value) {
+  if (configData[index]) {
+    configData[index][key] = value;
+    console.log("Wert im Array aktualisiert:", configData);
+  }
+}
+
+// Zeichnet die Tabelle basierend auf dem aktuellen Zustand von configData neu
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  if (!tbody) return;
+
+  const rows = configData.map((item, index) => {
+    const safeName = escapeHtml(item.name || '');
+    const safeDescr = escapeHtml(item.descr || '');
+    
+    return `
+      <tr>
+        <td><input class="portselect" type="text" value="${safeName}" autocomplete="off" disabled></td>
+        <td><input class="portselect" type="text" value="${safeDescr}" autocomplete="off" disabled></td>
+        <td>
+          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
+            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
+            ${[...Array(10).keys()].map(i => `
+              <option value="${i}" ${item.out == i ? 'selected' : ''}>${i}</option>
+            `).join('')}
+          </select>
+        </td>
+        <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+function syncSelectField() {
+  const selectElem = document.getElementById('change');
+  if (!selectElem) return;
+
+  // Wir prüfen primär, ob der Alternativzustand B251 aktiv ist
+  const isB251Active = configData.some(item => item.name === "B251");
+
+  // Optionen generieren und den Zustand exakt setzen
+  selectElem.innerHTML = `
+    <option value="B285" ${!isB251Active ? 'selected' : ''}>B285 (Standard)</option>
+    <option value="B251" ${isB251Active ? 'selected' : ''}>B251 (+ Tuner B261)</option>
+  `;
+}
+
+function switchConfiguration(selectedValue) {
+  if (selectedValue === "B251") {
+    // === ZUSTAND B251 AKTIVIEREN ===
+    
+    // 1. "B285" suchen und alle drei Werte anpassen
+    const entry = configData.find(item => item.name === "B285");
+    if (entry) {
+      entry.name = "B251";
+      entry.descr = "amplifier"; // Von "receiver" zu "amplifier"
+      entry.out = "1";
+      entry.feedback = false;    // Entspricht der Checkbox (0 / unchecked)
+    }
+
+    // 2. Den Tuner "B261" hinzufügen, falls noch nicht da
+    const exists261 = configData.some(item => item.name === "B261");
+    if (!exists261) {
+      configData.push({
+        "name": "B261",
+        "descr": "tuner",
+        "out": "4",
+        "feedback": false
+      });
+    }
+
+  } else if (selectedValue === "B285") {
+    // === ZUSTAND B285 AKTIVIEREN (ZURÜCKSETZEN) ===
+    
+    // 1. "B251" suchen und wieder auf die alten Werte setzen
+    const entry = configData.find(item => item.name === "B251");
+    if (entry) {
+      entry.name = "B285";
+      entry.descr = "receiver";  // Zurück zu "receiver"
+      entry.out = "1";
+      entry.feedback = true;     // Zurück zu 1 (checked)
+    }
+
+    // 2. Den Tuner "B261" wieder komplett entfernen
+    configData = configData.filter(item => item.name !== "B261");
+  }
+
+  // UI komplett aktualisieren (Tabelle spiegelt alle Änderungen sofort wider)
+  renderTable();
+}
   function initWebSocket() {
     console.log('Trying to open a WebSocket connection...');
     websocket = new WebSocket(gateway);
@@ -554,52 +653,47 @@ let configData = [];
   }
 
   async function loadData() {
-  // 1. Caching verhindern
-  const response = await fetch(`/portconfig.json?v=${Date.now()}`);
-  configData = await response.json();
-  
-  const tbody = document.getElementById('table-body');
-  
-  // 2. Alle Zeilen sauber in einem Array sammeln
-  const rows = configData.map((item, index) => {
-    return `
-      <tr>
-        <!-- autocomplete="off" verhindert Geister-Einträge vom Browser -->
-        <td><input class="portselect" type="text" value="${item.name}" autocomplete="off" disabled></td>
-        <td><input class="portselect" type="text" value="${item.descr}" autocomplete="off" disabled></td>
-        <td>
-          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
-            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
-            <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
-            <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
-            <option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
-            <option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
-            <option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
-            <option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
-            <option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
-            <option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
-            <option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
-            <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
-          </select>
-        </td>
-        <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
-      </tr>
-    `;
-  });
-
-  // 3. Die Tabelle komplett in einem Rutsch überschreiben
-  tbody.innerHTML = rows.join('');
-}
+    try {
+      const response = await fetch(`/portconfig.json?v=${Date.now()}`);
+      if (!response.ok) throw new Error(`HTTP-Fehler!`);
+      configData = await response.json();
+    
+      // 1. Dropdown an den Zustand der JSON-Daten anpassen
+      syncSelectField();
+    
+      // 2. Tabelle das erste Mal zeichnen
+      renderTable(); 
+    } catch (error) {
+      console.error("Fehler beim Laden:", error);
+    }
+  }
 
   function updateValue(index, field, value) {
     configData[index][field] = value;
   }
 
-  async function saveData() {
-    await fetch('/api/save-data', {
+async function saveData() {
+  try {
+    const response = await fetch('/api/save-data', { // Ersetze dies mit deinem echten Speicher-Pfad/API
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(configData)
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(configData) // Schickt den aktuellen Zustand aus dem Browser-Speicher
     });
-    alert("Konfiguration gespeichert!");
+
+    if (!response.ok) throw new Error("Fehler beim Speichern auf dem Server");
+    
+    alert("Konfiguration erfolgreich gespeichert!");
+    
+    // Nach dem Speichern laden wir die Daten neu, um sicherzustellen, 
+    // dass Server und UI zu 100% synchron sind.
+    await loadData(); 
+
+    window.location.href = '/'; // Leitet zur Hauptseite weiter
+
+  } catch (error) {
+    console.error("Speicherfehler:", error);
+    alert("Fehler beim Sichern der Daten.");
   }
+}

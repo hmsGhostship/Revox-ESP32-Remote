@@ -6,7 +6,7 @@
     "feedback": true
   },
   {
-    "name": "B285/(B251+B261)",
+    "name": "B285",
     "descr": "receiver",
     "out": "no",
     "feedback": true
@@ -29,7 +29,13 @@
     "out": "5",
     "feedback": false
   },
-   {
+  {
+    "name": "B77",
+    "descr": "tape2",
+    "out": "9",
+    "feedback": false
+  },
+  {
     "name": "PR99",
     "descr": "tape3",
     "out": "no",

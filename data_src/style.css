@@ -447,9 +447,10 @@ input:checked + .slider .off {
 
 /* Style the tab */
 .tab {
-  overflow: hidden;
-  border: 1px solid #ccc;
-  background-color: #f1f1f1;
+    display: flex;          /* Aktiviert das flexible Layout */
+    flex-wrap: wrap;        /* WICHTIG: Erlaubt automatischen Zeilenumbruch, falls der Bildschirm zu schmal ist */
+    background-color: #f1f1f1;
+    border: 1px solid #ccc;
 }
 
 /* Style the buttons that are used to open the tab content */
@@ -465,6 +466,29 @@ input:checked + .slider .off {
   transition: 0.3s;
 }
 
+/* Style the tab */
+.tab {
+    display: flex;          /* Aktiviert das flexible Layout */
+    flex-wrap: wrap;        /* Erlaubt automatischen Zeilenumbruch */
+    background-color: #f1f1f1;
+    border: 1px solid #ccc;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+  font-size: 20px;
+  font-weight: bold;
+  background-color: inherit;
+  /* float: left; <-- ENTFERNT, da es Flexbox zerstört */
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  flex-grow: 1;            /* Macht alle Buttons gleichmäßig breit */
+  text-align: center;
+}
+
 /* Change background color of buttons on hover */
 .tab button:hover {
   background-color: #ddd;
@@ -477,19 +501,11 @@ input:checked + .slider .off {
 
 /* Style the tab content */
 .tabcontent {
-  display: none;
+  display: none;           /* Standardmäßig alle ausblenden */
   padding: 6px 12px;
   border: 1px solid #ccc;
   border-top: none;
-}
-
-.tabcontent {
   animation: fadeEffect 1s; /* Fading effect takes 1 second */
-}
-
-.tabcontent.active,
-.tabcontent:first-of-type {
-  display: block;
 }
 
 /* Go from zero to full opacity */

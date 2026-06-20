@@ -38,6 +38,7 @@
 #include "SerialLink.h"
 #include "config.h"
 
+JsonDocument configDoc;
 bool State = 0;
 bool buttonHold = 0;
 bool getFlag = 0;
@@ -51,8 +52,9 @@ const int PIN_CTS = 26;
 const int PIN_RTS = 27;
 const int OE_FXMA108 = 0;
 bool Set_OE_FXMA108 = true;
-const char* configPath = "/wifi_config.json";
+const char* WificonfigPath = "/wifi_config.json";
 const char* PortConfigPath = "/portconfig.json";
+const char* ConfigPath = "/config.json";
 const char* ssid_ap = "REVOXSETUP";
 const char* password_ap = "esp32revox";
 String wifi_ssid = "";
@@ -62,7 +64,11 @@ const char* htmlPath;
 
 const int maxPortEntries = 20;               // Maximale RAM-Kapazität des Arrays
 portcnf portArray[maxPortEntries];           // Das feste Speicher-Array im RAM
-int portTableSize = 0;    
+int portTableSize = 0;
+
+const int maxCommandCapacity = 150; // Anpassen an Ihre maximale Zeilenanzahl
+command configArray[maxCommandCapacity];
+int configTableSize = 0;
 
 unsigned long lastPingTime = 0;
 const unsigned long pingInterval = 10000; // Alle 10 Sekunden pingen
@@ -150,6 +156,74 @@ void loadPortConfig() {
     Serial.print(" | Beschreibung: "); Serial.print(portArray[i].descr);
     Serial.print(" | Port: "); Serial.print(portArray[i].out);
     Serial.print(" | Feedback: "); Serial.println(portArray[i].feedback);
+  }
+}
+
+void loadCommandConfig() {
+  // Datei öffnen
+  File file = LittleFS.open(ConfigPath, "r");
+  if (!file) {
+    Serial.println("Fehler: /config.json konnte nicht geöffnet werden");
+    return;
+  }
+
+  // Altes Dokument leeren, falls die Funktion mehrfach aufgerufen wird
+  configDoc.clear();
+
+  // Datei parsen
+  DeserializationError error = deserializeJson(configDoc, file);
+  if (error) {
+    Serial.print("Fehler beim Parsen von /config.json: ");
+    Serial.println(error.f_str());
+    file.close();
+    return;
+  }
+
+  file.close(); // Datei schließen
+
+  // Das geparste JSON als Array auslesen
+  JsonArray array = configDoc.as<JsonArray>();
+
+  // Schutz vor Speicherüberlauf (Buffer Overflow)
+  if (array.size() > maxCommandCapacity) {
+    configTableSize = maxCommandCapacity;
+    Serial.print("Warnung: config.json zu groß! Begrenzt auf: ");
+    Serial.println(maxCommandCapacity);
+  } else {
+    configTableSize = array.size();
+  }
+
+  // Array mit den echten Daten befüllen
+  int index = 0;
+  for (JsonObject obj : array) {
+    if (index >= configTableSize) break;
+
+    // Strings sicher kopieren mit strlcpy
+    strlcpy(configArray[index].btnID, obj["btnID"] | "", sizeof(configArray[index].btnID));
+    strlcpy(configArray[index].serCmd, obj["serCmd"] | "", sizeof(configArray[index].serCmd));
+    strlcpy(configArray[index].device, obj["device"] | "", sizeof(configArray[index].device));
+
+    // Hex-Strings ("0x...") korrekt als Hexadezimalzahl (Basis 16) einlesen
+    configArray[index].irRecvCode = strtol(obj["irRecvCode"] | "0", nullptr, 16);
+    configArray[index].address    = strtol(obj["address"] | "0", nullptr, 16);
+    configArray[index].command    = strtol(obj["command"] | "0", nullptr, 16);
+
+    // Normale numerische und boolesche Werte direkt zuweisen
+    configArray[index].cmdFlag    = obj["cmdFlag"] | 0;
+    configArray[index].repeat     = obj["repeat"] | false;
+
+    index++;
+  }
+
+  // Kontrollausgabe im Seriellen Monitor
+  Serial.print("Erfolgreich geladen. Aktuelle configTableSize: ");
+  Serial.println(configTableSize);
+
+  Serial.println("--- Geparste Command-Werte aus /config.json ---");
+  for (int i = 0; i < configTableSize; i++) {
+    Serial.print("ID: "); Serial.print(configArray[i].btnID);
+    Serial.print(" | IR-Code: "); Serial.print(configArray[i].irRecvCode);
+    Serial.print(" | Device: "); Serial.println(configArray[i].device);
   }
 }
 
@@ -390,100 +464,117 @@ void setupServerRoutes(){
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/b203", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/b203.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/cd", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/cd.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/phono", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/phono.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/tape1", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/tape1.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/tape2", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/tape2.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/tuner", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/tuner.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
-      server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    
+    server.on("/receiver", HTTP_GET, [](AsyncWebServerRequest *request){
       AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/receiver.html.gz", "text/html");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response);
     });
 
-    /* Die POST-Route für das Webinterface
-    server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request){
-    // Diese leere Funktion wird benötigt, da wir einen Body-Handler nutzen
-    }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-    
-    // Datei zum Schreiben öffnen ("/config.json")
-    // index == 0 bedeutet, es ist der erste Datenblock des POST-Requests
-    File file = LittleFS.open(PortConfigPath, (index == 0) ? "w" : "a");
-    
-    if (file) {
-      // Eingehende JSON-Daten in die Datei schreiben
-      file.write(data, len);
-      file.close();
-    }
-
-    // Wenn der gesamte POST-Request abgeschlossen ist
-    if (index + len == total) {
-      request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
-      loadPortConfig();
-        const char* outWert = getOutByName("B285");
-      if (strcmp(outWert, "no") != 0) {
-        htmlPath = "/receiver.html.gz";
+    // 1. GET-Route: Sendet die gesamte Datei an den Browser
+    server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request){
+      if (LittleFS.exists(ConfigPath)) {
+        request->send(LittleFS, ConfigPath, "application/json");
       } else {
-        htmlPath = "/amplifier.html.gz";
+        request->send(200, "application/json", "[]");
       }
-    }
-    });*/
+    });
 
-    // 1. Registrieren Sie die Route für POST und antworten Sie im Request-Handler erst, wenn fertig
-    AsyncCallbackWebHandler* handler = &server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request) {
-    // Wichtig: request->send() wird JETZT HIER aufgerufen, nachdem der Body komplett ist!
-    // Wir prüfen, ob der Body erfolgreich verarbeitet wurde (z.B. über ein Flag oder direkt hier)
-    request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
+    // 2. POST-Route: Empfängt das modifizierte JSON und speichert es ab
+    server.on("/api/config", HTTP_POST, [](AsyncWebServerRequest *request) {
+      // Antwort erfolgt im Body-Handler unten
+    }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   
-    loadPortConfig();
+      static File uploadFile;
 
-    if (portExists("B285")) {
-      htmlPath = "/receiver.html.gz";
-    } else {
-      htmlPath = "/amplifier.html.gz";
-    }
-});
+      if (index == 0) {
+        uploadFile = LittleFS.open(ConfigPath, "w");
+        if (!uploadFile) {
+          Serial.println("Fehler: ConfigPath konnte nicht zum Schreiben geöffnet werden!");
+        }
+      }
 
-// 2. Hängen Sie den Body-Handler separat an den Handler an
-handler->onBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-  // Datei zum Schreiben öffnen
-  File file = LittleFS.open(PortConfigPath, (index == 0) ? "w" : "a");
-  if (file) {
-    file.write(data, len);
-    file.close();
-  }
-});
+      if (uploadFile) {
+        uploadFile.write(data, len);
+      }
 
-    // Wenn die angeforderte Seite nicht vorhanden ist, `notFound()` aufrufen
-    server.onNotFound(notFound);
+      if (index + len == total) {
+        if (uploadFile) {
+          uploadFile.close();
+          Serial.println("Config-Datei im LittleFS erfolgreich aktualisiert.");
+          loadCommandConfig(); 
+        }
+        request->send(200, "text/plain", "OK");
+      }
+    });
+
+    // 1. Registrieren der Route für POST (Hier wurden die Klammern korrigiert)
+    AsyncCallbackWebHandler* handler = &server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request) {
+        // Antwort senden
+        request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
+      
+        // Erst NACHDEM die Datei im Body-Handler komplett geschrieben wurde, laden wir sie neu
+        loadPortConfig();
+
+        // Dynamischen Pfad für den nächsten Start/Aufruf der Startseite anpassen
+        if (portExists("B285")) {
+          htmlPath = "/receiver.html.gz";
+        } else {
+          htmlPath = "/amplifier.html.gz";
+        }
+    });
+
+    // 2. Body-Handler für /api/save-data (Schreibt die Port-Konfiguration)
+    handler->onBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      File file = LittleFS.open(PortConfigPath, (index == 0) ? "w" : "a");
+      if (file) {
+        file.write(data, len);
+        file.close();
+      }
+    });
+
+    // Wenn die angeforderte Seite nicht vorhanden ist
     server.serveStatic("/", LittleFS, "/");
+    server.onNotFound(notFound);
 
-}
+
+} // <-- Diese Klammer schließt jetzt setupServerRoutes() korrekt ab
 
 void goToLightSleep() {
   Serial.println("Gehe in den Light Sleep...");
@@ -507,7 +598,7 @@ void initLittleFS() {
 }
 
 void loadWIFIConfig() {
-  File file = LittleFS.open(configPath, "r");
+  File file = LittleFS.open(WificonfigPath, "r");
   if (!file) {
     Serial.println("Konnte die Config-Datei nicht finden. Erstelle Standardwerte...");
     return;
@@ -536,7 +627,7 @@ void saveWIFIConfig(String ssid, String pass) {
   doc["password"] = pass;
 
   //File file = LittleFS.open("/config/wifi_config.json", "w");
-  File file = LittleFS.open(configPath, "w");
+  File file = LittleFS.open(WificonfigPath, "w");
   if (file) {
     serializeJson(doc, file);
     file.close();
@@ -609,6 +700,7 @@ WiFi.setHostname(hostName);
   Serial.println(WiFi.localIP());
 
   loadPortConfig();
+  loadCommandConfig();  // Lädt Commands in configArray
 
   if (portExists("B285")) {
     htmlPath = "/receiver.html.gz";
@@ -675,7 +767,6 @@ void loop() {
 
    if (millis() - lastPingTime >= pingInterval) {
         lastPingTime = millis();
-        
         // Sendet einen leeren Ping-Frame an ALLE verbundenen Clients
         // Antwortet ein iPhone nicht (z.B. weil es im Standby ist),
         // merkt das die darunterliegende AsyncTCP-Schicht und schließt den Socket.
@@ -725,24 +816,22 @@ void loop() {
 
 
       if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
-        if  ((cmdTable[irid].repeat == 1) && (irid > 0) ) {
-        sendRevoxFrame ( cmdTable[irid].address, cmdTable[irid].command, 1);
+        if  ((configArray[irid].repeat == 1) && (irid > 0) ) {
+        sendRevoxFrame ( configArray[irid].address, configArray[irid].command, 1);
         Serial.println("Repeated");
-        Serial.print(cmdTable[irid].address);
-        Serial.println(cmdTable[irid].command);
+        Serial.print(configArray[irid].address);
+        Serial.println(configArray[irid].command);
         }
       } else {
         irid = 0;
         Serial.println(combined, HEX );
-        while( cmdTable[irid].btnID != NULL ) {
-          if ((combined == cmdTable[irid].irRecvCode ) && (combined != 0)) {
-            if (( cmdTable[irid].address < 0x11 ) && ( cmdTable[irid].cmdFlag == 0 )) {
-            sendRevoxFrame (cmdTable[irid].address, cmdTable[irid].command, 1);
-            //if (( cmdTable[irid].address != NULL ) && ( cmdTable[irid].cmdFlag == 0 )) {
-            //sendIR (cmdTable[irid].address, cmdTable[irid].command, 1);
+        while( configArray[irid].btnID != "none" ) {
+          if ((combined == configArray[irid].irRecvCode ) && (combined != 0)) {
+            if (( configArray[irid].address < 0x11 ) && ( configArray[irid].cmdFlag == 0 )) {
+            sendRevoxFrame (configArray[irid].address, configArray[irid].command, 1);
             Serial.println("First press");
-            Serial.print(cmdTable[irid].address);
-            Serial.println(cmdTable[irid].command);
+            Serial.print(configArray[irid].address);
+            Serial.println(configArray[irid].command);
             }
           break;
           }
@@ -753,28 +842,28 @@ void loop() {
 
       } else if (buttonHold == 1) {
       int a = 0;
-        while (cmdTable[a].btnID != NULL) {
-          if (strcmp(buttonName, cmdTable[a].btnID) == 0) {
+        while (configArray[a].btnID != "none") {
+          if (strcmp(buttonName, configArray[a].btnID) == 0) {
             for (int i = 0; i < portTableSize; i++) {
-            Serial.println(portArray[i].out);
-            Serial.println(portArray[i].descr);
-            Serial.println(cmdTable[a].device);
-            // ERSETZT STRCMP: Sucht, ob der Text aus cmdTable[a].device in portArray[i].descr enthalten ist
-              if ((strstr(cmdTable[a].device, portArray[i].descr) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
-              //if ((strstr(portArray[i].descr, cmdTable[a].device) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
-                if (cmdTable[a].cmdFlag > 0) {
+            // ERSETZT STRCMP: Sucht, ob der Text aus portArray[i].descr in configArray[a].device enthalten ist
+              if ((strstr(configArray[a].device, portArray[i].descr) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
+                if (configArray[a].cmdFlag > 0) {
                 Serial2.print(portArray[i].out);
-                Serial2.print(cmdTable[a].serCmd);
+                Serial2.print(configArray[a].serCmd);
                 Serial2.print("\r");
                 Serial.print(portArray[i].out);
-                Serial.println(cmdTable[a].serCmd);
-                    if (cmdTable[a].repeat == 0) {
+                Serial.println(configArray[a].serCmd);
+                    if (configArray[a].repeat == 0) {
                     buttonHold = 0;
                     }
                 } 
-                else if (cmdTable[a].cmdFlag == 0) {
-                  sendRevoxFrame(cmdTable[a].address, cmdTable[a].command, 1);
-                  if (cmdTable[a].repeat == 0) {
+                else if (configArray[a].cmdFlag == 0) {
+                  Serial.print("Adress ");
+                  Serial.println(configArray[a].address);
+                  Serial.print("Command ");
+                  Serial.println(configArray[a].command);
+                  sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                  if (configArray[a].repeat == 0) {
                   buttonHold = 0;
                   }
                 }

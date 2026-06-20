@@ -1,0 +1,185 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <Arduino.h> // Wichtig für byte, PROGMEM etc.
+
+const int CMD_FLAG_RECV = 0;
+const int CMD_FLAG_CD = 0;
+const int CMD_FLAG_TAPE1 = 0;
+const int CMD_FLAG_TAPE2 = 0;
+const int CMD_FLAG_PHONO = 0;
+
+
+struct portcnf {
+  char name[5];
+  char descr[12];
+  char out[3];
+  bool feedback;
+};
+
+struct command {
+    char btnID[20];
+    uint32_t irRecvCode;
+    uint8_t address;
+    uint8_t command;
+    uint8_t cmdFlag;
+    char serCmd[8];
+    bool repeat;
+    char device[20];
+};
+
+/*static const command cmdTable [] = {
+    // Timer Controller B203
+    // btnID, irRecvCode, address,  ITTcode,  cmdFlag, serCmd,  once, device
+    // btnID = Button ID
+    // irRecvCode == IR code of the transmitting remote control
+    // address = IR/SerielLink ITT-address 
+    // command = IR/SerialLink ITT-Code
+    // cmdFlag 0= CMD disabled, 1 = send Port+CMD // SerialLink 0 = enabled, 1 (or >0) = disabled
+    // serCmd = Serial Command
+    // repeat 0 = IR command send once, 1 = IR command send repeated
+    // device = Description of the Device
+    { "b203poweroff", 0x500015, ADDR_STANDARD, 0x00, 0, NULL, 0, "b203" },     //0
+    { "b203exit", 0xD00007, ADDR_PUNKT_EASY, 0x03, 0, NULL, 0, "b203" },         //1
+    { "b203time", 0x2100021, ADDR_PUNKT_EASY, 0x09, 0, NULL, 0, "b203" },        //2
+    { "b203event", 0x210001A, ADDR_PUNKT_EASY, 0x04, 0, NULL, 0, "b203"  },      //3
+    { "b203select", 0x210000F, ADDR_PUNKT_EASY, 0x05, 0, NULL, 0, "b203"  },     //4
+    { "b203test", 0x2100018, ADDR_PUNKT_EASY, 0x0A, 0, NULL, 0, "b203" },        //5
+    { "b203prev", 0x210007A, ADDR_STANDARD, 0x2F, 0, NULL, 0, "b203" },        //6
+    { "b203next", 0x210007B, ADDR_STANDARD, 0x2E, 0, NULL, 0, "b203" },        //7
+    { "b203enter", 0x210007C, ADDR_STANDARD, 0x27, 0, NULL, 0, "b203" },       //8
+    { "b203reset", 0x210003C, UNUSED_ADDRESS, 0x40, 1, "RES", 0, "b203" },            //9
+    { "trueIR", 0x0, UNUSED_ADDRESS, 0x40, 1, "R0", 0, "b203"},                       //12
+    { "falseIR", 0x0, UNUSED_ADDRESS, 0x40, 1, "R1", 0, "b203"},                      //13
+
+    // Amplifier B251
+    { "amppoweroff", 0x300015, ADDR_STANDARD, 0x00, 0, "0", 0, "amplifier-receiver" },   //14
+    { "amppoweron", 0x0, ADDR_STANDARD, 0x33, 0, NULL, 0, "amplifier-receiver" },   //14   
+    { "amptape1", 0x30001D, ADDR_STANDARD, 0x30, CMD_FLAG_RECV, "A", 0, "amplifier-receiver" },    //15
+    { "amptuner", 0x300018, ADDR_STANDARD, 0x31, 0, NULL, 0, "amplifier-receiver" },    //16
+    { "ampphono", 0x300020, ADDR_STANDARD, 0x32, CMD_FLAG_RECV, "D", 0, "amplifier-receiver" },    //17
+    { "amptape2", 0x30006C, ADDR_STANDARD, 0x2A, CMD_FLAG_RECV, "B", 0, "amplifier-receiver"  },   //18
+    { "ampcd", 0x30006E, ADDR_STANDARD, 0x2B, CMD_FLAG_RECV, "C", 0, "amplifier-receiver"  },      //19
+    { "ampaux", 0x300075, ADDR_STANDARD, 0x33, 0, NULL, 0, "amplifier-receiver" },      //20
+    { "amprecmon", 0x300002, ADDR_STANDARD, 0x36, CMD_FLAG_RECV, "G", 0, "receiver" },        //21
+    { "amptone", 0x300060, ADDR_STANDARD, 0x35, 0, NULL, 0, "amplifier-receiver" },     //22
+    { "amp20db", 0x30004B, ADDR_STANDARD, 0x34, 0, NULL, 0, "amplifier-receiver" },     //23
+    { "ampbal_r", 0x1100034, ADDR_STANDARD, 0x2D, 0, NULL, 1, "amplifier-receiver" },   //24
+    { "ampbal_l", 0x1100033, ADDR_STANDARD, 0x2C, 0, NULL, 1, "amplifier-receiver" },   //25
+    { "ampvoldn", 0x300013, ADDR_STANDARD, 0x2F, 0, NULL, 1, "amplifier-receiver" },   //26
+    { "ampvolup", 0x300012, ADDR_STANDARD, 0x2E, 0, NULL, 1, "amplifier-receiver" },   //27
+    { "ampvoldnx", 0xB00051, ADDR_STANDARD, 0x29, 0, NULL, 1, "amplifier-receiver"  },  //28
+    { "ampvolupx", 0xB00050, ADDR_STANDARD, 0x28, CMD_FLAG_RECV, "H", 1, "amplifier-receiver"  },  //29
+    // Tuner B261
+    { "tunpoweroff", 0xA5001C, ADDR_STANDARD, 0x00, 0, NULL, 0, "tuner-receiver" },     //30
+    { "tun1", 0xA40001,  ADDR_STANDARD, 0x11, CMD_FLAG_RECV, "E01", 0, "tuner-receiver" },           //31
+    { "tun2", 0xA40002, ADDR_STANDARD, 0x12, CMD_FLAG_RECV, "E02", 0, "tuner-receiver" },            //32
+    { "tun3", 0xA40003, ADDR_STANDARD, 0x13, CMD_FLAG_RECV, "E03", 0, "tuner-receiver" },            //33
+    { "tun4", 0xA40004, ADDR_STANDARD, 0x14, CMD_FLAG_RECV, "E04", 0, "tuner-receiver" },                 //34
+    { "tun5", 0xA40005, ADDR_STANDARD, 0x15, CMD_FLAG_RECV, "E05", 0, "tuner-receiver" },                 //35
+    { "tun6", 0xA40006, ADDR_STANDARD, 0x16, CMD_FLAG_RECV, "E06", 0, "tuner-receiver" },                 //36
+    { "tun7", 0xA40007, ADDR_STANDARD, 0x17, CMD_FLAG_RECV, "E07", 0, "tuner-receiver" },                 //37
+    { "tun8", 0xA40008, ADDR_STANDARD, 0x18, CMD_FLAG_RECV, "E08", 0, "tuner-receiver" },                 //38
+    { "tun9", 0xA40009,  ADDR_STANDARD, 0x19, CMD_FLAG_RECV, "E09", 0, "tuner-receiver" },                //39
+    { "tun10", 0xA40000, ADDR_STANDARD, 0x1A, CMD_FLAG_RECV, "E10", 0, "tuner-receiver" },               //40
+    { "tun11", 0xA40011, ADDR_STANDARD, 0x1B, CMD_FLAG_RECV, "E11", 0, "tuner-receiver" },               //41
+    { "tun12", 0xA40010, ADDR_STANDARD, 0x1C, CMD_FLAG_RECV, "E12", 0, "tuner-receiver" },                //42
+    { "tun13", 0xA40013, ADDR_STANDARD, 0x1D, CMD_FLAG_RECV, "E13", 0, "tuner-receiver" },                //43
+    { "tun14", 0xA5009F, ADDR_STANDARD, 0x1E, CMD_FLAG_RECV, "E14", 0, "tuner-receiver" },                //44
+    { "tun15", 0xA50056, ADDR_STANDARD, 0x1F, CMD_FLAG_RECV, "E15", 0, "tuner-receiver" },                //45
+    { "tun16", 0xA40043, ADDR_STANDARD, 0x20, CMD_FLAG_RECV, "E16", 0, "tuner-receiver" },                 //46
+    { "tun17", 0xA50040, ADDR_STANDARD, 0x21, CMD_FLAG_RECV, "E17", 0, "tuner-receiver" },                 //47
+    { "tun18", 0xA50041, ADDR_STANDARD, 0x22, CMD_FLAG_RECV, "E18", 0, "tuner-receiver" },                //48
+    { "tun19", 0xA50042,  ADDR_STANDARD, 0x23, CMD_FLAG_RECV, "E19", 0, "tuner-receiver" },               //49
+    { "tun20", 0x0, ADDR_STANDARD, 0x1A, CMD_FLAG_RECV, "E20", 0, "tuner-receiver" },               //40
+    { "tun21", 0x0, ADDR_STANDARD, 0x1B, CMD_FLAG_RECV, "E21", 0, "tuner-receiver" },               //41
+    { "tun22", 0x0, ADDR_STANDARD, 0x1C, CMD_FLAG_RECV, "E22", 0, "tuner-receiver" },                //42
+    { "tun23", 0x0, ADDR_STANDARD, 0x1D, CMD_FLAG_RECV, "E23", 0, "tuner-receiver" },                //43
+    { "tun24", 0x0, ADDR_STANDARD, 0x1E, CMD_FLAG_RECV, "E24", 0, "tuner-receiver" },                //44
+    { "tun25", 0x0, ADDR_STANDARD, 0x1F, CMD_FLAG_RECV, "E25", 0, "tuner-receiver" },                //45
+    { "tun26", 0x0, ADDR_STANDARD, 0x20, CMD_FLAG_RECV, "E26", 0, "tuner-receiver" },                 //46
+    { "tun27", 0x0, ADDR_STANDARD, 0x21, CMD_FLAG_RECV, "E27", 0, "tuner-receiver" },                 //47
+    { "tun28", 0x0, ADDR_STANDARD, 0x22, CMD_FLAG_RECV, "E28", 0, "tuner-receiver" },                //48
+    { "tun29", 0x0,  ADDR_STANDARD, 0x23, CMD_FLAG_RECV, "E29", 0, "tuner-receiver" },               //49
+    { "tunscanlast", 0xA50041, ADDR_STANDARD, 0x25, 0, NULL, 0, "tuner-receiver" },          //51
+    { "tunscannext", 0xA50042, ADDR_STANDARD, 0x26, CMD_FLAG_RECV, "N", 0, "tuner-receiver" },          //52
+    { "tunvolup", 0xA5000A, ADDR_STANDARD, 0x2E, 0, NULL, 1, "tuner-receiver" },             //53
+    { "tunvoldn", 0xA5000B, ADDR_STANDARD, 0x2F, 0, NULL, 1, "tuner-receiver" },             //54
+    { "tun10on", 0xA4004A, ADDR_STANDARD, 0x27, CMD_FLAG_RECV, "I", 0, "tuner-receiver" },              //55
+    { "tunhighblend", 0xA50003, ADDR_STANDARD, 0x39, 0, NULL, 0, "tuner-receiver" },         //56
+    { "tunmute", 0xA50059, ADDR_STANDARD, 0x3A, 0, NULL, 0, "tuner-receiver" },              //57
+    { "tunreccal", 0xA50081, ADDR_STANDARD, 0x3B, 0, NULL, 0, "tuner-receiver" },            //58
+    { "tunstore", 0xA5005E, ADDR_STANDARD, 0x3C, 0, NULL, 0, "tuner-receiver" },              //59
+    { "tunmono", 0xA6004C, ADDR_STANDARD, 0x3D, 0, NULL, 0, "tuner-receiver" },              //60
+    { "tunstonly", 0xA5009E, ADDR_STANDARD, 0x3E, 0, NULL, 0, "tuner-receiver" },            //61
+    { "tunantenna", 0xA50047, ADDR_STANDARD, 0x3F, 0, NULL, 0, "tuner-receiver" },           //62
+    // CD Player B226
+    { "cdpoweroff", 0x93A0015, ADDR_STANDARD, 0x00, CMD_FLAG_CD, "O", 0, "cdplayer" },       //63
+    { "cd1", 0x93A0000, ADDR_STERN_FIRST, 0x11, 0, NULL, 0, "cdplayer" },            //64
+    { "cd2", 0x93A0001, ADDR_STERN_FIRST, 0x12, 0, NULL, 0, "cdplayer" },             //65
+    { "cd3", 0x93A0002, ADDR_STERN_FIRST, 0x13, 0, NULL, 0, "cdplayer" },             //66
+    { "cd4", 0x93A0003, ADDR_STERN_FIRST, 0x14, 0, NULL, 0, "cdplayer" },             //67
+    { "cd5", 0x93A0004, ADDR_STERN_FIRST, 0x15, 0, NULL, 0, "cdplayer" },             //68
+    { "cd6", 0x93A0005, ADDR_STERN_FIRST, 0x16, 0, NULL, 0, "cdplayer" },             //69
+    { "cd7", 0x93A0006, ADDR_STERN_FIRST, 0x17, 0, NULL, 0, "cdplayer" },             //70
+    { "cd8", 0x93A0007, ADDR_STERN_FIRST, 0x18, 0, NULL, 0, "cdplayer" },             //71
+    { "cd9", 0x93A0008, ADDR_STERN_FIRST, 0x19, 0, NULL, 0, "cdplayer" },            //72
+    { "cd0", 0x93A0009, ADDR_STERN_FIRST, 0x1A, 0, NULL, 0, "cdplayer" },            //73
+    { "cdplay", 0x93A0032, ADDR_STERN_FIRST, 0x037, CMD_FLAG_CD, "P", 0, "cdplayer" },           //74
+    { "cdstop", 0x93A000F, ADDR_STERN_FIRST, 0x27, CMD_FLAG_CD, "S", 0, "cdplayer" },           //75
+    { "cdpause", 0x93A0039, ADDR_STERN_FIRST, 0x10, CMD_FLAG_CD, "W", 0, "cdplayer" },          //76
+    { "cdpause_wom", 0xC5A003B, ADDR_STERN_FIRST, 0x24, 0, NULL, 0, "cdplayer" },     //77
+    { "cdpause_on", 0xC5A003A, ADDR_STERN_FIRST, 0x1F, 0, NULL, 0, "cdplayer" },      //78
+    { "cdrew", 0x93A0030, ADDR_STERN_FIRST, 0x0E, 0, NULL, 1, "cdplayer" },           //79
+    { "cdforw", 0x93A0023, ADDR_STERN_FIRST, 0x0F, 0, NULL, 1, "cdplayer" },          //80
+    { "cdindscan", 0x93A005C, ADDR_STERN_FIRST, 0x26, CMD_FLAG_CD, "J", 0, "cdplayer" },        //81
+    { "cdvolup", 0xC5A002A, ADDR_STANDARD, 0x2E, 0, NULL, 1, "cdplayer" },         //82
+    { "cdvoldn", 0xC5A0029, ADDR_STANDARD, 0x2F, 0, NULL, 1, "cdplayer" },         //83
+    { "cdpreemph_on", 0x93A0079, ADDR_STERN_FIRST, 0x1B, 0, NULL, 0, "cdplayer" },    //84
+    { "cdpreemph_off", 0x93A007A, ADDR_STERN_FIRST, 0x1C, 0, NULL, 0, "cdplayer" },   //85
+    { "cdlocal_time", 0x93A0028,  ADDR_STERN_FIRST, 0x1D, CMD_FLAG_CD, "T", 0, "cdplayer" },    //86
+    { "cdtotal_time", 0x93A000B, ADDR_STERN_FIRST, 0x1E, CMD_FLAG_CD, "D", 0, "cdplayer" },     //87
+    { "cdlocate", 0x93A000B, ADDR_STERN_FIRST, 0x20, CMD_FLAG_CD, "H", 0, "cdplayer" },         //88
+    { "cdautostp_on", 0x93A000E, ADDR_STERN_FIRST, 0x22, CMD_FLAG_CD, "U", 0, "cdplayer" },     //89
+    { "cdautostp_off", 0x93A0022, ADDR_STERN_FIRST, 0x23, CMD_FLAG_CD, "V", 0, "cdplayer" },    //90
+    { "cdload", 0x93A0016, ADDR_STERN_FIRST, 0x21, CMD_FLAG_CD, "E", 0, "cdplayer" },           //91
+    // Tape1 Reel to Reel B77
+    { "tape2poweroff", 0xE000F, ADDR_STANDARD, 0x00, 0, NULL, 0, "tape2" },      //92
+    { "tape2play",  0x100023,  ADDR_STERN_FIRST, 0x0A, CMD_FLAG_TAPE2, "P", 0, "tape2" },          //93
+    { "tape2stop",	0xE0018, ADDR_STERN_FIRST, 0x03, CMD_FLAG_TAPE2, "S", 0, "tape2" },            //94
+    { "tape2pause",	0xE0019, ADDR_STERN_FIRST, 0x09, CMD_FLAG_TAPE2, "W", 0, "tape2" },            //95
+    { "tape2playrec",	0xE0020, ADDR_STERN_FIRST, 0x02, CMD_FLAG_TAPE2, "R", 0, "tape2" },        //96
+    { "tape2pauserec",	0xE0030, ADDR_STERN_FIRST, 0x01, 0, NULL, 0, "tape2" },       //97
+    { "tape2rew",	0xE001B, ADDR_STERN_FIRST, 0x04, CMD_FLAG_TAPE2, "B", 0, "tape2" },            //98
+    { "tape2forw",	0xE001C, ADDR_STERN_FIRST, 0x05, CMD_FLAG_TAPE2, "F", 0, "tape2" },            //98
+    { "tape2volup", 0xE001A, ADDR_STANDARD, 0x2E, 0, NULL, 1, "tape2" },           //100
+    { "tape2voldn", 0xE004B, ADDR_STANDARD, 0x2F, 0, NULL, 1, "tape2" },           //101
+    { "tape2mon",	0xE000E, ADDR_STERN_FIRST, 0x06, 0, NULL, 0, "tape2" },           //102
+    // Tape2 Kassettendeck B215
+    { "tape1poweroff", 0xE0016, ADDR_STANDARD, 0x00, CMD_FLAG_TAPE1, "O", 0, "tape1" },         //103
+    { "tape1play",  0x100032,  ADDR_STANDARD, 0x0A, CMD_FLAG_TAPE1, "P", 0, "tape1" },          //104
+    { "tape1stop",	0x100038, ADDR_STANDARD, 0x03, CMD_FLAG_TAPE1, "S", 0, "tape1" },           //105
+    { "tape1pause",	0x100039, ADDR_STANDARD, 0x09, CMD_FLAG_TAPE1, "W", 0, "tape1" },           //106
+    { "tape1playrec", 0x100036, ADDR_STANDARD, 0x02, CMD_FLAG_TAPE1, "R", 0, "tape1" },       //107
+    { "tape1pauserec", 0xE001F, ADDR_STANDARD, 0x01, CMD_FLAG_TAPE1, "V", 0, "tape1" },        //108
+    { "tape1rew",	0x100033, ADDR_STANDARD, 0x04, CMD_FLAG_TAPE1, "B", 0, "tape1" },           //109
+    { "tape1forw",	0x100034, ADDR_STANDARD, 0x05, CMD_FLAG_TAPE1, "F", 0, "tape1" },           //110
+    { "tape1volup", 0xE0042, ADDR_STANDARD, 0x2E, 0, NULL, 1, "tape1" },           //111
+    { "tape1voldn", 0xE0043, ADDR_STANDARD, 0x2F, 0, NULL, 1, "tape1" },           //112
+    { "tape1mon",	0xE0017, ADDR_STANDARD, 0x06, 0, NULL, 0, "tape1" },           //113
+    { "tape1loc1",	0xE0040, ADDR_STANDARD, 0x07, CMD_FLAG_TAPE1, "Q", 0, "tape1" },            //114
+    { "tape1loc2",	0xE0041, ADDR_STANDARD, 0x08, CMD_FLAG_TAPE1, "Z", 0, "tape1" },            //115
+    { "tape1loop",	0x100037, ADDR_STANDARD, 0x0B, CMD_FLAG_TAPE1, "L", 0, "tape1" },           //116
+    // Phono Plattenspieler B291
+    { "phonopoweroff", 0x540015, ADDR_STANDARD, 0x00, 0, NULL, 0, "phono" },       //117
+    { "phonovoldn", 0x540012, ADDR_STANDARD, 0x2F, 0, NULL, 1, "phono" },          //120
+    { "phonovolup", 0x540013, ADDR_STANDARD, 0x2E, 0, NULL, 1, "phono" },          //121
+    { "phonoforw",  0x540034,  ADDR_STANDARD, 0x0F, CMD_FLAG_PHONO, ">", 1, "phono" },          //118
+    { "phonoback",	0x540033, ADDR_STANDARD, 0x0E, CMD_FLAG_PHONO, "<", 1, "phono" },           //119
+    { "phonolift",	0x540036, ADDR_STANDARD, 0x10, 0, NULL, 0, "phono" },          //122
+    { NULL, 0x0, UNUSED_ADDRESS, 0x40, 0, NULL, 0, NULL }
+};
+*/
+//const int cmdTableSize = sizeof(cmdTable) / sizeof(cmdTable[0]);
+
+#endif

@@ -1,8 +1,13 @@
 const gateway = `ws://${window.location.hostname}/ws`;
 let websocket;
 
-window.addEventListener('load', onLoad);
+let portconfigData = [];
+ // Globale Variable, um alle restlichen Daten im Hintergrund zu behalten
 let configData = [];
+
+
+window.addEventListener('load', onLoad);
+//window.addEventListener('DOMContentLoaded', loadConfig);
 
   function onLoad(event) {
     initWebSocket();
@@ -25,6 +30,7 @@ let configData = [];
     setPorts();
   }
 
+
 // 1. FEHLER BEHOBEN: Anführungszeichen bei "'" korrekt maskiert
 const escapeHtml = (str) => String(str).replace(/[&<>"']/g, m => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -32,18 +38,18 @@ const escapeHtml = (str) => String(str).replace(/[&<>"']/g, m => ({
 
 // ERGÄNZT: Diese Funktion wird von den Select-Feldern in der Tabelle benötigt
 function updateValue(index, key, value) {
-  if (configData[index]) {
-    configData[index][key] = value;
-    console.log("Wert im Array aktualisiert:", configData);
+  if (portconfigData[index]) {
+    portconfigData[index][key] = value;
+    console.log("Wert im Array aktualisiert:", portconfigData);
   }
 }
 
-// Zeichnet die Tabelle basierend auf dem aktuellen Zustand von configData neu
+// Zeichnet die Tabelle basierend auf dem aktuellen Zustand von portconfigData neu
 function renderTable() {
   const tbody = document.getElementById('table-body');
   if (!tbody) return;
 
-  const rows = configData.map((item, index) => {
+  const rows = portconfigData.map((item, index) => {
     const safeName = escapeHtml(item.name || '');
     const safeDescr = escapeHtml(item.descr || '');
     
@@ -72,7 +78,7 @@ function syncSelectField() {
   if (!selectElem) return;
 
   // Wir prüfen primär, ob der Alternativzustand B251 aktiv ist
-  const isB251Active = configData.some(item => item.name === "B251");
+  const isB251Active = portconfigData.some(item => item.name === "B251");
 
   // Optionen generieren und den Zustand exakt setzen
   selectElem.innerHTML = `
@@ -86,7 +92,7 @@ function switchConfiguration(selectedValue) {
     // === ZUSTAND B251 AKTIVIEREN ===
     
     // 1. "B285" suchen und alle drei Werte anpassen
-    const entry = configData.find(item => item.name === "B285");
+    const entry = portconfigData.find(item => item.name === "B285");
     if (entry) {
       entry.name = "B251";
       entry.descr = "amplifier"; // Von "receiver" zu "amplifier"
@@ -95,9 +101,9 @@ function switchConfiguration(selectedValue) {
     }
 
     // 2. Den Tuner "B261" hinzufügen, falls noch nicht da
-    const exists261 = configData.some(item => item.name === "B261");
+    const exists261 = portconfigData.some(item => item.name === "B261");
     if (!exists261) {
-      configData.push({
+      portconfigData.push({
         "name": "B261",
         "descr": "tuner",
         "out": "4",
@@ -109,7 +115,7 @@ function switchConfiguration(selectedValue) {
     // === ZUSTAND B285 AKTIVIEREN (ZURÜCKSETZEN) ===
     
     // 1. "B251" suchen und wieder auf die alten Werte setzen
-    const entry = configData.find(item => item.name === "B251");
+    const entry = portconfigData.find(item => item.name === "B251");
     if (entry) {
       entry.name = "B285";
       entry.descr = "receiver";  // Zurück zu "receiver"
@@ -118,7 +124,7 @@ function switchConfiguration(selectedValue) {
     }
 
     // 2. Den Tuner "B261" wieder komplett entfernen
-    configData = configData.filter(item => item.name !== "B261");
+    portconfigData = portconfigData.filter(item => item.name !== "B261");
   }
 
   // UI komplett aktualisieren (Tabelle spiegelt alle Änderungen sofort wider)
@@ -543,6 +549,9 @@ function switchConfiguration(selectedValue) {
     } else if (tabname == "PortConfig") {
       console.log(tabname);
       loadData();
+    } else if (tabname == "Config") {
+      console.log(tabname);
+      loadConfig();
     }
   }
 
@@ -656,7 +665,7 @@ function switchConfiguration(selectedValue) {
     try {
       const response = await fetch(`/portconfig.json?v=${Date.now()}`);
       if (!response.ok) throw new Error(`HTTP-Fehler!`);
-      configData = await response.json();
+      portconfigData = await response.json();
     
       // 1. Dropdown an den Zustand der JSON-Daten anpassen
       syncSelectField();
@@ -669,31 +678,136 @@ function switchConfiguration(selectedValue) {
   }
 
   function updateValue(index, field, value) {
-    configData[index][field] = value;
+    portconfigData[index][field] = value;
   }
 
-async function saveData() {
-  try {
-    const response = await fetch('/api/save-data', { // Ersetze dies mit deinem echten Speicher-Pfad/API
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(configData) // Schickt den aktuellen Zustand aus dem Browser-Speicher
-    });
+  async function saveData() {
+    try {
+      const response = await fetch('/api/save-data', { // Ersetze dies mit deinem echten Speicher-Pfad/API
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(portconfigData) // Schickt den aktuellen Zustand aus dem Browser-Speicher
+      });
 
-    if (!response.ok) throw new Error("Fehler beim Speichern auf dem Server");
+      if (!response.ok) throw new Error("Fehler beim Speichern auf dem Server");
     
-    alert("Konfiguration erfolgreich gespeichert!");
+      alert("Konfiguration erfolgreich gespeichert!");
     
-    // Nach dem Speichern laden wir die Daten neu, um sicherzustellen, 
-    // dass Server und UI zu 100% synchron sind.
-    await loadData(); 
+      // Nach dem Speichern laden wir die Daten neu, um sicherzustellen, 
+      // dass Server und UI zu 100% synchron sind.
+      await loadData(); 
 
-    window.location.href = '/'; // Leitet zur Hauptseite weiter
+      window.location.href = '/'; // Leitet zur Hauptseite weiter
 
-  } catch (error) {
-    console.error("Speicherfehler:", error);
-    alert("Fehler beim Sichern der Daten.");
+    } catch (error) {
+      console.error("Speicherfehler:", error);
+      alert("Fehler beim Sichern der Daten.");
+    }
   }
-}
+
+  async function loadConfig() {
+    const tbody = document.getElementById('configTable');
+    if (!tbody) {
+        console.error("Meldung: Das Element 'configTable' wurde im HTML nicht gefunden!");
+        return; 
+    }
+    
+    try {
+        console.log("Meldung: Klick registriert. Starte Fetch-Anfrage an den ESP...");
+        const response = await fetch('/api/config?_cb=' + Date.now());
+        if (!response.ok) throw new Error('Laden fehlgeschlagen');
+        
+        configData = await response.json();
+        console.log("Meldung: JSON erfolgreich empfangen. Anzahl Einträge:", configData.length);
+        
+        tbody.innerHTML = '';
+        
+        configData.forEach((item, index) => {
+
+          const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
+            
+            if (item.btnID && ignoriertBtnIDs.includes(item.btnID)) {
+                return; // Überspringt diese Zeile und geht zur nächsten
+            }
+            const tr = document.createElement('tr');
+            
+            let rawCode = item.irRecvCode;
+            let displayCode = "";
+
+            if (typeof rawCode === 'number') {
+                displayCode = '0x' + rawCode.toString(16).toUpperCase();
+            } 
+            else if (typeof rawCode === 'string') {
+                rawCode = rawCode.trim();
+                if (rawCode.toLowerCase().startsWith('0x')) {
+                    displayCode = '0x' + rawCode.substring(2).toUpperCase();
+                } else {
+                    let parsed = parseInt(rawCode, 10);
+                    displayCode = isNaN(parsed) ? '0x0' : '0x' + parsed.toString(16).toUpperCase();
+                }
+            } else {
+                displayCode = '0x0';
+            }
+
+            tr.innerHTML = `
+                <td class="btnID-text">${item.btnID || '-'}</td>
+                <td>
+                    <input type="text" class="irRecvCode-input" data-index="${index}" value="${displayCode}">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        console.log("Meldung: Tabelle wurde erfolgreich im HTML sichtbar befüllt!");
+
+        // Das manuelle Aufrufen von onLoad() wurde hier entfernt, 
+        // da openB203 das Tab-Management bereits fehlerfrei übernimmt.
+
+    } catch (error) {
+        console.error("Meldung: Fehler im try-catch Block aufgetreten:", error);
+        alert('Fehler beim Laden: ' + error.message);
+    }
+  }
+
+  async function saveConfig() {
+      // OPTIMIERUNG: Suche gezielt in der Tabelle, nicht auf der ganzen Seite
+      const inputs = document.querySelectorAll('#configTable .irRecvCode-input');
+      inputs.forEach(input => {
+        // FIX 1: Index explizit in eine Ganzzahl (Integer) umwandeln
+        const index = parseInt(input.getAttribute('data-index'), 10);
+        const val = input.value.trim();
+              // FIX 2: Sicherstellen, dass das Objekt an diesem Index existiert
+          if (!configData || configData[index] === undefined) {
+              return; // Falls nicht vorhanden, diesen Input überspringen
+          }
+          let parsedNumber = 0;
+            if (val.toLowerCase().startsWith('0x')) {
+              parsedNumber = parseInt(val, 16); // Hexadezimal parsen
+            } else {
+              parsedNumber = parseInt(val, 10); // Normales Dezimal parsen
+            }
+          // Falls die Eingabe ungültig war (NaN), auf "0x0" setzen
+            if (isNaN(parsedNumber)) {
+                configData[index].irRecvCode = "0x0";
+            } else {
+                // Als formatierten Hex-String (z.B. "0x500015") abspeichern
+                configData[index].irRecvCode = "0x" + parsedNumber.toString(16).toUpperCase();
+            }
+        });
+        try {
+          const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(configData)
+          });
+          if (response.ok) {
+            alert('IR-Codes erfolgreich aktualisiert!');
+          } else {
+            alert('Fehler beim Speichern.');
+          }
+        } catch (error) {
+          alert('Netzwerkfehler: ' + error.message);
+        }
+  }

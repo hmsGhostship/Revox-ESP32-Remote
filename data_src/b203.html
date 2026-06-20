@@ -26,6 +26,7 @@
   			<button class="tablinks" onclick="openB203(event, 'B203Timertab')">Timer</button>
 			<button class="tablinks" onclick="openB203(event, 'PortConfig')">Port-Config</button>
 			<button class="tablinks" onclick="openB203(event, 'WIFIConfig')">Wifi-Config</button>
+			<button class="tablinks" onclick="openB203(event, 'Config')">IR-Config</button>
 		</div>
 
 		<div id="WIFIConfig" class="tabcontent">
@@ -41,6 +42,23 @@
 			</div>
 		</div>
 
+		<div id="Config" class="tabcontent">
+		<table>
+    		<thead>
+        		<tr>
+            		<th>Button ID</th>
+            		<th>IR-Empfangscode (Hex oder Dezimal)</th>
+        		</tr>
+    		</thead>
+    		<tbody id="configTable">
+        		<!-- Wird dynamisch durch JS befüllt -->
+    		</tbody>
+		</table>
+		<div class='button-pwr-container-dev span2'>
+		<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
+		</div>
+		</div>
+		
 		<div id="PortConfig" class="tabcontent">
 
 		<h4>Revox B203<br>Port Konfiguration</h4>
@@ -225,6 +243,6 @@
 			<p><button name='call' id='b203callevent' class='set_event_button span7'>Aufrufen</button></p>
 			<p><button name='delete' id='b203delevent' class='set_event_button span7'>L&ouml;schen</button></p>
 			<p><button name='testEvent' id='b203testevent' class='set_event_button span12'>Test</button></p>	
-		</div>		
+		</div>
 	</body>
 </html>

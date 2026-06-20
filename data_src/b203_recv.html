@@ -12,11 +12,11 @@
 
 		<div class='button-group-container-dev span2'>
         <span class='button-group-title-dev'>Ger&auml;teauswahl</span>
-			<a href='tape1_recv.html'><button id='amptape1' name='button' class='button span1'>Tape1</button></a>
-			<a href='tape2_recv.html'><button id='amptape2' name='button' class='button span1'>Tape2</button></a>
-			<a href='phono_recv.html'><button id='ampphono' name='button' class='button span1'>Phono</button></a>
-			<a href='cd_recv.html'><button id='ampcd' name='button' class='button span1'>CD</button></a>
-			<a href='receiver.html'><button id='receiver' name='page' class='button span1'>Receiver</button></a>
+			<a href='tape1.html'><button id='amptape1' name='button' class='button span1'>Tape1</button></a>
+			<a href='tape2.html'><button id='amptape2' name='button' class='button span1'>Tape2</button></a>
+			<a href='phono.html'><button id='ampphono' name='button' class='button span1'>Phono</button></a>
+			<a href='cd.html'><button id='ampcd' name='button' class='button span1'>CD</button></a>
+			<a href='receiver.html'><button id='amplifier' name='page' class='button span1'>Amplifier</button></a>
 		</div>
 
 		<div class="tab">
@@ -25,6 +25,7 @@
   			<button class="tablinks" onclick="openB203(event, 'B203Timertab')">Timer</button>
 			<button class="tablinks" onclick="openB203(event, 'PortConfig')">Port-Config</button>
 			<button class="tablinks" onclick="openB203(event, 'WIFIConfig')">Wifi-Config</button>
+			<button class="tablinks" onclick="openB203(event, 'Config')">IR-Config</button>
 		</div>
 
 		<div id="WIFIConfig" class="tabcontent">
@@ -40,14 +41,31 @@
 			</div>
 		</div>
 
+		<div id="Config" class="tabcontent">
+		<table>
+    		<thead>
+        		<tr>
+            		<th>Button ID</th>
+            		<th>IR-Empfangscode (Hex oder Dezimal)</th>
+        		</tr>
+    		</thead>
+    		<tbody id="configTable">
+        		<!-- Wird dynamisch durch JS befüllt -->
+    		</tbody>
+		</table>
+		<div class='button-pwr-container-dev span2'>
+		<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
+		</div>
+		</div>
+
 		<div id="PortConfig" class="tabcontent">
 
 		<h4>Revox B203<br>Port Konfiguration</h4>
 		<div class='select-group-container span2'>
-			<label for="change">Auswahl: Verst&auml;rker / Receiver</label>
-			<select id="change" name="select" onchange="switchConfiguration(this.value)">
+		<label for="change">Auswahl: Verst&auml;rker / Receiver</label>
+		<select id="change" name="select" onchange="switchConfiguration(this.value)">
   			<!-- Wird dynamisch durch JavaScript befüllt -->
-			</select>
+		</select>
 		</div>
   		<table>
     		<thead>
@@ -224,6 +242,6 @@
 			<p><button name='call' id='b203callevent' class='set_event_button span7'>Aufrufen</button></p>
 			<p><button name='delete' id='b203delevent' class='set_event_button span7'>L&ouml;schen</button></p>
 			<p><button name='testEvent' id='b203testevent' class='set_event_button span12'>Test</button></p>	
-		</div>		
+		</div>
 	</body>
 </html>

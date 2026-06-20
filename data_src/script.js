@@ -726,13 +726,14 @@ function switchConfiguration(selectedValue) {
         
         configData.forEach((item, index) => {
 
-          const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
+            const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
             
             if (item.btnID && ignoriertBtnIDs.includes(item.btnID)) {
                 return; // Überspringt diese Zeile und geht zur nächsten
             }
             const tr = document.createElement('tr');
             
+            // 1. HEX-Formatierung des IR-Codes (Ihre bestehende Logik)
             let rawCode = item.irRecvCode;
             let displayCode = "";
 
@@ -751,10 +752,27 @@ function switchConfiguration(selectedValue) {
                 displayCode = '0x0';
             }
 
+            // 2. NEU: Checkbox für cmdFlag prüfen (nur wenn serCmd nicht null ist)
+            let checkboxHtml = "";
+            if (item.serCmd !== null && item.serCmd !== undefined) {
+                // Aktiviert, wenn cmdFlag "1", 1 oder true ist
+                const isChecked = (item.cmdFlag === "1" || item.cmdFlag === 1 || item.cmdFlag === true) ? "checked" : "";
+                checkboxHtml = `
+                    <input type="checkbox" 
+                           ${isChecked} 
+                           data-index="${index}" 
+                           class="config-checkbox">
+                `;
+            }
+
+            // 3. HTML Struktur der Zeile befüllen (Inklusive der neuen 3. Spalte)
             tr.innerHTML = `
                 <td class="btnID-text">${item.btnID || '-'}</td>
                 <td>
                     <input type="text" class="irRecvCode-input" data-index="${index}" value="${displayCode}">
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
+                    ${checkboxHtml}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -762,52 +780,64 @@ function switchConfiguration(selectedValue) {
 
         console.log("Meldung: Tabelle wurde erfolgreich im HTML sichtbar befüllt!");
 
-        // Das manuelle Aufrufen von onLoad() wurde hier entfernt, 
-        // da openB203 das Tab-Management bereits fehlerfrei übernimmt.
-
     } catch (error) {
         console.error("Meldung: Fehler im try-catch Block aufgetreten:", error);
         alert('Fehler beim Laden: ' + error.message);
     }
-  }
+}
 
   async function saveConfig() {
-      // OPTIMIERUNG: Suche gezielt in der Tabelle, nicht auf der ganzen Seite
-      const inputs = document.querySelectorAll('#configTable .irRecvCode-input');
-      inputs.forEach(input => {
-        // FIX 1: Index explizit in eine Ganzzahl (Integer) umwandeln
+    // 1. IR-Codes verarbeiten (Ihre bestehende optimierte Logik)
+    const inputs = document.querySelectorAll('#configTable .irRecvCode-input');
+    inputs.forEach(input => {
         const index = parseInt(input.getAttribute('data-index'), 10);
         const val = input.value.trim();
-              // FIX 2: Sicherstellen, dass das Objekt an diesem Index existiert
-          if (!configData || configData[index] === undefined) {
-              return; // Falls nicht vorhanden, diesen Input überspringen
-          }
-          let parsedNumber = 0;
-            if (val.toLowerCase().startsWith('0x')) {
-              parsedNumber = parseInt(val, 16); // Hexadezimal parsen
-            } else {
-              parsedNumber = parseInt(val, 10); // Normales Dezimal parsen
-            }
-          // Falls die Eingabe ungültig war (NaN), auf "0x0" setzen
-            if (isNaN(parsedNumber)) {
-                configData[index].irRecvCode = "0x0";
-            } else {
-                // Als formatierten Hex-String (z.B. "0x500015") abspeichern
-                configData[index].irRecvCode = "0x" + parsedNumber.toString(16).toUpperCase();
-            }
-        });
-        try {
-          const response = await fetch('/api/config', {
+        
+        if (!configData || configData[index] === undefined) {
+            return; 
+        }
+
+        let parsedNumber = 0;
+        if (val.toLowerCase().startsWith('0x')) {
+            parsedNumber = parseInt(val, 16); 
+        } else {
+            parsedNumber = parseInt(val, 10); 
+        }
+
+        if (isNaN(parsedNumber)) {
+            configData[index].irRecvCode = "0x0";
+        } else {
+            configData[index].irRecvCode = "0x" + parsedNumber.toString(16).toUpperCase();
+        }
+    });
+
+    // 2. NEU: Checkboxen für cmdFlag verarbeiten
+    const checkboxes = document.querySelectorAll('#configTable .config-checkbox');
+    checkboxes.forEach(checkbox => {
+        const index = parseInt(checkbox.getAttribute('data-index'), 10);
+        
+        // Sicherstellen, dass das Objekt an diesem Index existiert
+        if (!configData || configData[index] === undefined) {
+            return; 
+        }
+        
+        // Setzt "1" wenn die Checkbox aktiv ist, sonst "0"
+        configData[index].cmdFlag = checkbox.checked ? "1" : "0";
+    });
+
+    // 3. Daten an den ESP senden (Ihre bestehende fetch-Logik)
+    try {
+        const response = await fetch('/api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(configData)
-          });
-          if (response.ok) {
-            alert('IR-Codes erfolgreich aktualisiert!');
-          } else {
+        });
+        if (response.ok) {
+            alert('Einstellungen erfolgreich aktualisiert!');
+        } else {
             alert('Fehler beim Speichern.');
-          }
-        } catch (error) {
-          alert('Netzwerkfehler: ' + error.message);
         }
-  }
+    } catch (error) {
+        alert('Netzwerkfehler: ' + error.message);
+    }
+}

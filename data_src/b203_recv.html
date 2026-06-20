@@ -47,6 +47,7 @@
         		<tr>
             		<th>Button ID</th>
             		<th>IR-Empfangscode (Hex oder Dezimal)</th>
+					<th>Flag (Seriell)</th> <!-- Diese Überschrift hat noch gefehlt -->
         		</tr>
     		</thead>
     		<tbody id="configTable">
@@ -155,14 +156,18 @@
 				
 			</div>
 
-			<div class='select-group-container span2'>
-				<label for="setDate">Datum:</label>
-				<input class="b203_event" type="date" id="set_date" name="select" step="1" value="2026-01-01" required>
-				<p><button name='setDate' id='setDate' class='set_button span12'>Datum stellen</button></p>
-				
-				<label for="setTime">Uhrzeit:</label>
-				<input class="b203_event" type="time" id="set_time" name="select" step="1" value="12:00:00" required>
-				<p><button name='setTime' id='setTime' class='set_button span12'>Uhreit stellen</button></p>
+			<div class='select-group-container span2'> 
+    			<div class="form-group">
+        		<label for="set_date">Datum:</label> 
+        		<input class="b203_event" type="date" id="set_date" name="select_date" step="1" value="2026-01-01" required> 
+        		<button name='setDate' id='setDate' class='set_button span12'>Datum stellen</button>
+    			</div>
+    
+    	    	<div class="form-group">
+        		<label for="set_time">Uhrzeit:</label> 
+        		<input class="b203_event" type="time" id="set_time" name="select_time" step="1" value="12:00:00" required> 
+        		<button name='setTime' id='setTime' class='set_button span12'>Uhrzeit stellen</button>
+    			</div>
 			</div>
 
 			<div class='select-group-container span2'>

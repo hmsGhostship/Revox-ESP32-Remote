@@ -1,8 +1,13 @@
 const gateway = `ws://${window.location.hostname}/ws`;
 let websocket;
 
-window.addEventListener('load', onLoad);
+let portconfigData = [];
+ // Globale Variable, um alle restlichen Daten im Hintergrund zu behalten
 let configData = [];
+
+
+window.addEventListener('load', onLoad);
+//window.addEventListener('DOMContentLoaded', loadConfig);
 
   function onLoad(event) {
     initWebSocket();
@@ -25,6 +30,106 @@ let configData = [];
     setPorts();
   }
 
+
+// 1. FEHLER BEHOBEN: Anführungszeichen bei "'" korrekt maskiert
+const escapeHtml = (str) => String(str).replace(/[&<>"']/g, m => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+})[m]);
+
+// ERGÄNZT: Diese Funktion wird von den Select-Feldern in der Tabelle benötigt
+function updateValue(index, key, value) {
+  if (portconfigData[index]) {
+    portconfigData[index][key] = value;
+    console.log("Wert im Array aktualisiert:", portconfigData);
+  }
+}
+
+// Zeichnet die Tabelle basierend auf dem aktuellen Zustand von portconfigData neu
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  if (!tbody) return;
+
+  const rows = portconfigData.map((item, index) => {
+    const safeName = escapeHtml(item.name || '');
+    const safeDescr = escapeHtml(item.descr || '');
+    
+    return `
+      <tr>
+        <td><input class="portselect" type="text" value="${safeName}" autocomplete="off" disabled></td>
+        <td><input class="portselect" type="text" value="${safeDescr}" autocomplete="off" disabled></td>
+        <td>
+          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
+            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
+            ${[...Array(10).keys()].map(i => `
+              <option value="${i}" ${item.out == i ? 'selected' : ''}>${i}</option>
+            `).join('')}
+          </select>
+        </td>
+        <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+function syncSelectField() {
+  const selectElem = document.getElementById('change');
+  if (!selectElem) return;
+
+  // Wir prüfen primär, ob der Alternativzustand B251 aktiv ist
+  const isB251Active = portconfigData.some(item => item.name === "B251");
+
+  // Optionen generieren und den Zustand exakt setzen
+  selectElem.innerHTML = `
+    <option value="B285" ${!isB251Active ? 'selected' : ''}>B285 (Standard)</option>
+    <option value="B251" ${isB251Active ? 'selected' : ''}>B251 (+ Tuner B261)</option>
+  `;
+}
+
+function switchConfiguration(selectedValue) {
+  if (selectedValue === "B251") {
+    // === ZUSTAND B251 AKTIVIEREN ===
+    
+    // 1. "B285" suchen und alle drei Werte anpassen
+    const entry = portconfigData.find(item => item.name === "B285");
+    if (entry) {
+      entry.name = "B251";
+      entry.descr = "amplifier"; // Von "receiver" zu "amplifier"
+      entry.out = "1";
+      entry.feedback = false;    // Entspricht der Checkbox (0 / unchecked)
+    }
+
+    // 2. Den Tuner "B261" hinzufügen, falls noch nicht da
+    const exists261 = portconfigData.some(item => item.name === "B261");
+    if (!exists261) {
+      portconfigData.push({
+        "name": "B261",
+        "descr": "tuner",
+        "out": "4",
+        "feedback": false
+      });
+    }
+
+  } else if (selectedValue === "B285") {
+    // === ZUSTAND B285 AKTIVIEREN (ZURÜCKSETZEN) ===
+    
+    // 1. "B251" suchen und wieder auf die alten Werte setzen
+    const entry = portconfigData.find(item => item.name === "B251");
+    if (entry) {
+      entry.name = "B285";
+      entry.descr = "receiver";  // Zurück zu "receiver"
+      entry.out = "1";
+      entry.feedback = true;     // Zurück zu 1 (checked)
+    }
+
+    // 2. Den Tuner "B261" wieder komplett entfernen
+    portconfigData = portconfigData.filter(item => item.name !== "B261");
+  }
+
+  // UI komplett aktualisieren (Tabelle spiegelt alle Änderungen sofort wider)
+  renderTable();
+}
   function initWebSocket() {
     console.log('Trying to open a WebSocket connection...');
     websocket = new WebSocket(gateway);
@@ -444,6 +549,9 @@ let configData = [];
     } else if (tabname == "PortConfig") {
       console.log(tabname);
       loadData();
+    } else if (tabname == "Config") {
+      console.log(tabname);
+      loadConfig();
     }
   }
 
@@ -554,52 +662,182 @@ let configData = [];
   }
 
   async function loadData() {
-  // 1. Caching verhindern
-  const response = await fetch(`/portconfig.json?v=${Date.now()}`);
-  configData = await response.json();
-  
-  const tbody = document.getElementById('table-body');
-  
-  // 2. Alle Zeilen sauber in einem Array sammeln
-  const rows = configData.map((item, index) => {
-    return `
-      <tr>
-        <!-- autocomplete="off" verhindert Geister-Einträge vom Browser -->
-        <td><input class="portselect" type="text" value="${item.name}" autocomplete="off" disabled></td>
-        <td><input class="portselect" type="text" value="${item.descr}" autocomplete="off" disabled></td>
-        <td>
-          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
-            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
-            <option value="0" ${item.out === '0' ? 'selected' : ''}>0</option>
-            <option value="1" ${item.out === '1' ? 'selected' : ''}>1</option>
-            <option value="2" ${item.out === '2' ? 'selected' : ''}>2</option>
-            <option value="3" ${item.out === '3' ? 'selected' : ''}>3</option>
-            <option value="4" ${item.out === '4' ? 'selected' : ''}>4</option>
-            <option value="5" ${item.out === '5' ? 'selected' : ''}>5</option>
-            <option value="6" ${item.out === '6' ? 'selected' : ''}>6</option>
-            <option value="7" ${item.out === '7' ? 'selected' : ''}>7</option>
-            <option value="8" ${item.out === '8' ? 'selected' : ''}>8</option>
-            <option value="9" ${item.out === '9' ? 'selected' : ''}>9</option>
-          </select>
-        </td>
-        <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
-      </tr>
-    `;
-  });
-
-  // 3. Die Tabelle komplett in einem Rutsch überschreiben
-  tbody.innerHTML = rows.join('');
-}
+    try {
+      const response = await fetch(`/portconfig.json?v=${Date.now()}`);
+      if (!response.ok) throw new Error(`HTTP-Fehler!`);
+      portconfigData = await response.json();
+    
+      // 1. Dropdown an den Zustand der JSON-Daten anpassen
+      syncSelectField();
+    
+      // 2. Tabelle das erste Mal zeichnen
+      renderTable(); 
+    } catch (error) {
+      console.error("Fehler beim Laden:", error);
+    }
+  }
 
   function updateValue(index, field, value) {
-    configData[index][field] = value;
+    portconfigData[index][field] = value;
   }
 
   async function saveData() {
-    await fetch('/api/save-data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(configData)
-    });
-    alert("Konfiguration gespeichert!");
+    try {
+      const response = await fetch('/api/save-data', { // Ersetze dies mit deinem echten Speicher-Pfad/API
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(portconfigData) // Schickt den aktuellen Zustand aus dem Browser-Speicher
+      });
+
+      if (!response.ok) throw new Error("Fehler beim Speichern auf dem Server");
+    
+      alert("Konfiguration erfolgreich gespeichert!");
+    
+      // Nach dem Speichern laden wir die Daten neu, um sicherzustellen, 
+      // dass Server und UI zu 100% synchron sind.
+      await loadData(); 
+
+      window.location.href = '/'; // Leitet zur Hauptseite weiter
+
+    } catch (error) {
+      console.error("Speicherfehler:", error);
+      alert("Fehler beim Sichern der Daten.");
+    }
   }
+
+  async function loadConfig() {
+    const tbody = document.getElementById('configTable');
+    if (!tbody) {
+        console.error("Meldung: Das Element 'configTable' wurde im HTML nicht gefunden!");
+        return; 
+    }
+    
+    try {
+        console.log("Meldung: Klick registriert. Starte Fetch-Anfrage an den ESP...");
+        const response = await fetch('/api/config?_cb=' + Date.now());
+        if (!response.ok) throw new Error('Laden fehlgeschlagen');
+        
+        configData = await response.json();
+        console.log("Meldung: JSON erfolgreich empfangen. Anzahl Einträge:", configData.length);
+        
+        tbody.innerHTML = '';
+        
+        configData.forEach((item, index) => {
+
+            const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
+            
+            if (item.btnID && ignoriertBtnIDs.includes(item.btnID)) {
+                return; // Überspringt diese Zeile und geht zur nächsten
+            }
+            const tr = document.createElement('tr');
+            
+            // 1. HEX-Formatierung des IR-Codes (Ihre bestehende Logik)
+            let rawCode = item.irRecvCode;
+            let displayCode = "";
+
+            if (typeof rawCode === 'number') {
+                displayCode = '0x' + rawCode.toString(16).toUpperCase();
+            } 
+            else if (typeof rawCode === 'string') {
+                rawCode = rawCode.trim();
+                if (rawCode.toLowerCase().startsWith('0x')) {
+                    displayCode = '0x' + rawCode.substring(2).toUpperCase();
+                } else {
+                    let parsed = parseInt(rawCode, 10);
+                    displayCode = isNaN(parsed) ? '0x0' : '0x' + parsed.toString(16).toUpperCase();
+                }
+            } else {
+                displayCode = '0x0';
+            }
+
+            // 2. NEU: Checkbox für cmdFlag prüfen (nur wenn serCmd nicht null ist)
+            let checkboxHtml = "";
+            if (item.serCmd !== null && item.serCmd !== undefined) {
+                // Aktiviert, wenn cmdFlag "1", 1 oder true ist
+                const isChecked = (item.cmdFlag === "1" || item.cmdFlag === 1 || item.cmdFlag === true) ? "checked" : "";
+                checkboxHtml = `
+                    <input type="checkbox" 
+                           ${isChecked} 
+                           data-index="${index}" 
+                           class="config-checkbox">
+                `;
+            }
+
+            // 3. HTML Struktur der Zeile befüllen (Inklusive der neuen 3. Spalte)
+            tr.innerHTML = `
+                <td class="btnID-text">${item.btnID || '-'}</td>
+                <td>
+                    <input type="text" class="irRecvCode-input" data-index="${index}" value="${displayCode}">
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
+                    ${checkboxHtml}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        console.log("Meldung: Tabelle wurde erfolgreich im HTML sichtbar befüllt!");
+
+    } catch (error) {
+        console.error("Meldung: Fehler im try-catch Block aufgetreten:", error);
+        alert('Fehler beim Laden: ' + error.message);
+    }
+}
+
+  async function saveConfig() {
+    // 1. IR-Codes verarbeiten (Ihre bestehende optimierte Logik)
+    const inputs = document.querySelectorAll('#configTable .irRecvCode-input');
+    inputs.forEach(input => {
+        const index = parseInt(input.getAttribute('data-index'), 10);
+        const val = input.value.trim();
+        
+        if (!configData || configData[index] === undefined) {
+            return; 
+        }
+
+        let parsedNumber = 0;
+        if (val.toLowerCase().startsWith('0x')) {
+            parsedNumber = parseInt(val, 16); 
+        } else {
+            parsedNumber = parseInt(val, 10); 
+        }
+
+        if (isNaN(parsedNumber)) {
+            configData[index].irRecvCode = "0x0";
+        } else {
+            configData[index].irRecvCode = "0x" + parsedNumber.toString(16).toUpperCase();
+        }
+    });
+
+    // 2. NEU: Checkboxen für cmdFlag verarbeiten
+    const checkboxes = document.querySelectorAll('#configTable .config-checkbox');
+    checkboxes.forEach(checkbox => {
+        const index = parseInt(checkbox.getAttribute('data-index'), 10);
+        
+        // Sicherstellen, dass das Objekt an diesem Index existiert
+        if (!configData || configData[index] === undefined) {
+            return; 
+        }
+        
+        // Setzt "1" wenn die Checkbox aktiv ist, sonst "0"
+        configData[index].cmdFlag = checkbox.checked ? "1" : "0";
+    });
+
+    // 3. Daten an den ESP senden (Ihre bestehende fetch-Logik)
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(configData)
+        });
+        if (response.ok) {
+            alert('Einstellungen erfolgreich aktualisiert!');
+        } else {
+            alert('Fehler beim Speichern.');
+        }
+    } catch (error) {
+        alert('Netzwerkfehler: ' + error.message);
+    }
+}

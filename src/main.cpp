@@ -66,14 +66,14 @@ const int maxPortEntries = 20;               // Maximale RAM-Kapazität des Arra
 portcnf portArray[maxPortEntries];           // Das feste Speicher-Array im RAM
 int portTableSize = 0;
 
-const int maxCommandCapacity = 150; // Anpassen an Ihre maximale Zeilenanzahl
+const int maxCommandCapacity = 200; // Anpassen an Ihre maximale Zeilenanzahl
 command configArray[maxCommandCapacity];
 int configTableSize = 0;
 
 unsigned long lastPingTime = 0;
 const unsigned long pingInterval = 10000; // Alle 10 Sekunden pingen
 
-//byte xonxoffstate = 0; // 1 means don't send data
+bool b203ReadyToSend = true; // Steuert den XON/XOFF Fluss
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -149,14 +149,6 @@ void loadPortConfig() {
   // Kontrollausgabe über die exakte, ermittelte Größe
   Serial.print("Erfolgreich geladen. Aktuelle portTableSize: ");
   Serial.println(portTableSize);
-
-  Serial.println("--- Geparste Struct-Werte ---");
-  for (int i = 0; i < portTableSize; i++) {
-    Serial.print("Name: "); Serial.print(portArray[i].name);
-    Serial.print(" | Beschreibung: "); Serial.print(portArray[i].descr);
-    Serial.print(" | Port: "); Serial.print(portArray[i].out);
-    Serial.print(" | Feedback: "); Serial.println(portArray[i].feedback);
-  }
 }
 
 void loadCommandConfig() {
@@ -198,19 +190,44 @@ void loadCommandConfig() {
   for (JsonObject obj : array) {
     if (index >= configTableSize) break;
 
-    // Strings sicher kopieren mit strlcpy
+    // 1. Strings sicher kopieren mit strlcpy
     strlcpy(configArray[index].btnID, obj["btnID"] | "", sizeof(configArray[index].btnID));
     strlcpy(configArray[index].serCmd, obj["serCmd"] | "", sizeof(configArray[index].serCmd));
     strlcpy(configArray[index].device, obj["device"] | "", sizeof(configArray[index].device));
+    
+    // bibusCmd ist im struct ein char[8], daher ebenfalls strlcpy nutzen!
+    strlcpy(configArray[index].bibusCmd, obj["bibusCmd"] | "", sizeof(configArray[index].bibusCmd));
 
-    // Hex-Strings ("0x...") korrekt als Hexadezimalzahl (Basis 16) einlesen
-    configArray[index].irRecvCode = strtol(obj["irRecvCode"] | "0", nullptr, 16);
-    configArray[index].address    = strtol(obj["address"] | "0", nullptr, 16);
-    configArray[index].command    = strtol(obj["command"] | "0", nullptr, 16);
+    // 2. Numerische Werte (Hex-Strings) konvertieren und zuweisen
+    const char* irStr = obj["irRecvCode"] | "0";
+    configArray[index].irRecvCode = strtol(irStr, nullptr, 16);
 
-    // Normale numerische und boolesche Werte direkt zuweisen
+    const char* addrStr = obj["address"] | "0";
+    configArray[index].address = (uint8_t)strtol(addrStr, nullptr, 16);
+
+    const char* cmdStr = obj["command"] | "0";
+    configArray[index].command = (uint8_t)strtol(cmdStr, nullptr, 16);
+
+    // 3. Normale numerische und boolesche Werte direkt zuweisen
     configArray[index].cmdFlag    = obj["cmdFlag"] | 0;
     configArray[index].repeat     = obj["repeat"] | false;
+    configArray[index].isBibus    = obj["isBibus"] | false;
+
+    // --- OPTIONAL: Debug-Ausgabe zur Kontrolle im Seriellen Monitor ---
+    Serial.print(F("ID: "));
+    Serial.print(configArray[index].btnID);
+    Serial.print(F(" -> IR: 0x"));
+    Serial.print(configArray[index].irRecvCode, HEX);
+    Serial.print(F(" | Addr: 0x"));
+    Serial.print(configArray[index].address, HEX);
+    Serial.print(F(" | command: 0x"));
+    Serial.print(configArray[index].command, HEX);
+    Serial.print(F(" | isBiBus: "));
+    Serial.print(configArray[index].isBibus ? F("true") : F("false"));
+    Serial.print(F(" | BiBusCmd: "));
+    Serial.print(configArray[index].bibusCmd); // Als Text ausgeben, da String!
+    Serial.print(F(" | cmdFlag: "));
+    Serial.println(configArray[index].cmdFlag); // Als Text ausgeben, da String!
 
     index++;
   }
@@ -218,13 +235,6 @@ void loadCommandConfig() {
   // Kontrollausgabe im Seriellen Monitor
   Serial.print("Erfolgreich geladen. Aktuelle configTableSize: ");
   Serial.println(configTableSize);
-
-  Serial.println("--- Geparste Command-Werte aus /config.json ---");
-  for (int i = 0; i < configTableSize; i++) {
-    Serial.print("ID: "); Serial.print(configArray[i].btnID);
-    Serial.print(" | IR-Code: "); Serial.print(configArray[i].irRecvCode);
-    Serial.print(" | Device: "); Serial.println(configArray[i].device);
-  }
 }
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
@@ -544,7 +554,7 @@ void setupServerRoutes(){
       }
     });
 
-    // 1. Registrieren der Route für POST (Hier wurden die Klammern korrigiert)
+    // 1. Registrieren der Route für POST
     AsyncCallbackWebHandler* handler = &server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request) {
         // Antwort senden
         request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
@@ -572,24 +582,10 @@ void setupServerRoutes(){
     // Wenn die angeforderte Seite nicht vorhanden ist
     server.serveStatic("/", LittleFS, "/");
     server.onNotFound(notFound);
-
-
-} // <-- Diese Klammer schließt jetzt setupServerRoutes() korrekt ab
-
-void goToLightSleep() {
-  Serial.println("Gehe in den Light Sleep...");
-  delay(100); // Warten, bis serielle Ausgaben beendet sind
-
-  // Light Sleep starten
-  esp_light_sleep_start();
-  
-  // Der Code pausiert hier, bis der Weck-Pin ausgelöst wird.
-  // Nach dem Aufwachen geht es hier direkt weiter.
-  Serial.println("Wieder aufgewacht!");
 }
 
-// Initialize LittleFS
-void initLittleFS() {
+
+void initLittleFS() { // Initialize LittleFS
   if (!LittleFS.begin(true)) { // true = format on fail
     Serial.println("LittleFS Mount Failed");
     return;
@@ -603,7 +599,6 @@ void loadWIFIConfig() {
     Serial.println("Konnte die Config-Datei nicht finden. Erstelle Standardwerte...");
     return;
   }
-
   size_t size = file.size();
   std::unique_ptr<char[]> buf(new char[size]);
   file.readBytes(buf.get(), size);
@@ -615,9 +610,37 @@ void loadWIFIConfig() {
   wifi_pass = doc["password"].as<String>();
   
   file.close();
+
+  // Hostnamen vergeben
+  WiFi.setHostname(hostName); 
   
   // Verbinde mit dem WLAN
   WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
+  Serial.print("Verbinde mit WLAN");
+
+  // NEU: Dem ESP Zeit geben, sich zu verbinden (10 Sekunden Timeout)
+  int timeout_counter = 0;
+  while (WiFi.status() != WL_CONNECTED && timeout_counter < 20) { 
+    delay(500);
+    Serial.print(".");
+    timeout_counter++;
+  }
+  Serial.println();
+
+  // Erst JETZT prüfen, ob es geklappt hat
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WLAN nicht verbunden. Starte Access Point...");
+    WiFi.disconnect(); 
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ssid_ap, password_ap, 1, 0);
+    
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("AP IP Adresse: ");
+    Serial.println(IP);
+  } else {
+    Serial.print("Erfolgreich verbunden! IP: ");
+    Serial.println(WiFi.localIP());
+  }
 }
 
 // Funktion zum Speichern der Konfiguration in LittleFS
@@ -673,30 +696,25 @@ void setup() {
   
 initLittleFS();
 
-WiFi.setHostname(hostName); 
+loadWIFIConfig();
 
-  loadWIFIConfig();
-
-  // Access Point starten, wenn das WLAN nicht erreichbar ist
-  // (Optional: Timeout einbauen, hier rein zur Demonstration)
-  delay(5000);
-  if(WiFi.status() != WL_CONNECTED){
-    Serial.println("WLAN nicht verbunden. Starte Access Point...");
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid_ap, password_ap, 1, 0);
-    IPAddress IP = WiFi.softAPIP();
-    Serial.print("AP IP Adresse: ");
-    Serial.println(IP);
-    Serial.println(ssid_ap);
+  int timeout_counter = 0;
+  while (WiFi.status() != WL_CONNECTED && timeout_counter < 20) { 
+    delay(500);
+    Serial.print(".");
+    timeout_counter++;
   }
+  Serial.println();
+  // --- ENDE DES CODES ---
 
+  // IR-receiver starten
   IrReceiver.begin(PIN_RECV, ENABLE_LED_FEEDBACK);
   Serial.println("IR Empfaenger aktiviert");
-  // Start the receiver
+
 
   WiFi.setSleep(false);
   
-  // Print ESP Local IP Address
+  //ESP Local IP Adresse
   Serial.println(WiFi.localIP());
 
   loadPortConfig();
@@ -712,40 +730,39 @@ WiFi.setHostname(hostName);
 
   initWebSocket();
 
-// 1. Die index.html aus dem LittleFS-Verzeichnis ausliefern
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-     request->send(LittleFS, "/config/wifi_config.html", String(), false);
-   });
+  // 1. Die index.html aus dem LittleFS-Verzeichnis ausliefern
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/config/wifi_config.html", String(), false);
+  });
 
-    // 2. Aktuelle Config-Werte als JSON an die Webseite senden
-    server.on("/get-config", HTTP_GET, [](AsyncWebServerRequest *request){
-      JsonDocument doc;
-      doc["ssid"] = wifi_ssid;
-      doc["password"] = wifi_pass;
-    
-      String jsonString;
-      serializeJson(doc, jsonString);
-      request->send(200, "application/json", jsonString);
-    });
+  // 2. Aktuelle Config-Werte als JSON an die Webseite senden
+  server.on("/get-config", HTTP_GET, [](AsyncWebServerRequest *request){
+    JsonDocument doc;
+    doc["ssid"] = wifi_ssid;
+    doc["password"] = wifi_pass;
+  
+    String jsonString;
+    serializeJson(doc, jsonString);
+    request->send(200, "application/json", jsonString);
+  });
 
-    // 3. Empfängt die POST-Daten, speichert sie und startet den ESP neu
-    server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request){
-      if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
-        String newSsid = request->getParam("ssid", true)->value();
-        String newPass = request->getParam("password", true)->value();
-      
-        saveWIFIConfig(newSsid, newPass);
-      
-        request->send(200, "text/plain", "Konfiguration gespeichert. Gerät startet neu...");
-        delay(1000);
-        ESP.restart();
-      } else {
-        request->send(400, "text/plain", "Fehlende Parameter");
-      }
-    });
+  // 3. Empfängt die POST-Daten, speichert sie und startet den ESP neu
+  server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
+      String newSsid = request->getParam("ssid", true)->value();
+      String newPass = request->getParam("password", true)->value();
+   
+      saveWIFIConfig(newSsid, newPass);
+     
+      request->send(200, "text/plain", "Konfiguration gespeichert. Gerät startet neu...");
+      delay(1000);
+      ESP.restart();
+    } else {
+      request->send(400, "text/plain", "Fehlende Parameter");
+    }
+  });
 
 
-  // Start server
   Serial.print("HTTP server started");
   server.begin();
   Serial.println();
@@ -765,114 +782,174 @@ void loop() {
 
   ws.cleanupClients();
 
-   if (millis() - lastPingTime >= pingInterval) {
-        lastPingTime = millis();
-        // Sendet einen leeren Ping-Frame an ALLE verbundenen Clients
-        // Antwortet ein iPhone nicht (z.B. weil es im Standby ist),
-        // merkt das die darunterliegende AsyncTCP-Schicht und schließt den Socket.
-        ws.pingAll(); 
-    }
-  
-  if (Serial2.available() > 0) {
-    b203data = Serial2.readStringUntil('\n'); // Reads until LF or timeout
-    //Serial.println(b203data);
+  if (millis() - lastPingTime >= pingInterval) {
+      lastPingTime = millis();
+      ws.pingAll(); 
   }
   
-  if ((b203data.length() > 0 ) &&  (getFlag == 1)) {
+  // ==========================================
+  // NEU: XON/XOFF ABFANGEN & DATEN EINLESEN
+  // ==========================================
+  while (Serial2.available() > 0) {
+      int incomingByte = Serial2.peek(); // Schaut das nächste Byte an, ohne es zu löschen
+      
+      if (incomingByte == 0x13) {        // XOFF empfangen
+          b203ReadyToSend = false;
+          Serial2.read();                // Byte aus dem Puffer entfernen
+          Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
+      } 
+      else if (incomingByte == 0x11) {   // XON empfangen
+          b203ReadyToSend = true;
+          Serial2.read();                // Byte aus dem Puffer entfernen
+          Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
+      } 
+      else {
+          // Normaler Text (endet mit \n)
+          b203data = Serial2.readStringUntil('\n'); 
+          break; // Schleife verlassen, um b203data im nächsten Block zu verarbeiten
+      }
+  }
+  
+  if ((b203data.length() > 0 ) && (getFlag == 1)) {
       Serial.println(b203data);
       ws.textAll(b203data);
       b203data = '\0';
       getFlag = 0;
-      }
+  }
 
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval){
-  previousMillis = currentMillis; // Zeit merken
-
-    if (IrReceiver.decode()) {
-      uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
-      //Serial.println(combined, HEX );
-
-        /*
-         * Print a summary of received data
-         */
-        if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-            Serial.println(F("Received noise or an unknown (or not yet enabled) protocol"));
-            // We have an unknown protocol here, print extended info
-            IrReceiver.printIRResultRawFormatted(&Serial, true);
-
-            IrReceiver.resume(); // Do it here, to preserve raw data for printing with printIRResultRawFormatted()
-        } else {
-            //IrReceiver.resume(); // Early enable receiving of the next IR frame
-
-            IrReceiver.printIRResultShort(&Serial);   // Requires additional 1436 bytes program memory
-            //IrReceiver.printIRSendUsage(&Serial);     // Calls printIRResultShort() and other functions, if protocol is UNKNOWN
-        }
-        Serial.println();
-
-        /*
-         * Finally, check the received data and perform actions according to the received command
-         */
-
-
-      if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
-        if  ((configArray[irid].repeat == 1) && (irid > 0) ) {
-        sendRevoxFrame ( configArray[irid].address, configArray[irid].command, 1);
-        Serial.println("Repeated");
-        Serial.print(configArray[irid].address);
-        Serial.println(configArray[irid].command);
-        }
-      } else {
-        irid = 0;
-        Serial.println(combined, HEX );
-        while( configArray[irid].btnID != "none" ) {
-          if ((combined == configArray[irid].irRecvCode ) && (combined != 0)) {
-            if (( configArray[irid].address < 0x11 ) && ( configArray[irid].cmdFlag == 0 )) {
-            sendRevoxFrame (configArray[irid].address, configArray[irid].command, 1);
-            Serial.println("First press");
-            Serial.print(configArray[irid].address);
-            Serial.println(configArray[irid].command);
-            }
-          break;
-          }
-        ++irid;
-        }
-      }
-      IrReceiver.resume(); // Receive the next value 
-
-      } else if (buttonHold == 1) {
+  // ==========================================
+  // WEB-/MANUELLER BUTTON-PFAD
+  // ==========================================
+  if (buttonHold == 1) {
       int a = 0;
-        while (configArray[a].btnID != "none") {
+      while (strcmp(configArray[a].btnID, "none") != 0 && configArray[a].btnID[0] != '\0') {
+          
           if (strcmp(buttonName, configArray[a].btnID) == 0) {
-            for (int i = 0; i < portTableSize; i++) {
-            // ERSETZT STRCMP: Sucht, ob der Text aus portArray[i].descr in configArray[a].device enthalten ist
-              if ((strstr(configArray[a].device, portArray[i].descr) != NULL) && (strcmp(portArray[i].out, "no") != 0)) {
-                if (configArray[a].cmdFlag > 0) {
-                Serial2.print(portArray[i].out);
-                Serial2.print(configArray[a].serCmd);
-                Serial2.print("\r");
-                Serial.print(portArray[i].out);
-                Serial.println(configArray[a].serCmd);
-                    if (configArray[a].repeat == 0) {
-                    buttonHold = 0;
-                    }
-                } 
-                else if (configArray[a].cmdFlag == 0) {
-                  Serial.print("Adress ");
-                  Serial.println(configArray[a].address);
-                  Serial.print("Command ");
-                  Serial.println(configArray[a].command);
-                  sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                  if (configArray[a].repeat == 0) {
-                  buttonHold = 0;
+              
+              for (int i = 0; i < portTableSize; i++) {
+                  String currentOut = portArray[i].out;
+                  String currentDescr = portArray[i].descr;
+                  
+                  bool deviceMatch = (strcmp(configArray[a].device, currentDescr.c_str()) == 0) || 
+                                     (strstr(configArray[a].device, currentDescr.c_str()) != NULL);
+
+                  if (deviceMatch && currentOut != "no") {
+                      
+                      if (strcmp(configArray[a].btnID, "b203reset") == 0) {
+                          if (configArray[a].command != 0x40) {
+                              sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                          }
+                          if (configArray[a].repeat == 0) {
+                              buttonHold = 0;
+                          }
+                      }
+                      else if (configArray[a].cmdFlag > 0) {
+                          
+                          // NEU: Vor dem Senden prüfen, ob der B203 bereit ist
+                          if (b203ReadyToSend) { 
+                              
+                              if (configArray[a].isBibus == 1) {
+                                  char sendBuffer[64]; 
+                                  char cmdHex[8];      
+                                  snprintf(cmdHex, sizeof(cmdHex), "%02X", configArray[a].command);
+
+                                  const char* bibusPtr = configArray[a].bibusCmd;
+                                  if (strncmp(bibusPtr, "0x", 2) == 0 || strncmp(bibusPtr, "0X", 2) == 0) {
+                                      bibusPtr += 2;
+                                  }
+
+                                  char bibusFormatiert[8];
+                                  if (strlen(bibusPtr) == 1) {
+                                      snprintf(bibusFormatiert, sizeof(bibusFormatiert), "0%s", bibusPtr);
+                                  } else {
+                                      snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr);
+                                  }
+
+                                  // Ihr perfekt formatierter Bahhhh-Befehl
+                                  snprintf(sendBuffer, sizeof(sendBuffer), "B%s%s%s\r", currentOut.c_str(), bibusFormatiert, cmdHex);
+                                  Serial2.print(sendBuffer);
+                                  
+                                  Serial.print(F("Gesendet (BiBus): "));
+                                  Serial.println(sendBuffer);
+                              } 
+                              else {
+                                  Serial2.print(currentOut);
+                                  Serial2.print(configArray[a].serCmd);
+                                  Serial2.print("\r");
+                                  
+                                  Serial.print(currentOut);
+                                  Serial.println(configArray[a].serCmd);
+                              }
+                              
+                          } else {
+                              Serial.println(F("[Warnung] Befehl verworfen, da B203 im XOFF-Status ist!"));
+                          }
+
+                          if (configArray[a].repeat == 0) {
+                              buttonHold = 0;
+                          }
+                      } 
+                      else if (configArray[a].cmdFlag == 0) {
+                          if (configArray[a].command != 0x40) { 
+                              sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                          }
+                          if (configArray[a].repeat == 0) {
+                              buttonHold = 0;
+                          }
+                      }
                   }
-                }
               }
-            }
-            break;
+              break;
           }
           ++a;
-        }
       }
   }
-};
+
+  // ==========================================
+  // INFRAROT-PFAD (Unverändert)
+  // ==========================================
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+      previousMillis = currentMillis; 
+
+      if (IrReceiver.decode()) {
+          uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
+
+          if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+              Serial.println(F("Received noise or an unknown (or not yet enabled) protocol"));
+              IrReceiver.printIRResultRawFormatted(&Serial, true);
+              IrReceiver.resume(); 
+          } else {
+              IrReceiver.printIRResultShort(&Serial);   
+          }
+          Serial.println();
+
+          if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+              if ((configArray[irid].repeat == 1) && (irid > 0) && (configArray[irid].command != 0x40)) {
+                  sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1);
+                  Serial.println("Repeated");
+                  Serial.print(configArray[irid].address);
+                  Serial.println(configArray[irid].command);
+              }
+          } else {
+              irid = 0;
+              Serial.println(combined, HEX);
+              while (strcmp(configArray[irid].btnID, "none") != 0 && configArray[irid].btnID[0] != '\0') {
+                  if ((combined == configArray[irid].irRecvCode) && (combined != 0)) {
+                      if ((configArray[irid].address < 0x11) && (configArray[irid].cmdFlag == 0)) {
+                          if (configArray[irid].command != 0x40) {
+                              sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1);
+                              Serial.println("First press");
+                              Serial.print(configArray[irid].address);
+                              Serial.println(configArray[irid].command);
+                          }
+                      }
+                      break;
+                  }
+                  ++irid;
+              }
+          }
+          IrReceiver.resume(); 
+      }
+  }
+}

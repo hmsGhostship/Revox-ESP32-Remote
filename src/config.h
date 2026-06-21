@@ -11,14 +11,16 @@ struct portcnf {
 };
 
 struct command {
-    char btnID[20];
+    char btnID[32];
     uint32_t irRecvCode;
     uint8_t address;
     uint8_t command;
     uint8_t cmdFlag;
     char serCmd[8];
+    char bibusCmd[8];
     bool repeat;
-    char device[20];
+    char device[32];
+    bool isBibus;
 };
 
 #endif

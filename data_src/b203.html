@@ -26,7 +26,7 @@
   			<button class="tablinks" onclick="openB203(event, 'B203Timertab')">Timer</button>
 			<button class="tablinks" onclick="openB203(event, 'PortConfig')">Port-Config</button>
 			<button class="tablinks" onclick="openB203(event, 'WIFIConfig')">Wifi-Config</button>
-			<button class="tablinks" onclick="openB203(event, 'Config')">IR-Config</button>
+			<button class="tablinks" onclick="openB203(event, 'Config')">Command-Config</button>
 		</div>
 
 		<div id="WIFIConfig" class="tabcontent">
@@ -43,21 +43,23 @@
 		</div>
 
 		<div id="Config" class="tabcontent">
-		<table>
-    		<thead>
-        		<tr>
-            		<th>Button ID</th>
-            		<th>IR-Empfangscode (Hex oder Dezimal)</th>
-					<th>Flag (Seriell)</th> <!-- Diese Überschrift hat noch gefehlt -->
-        		</tr>
-    		</thead>
-    		<tbody id="configTable">
-        		<!-- Wird dynamisch durch JS befüllt -->
-    		</tbody>
-		</table>
-		<div class='button-pwr-container-dev span2'>
-		<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
-		</div>
+    	<table>
+        	<thead>
+            	<tr>
+                	<th>Button ID</th>
+                	<th>IR-reception code (Hex or Decimal)</th>
+                	<th>Flag (Serial)</th>
+                	<th>BiBus Activ (Direct command)</th> <!-- Umbenannt für bessere Klarheit -->
+                	<th>BiBus Prefix (Hex)</th> <!-- <-- DIESE ÜBERSCHRIFT NEU HINZUFÜGEN -->
+            	</tr>
+        	</thead>
+        	<tbody id="configTable">
+           	<!-- Wird dynamisch durch JS befüllt -->
+        	</tbody>
+    	</table>
+    	<div class='button-pwr-container-dev span2'>
+        	<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
+    	</div>
 		</div>
 		
 		<div id="PortConfig" class="tabcontent">

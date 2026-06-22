@@ -977,7 +977,7 @@
     "address": "0x01",
     "command": "0x24",
     "cmdFlag": 0,
-    "serCmd": null,
+    "serCmd": "M",
     "bibusCmd": "",
     "isBibus": false,
     "repeat": false,

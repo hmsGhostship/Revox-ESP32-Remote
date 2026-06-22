@@ -240,190 +240,204 @@ void loadCommandConfig() {
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-    data[len] = 0;
-    if (strncmp((char*)data, "button", 6) == 0) {
-      data +=6;
-      if (strncmp((char*)data, "Push", 4) == 0){
-      strncpy(buttonName, (char*)data + 4, sizeof(buttonName));
-      buttonHold = 1;
-      } else if (strncmp((char*)data, "Release", 7) == 0){
-      buttonHold = 0;
+    
+    // 1. Erstelle einen sicheren, nullterminierten Arbeits-String
+    String msg = String((char*)data).substring(0, len);
+    
+    // --- AB HIER ARBEITEN WIR NUR NOCH MIT DER "msg" ---
+
+    if (msg.startsWith("button")) {
+      String subMsg = msg.substring(6); // Schneidet "button" ab
+      
+      if (subMsg.startsWith("Push")) {
+        // Kopiert den Rest sicher in buttonName und garantiert die Nullterminierung
+        memset(buttonName, 0, sizeof(buttonName));
+        subMsg.substring(4).toCharArray(buttonName, sizeof(buttonName));
+        buttonHold = 1;
+      } else if (subMsg.startsWith("Release")) {
+        buttonHold = 0;
       }
     }
 
- else if (strncmp((char*)data, "speakers", 8) == 0) {
-              char b285Speaker[3];
-              strncpy( b285Speaker, (char*)data + 8, sizeof(b285Speaker));
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "receiver", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b285Speaker );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.println( b285Speaker );
-                }
-              }
+    else if (msg.startsWith("speakers")) {
+      char b285Speaker[4] = {0}; // +1 für sichere Nullterminierung initialisiert
+      msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b285Speaker);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.println(b285Speaker);
+        }
+      }
     }
 
-    else if (strncmp((char*)data, "volSlider", 9) == 0) {
-              char b285Volume[4];
-              strncpy( b285Volume, (char*)data + 9, sizeof(b285Volume));
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "receiver", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b285Volume );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.println( b285Volume );
-                }
-              }
+    else if (msg.startsWith("volSlider")) {
+      char b285Volume[5] = {0}; // Initialisiert mit Nullen
+      msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b285Volume);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.println(b285Volume);
+        }
+      }
     }
 
-    else if (strncmp((char*)data, "setup", 5) == 0) {
-      char setupBytes[7];
-      strncpy( setupBytes, (char*)data + 5, sizeof(setupBytes));
+    else if (msg.startsWith("setup")) {
+      char setupBytes[8] = {0};
+      msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
       Serial2.print(setupBytes);
       Serial2.print("\r");
       Serial.println(setupBytes);
     }
 
-    else if (strncmp((char*)data, "getsettings", 11) == 0) {
-      char settingsBytes[3];
-      strncpy( settingsBytes, (char*)data + 11, sizeof(settingsBytes));
+    else if (msg.startsWith("getsettings")) {
+      char settingsBytes[4] = {0};
+      msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
       Serial2.print(settingsBytes);
       Serial2.print("\r");
       Serial.println(settingsBytes);
-      if ( strcmp(settingsBytes, "0X") == 0 ) {
-      getFlag = 1;
+      if (strcmp(settingsBytes, "0X") == 0) {
+        getFlag = 1;
       }
     }
 
-    else if (strncmp((char*)data, "tape2", 5) == 0) {
-              char b215settingsBytes[2];
-              strncpy( b215settingsBytes, (char*)data + 5, sizeof(b215settingsBytes));
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "tape2", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b215settingsBytes );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.print( b215settingsBytes );
-                  if (strcmp( b215settingsBytes, "X") == 0) {
-                  getFlag = 1;
-                  }
-                }
-              }
+    else if (msg.startsWith("tape2")) {
+      char b215settingsBytes[3] = {0};
+      msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("tape2", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b215settingsBytes);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.print(b215settingsBytes);
+          if (strcmp(b215settingsBytes, "X") == 0) {
+            getFlag = 1;
+          }
+        }
+      }
     }
 
-    else if (strncmp((char*)data, "cdplayer", 8) == 0) {
-              char b226settingsBytes[2];
-              strncpy( b226settingsBytes, (char*)data + 8, sizeof(b226settingsBytes)); 
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "cdplayer", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b226settingsBytes );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.print( b226settingsBytes );
-                  if (strcmp(b226settingsBytes, "X") == 0) {
-                  getFlag = 1;
-                  }
-                }
-              }
+    else if (msg.startsWith("cdplayer")) {
+      char b226settingsBytes[3] = {0};
+      msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b226settingsBytes);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.print(b226settingsBytes);
+          if (strcmp(b226settingsBytes, "X") == 0) {
+            getFlag = 1;
+          }
+        }
+      }
     }
 
-    else if (strncmp((char*)data, "phono", 5) == 0) {
-              char b291settingsBytes[2];
-              strncpy( b291settingsBytes, (char*)data + 5, sizeof(b291settingsBytes)); 
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "phono", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b291settingsBytes );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.print( b291settingsBytes );
-                  if (strcmp(b291settingsBytes, "X") == 0) {
-                  getFlag = 1;
-                  }
-                }
-              }
+    else if (msg.startsWith("phono")) {
+      char b291settingsBytes[3] = {0};
+      msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b291settingsBytes);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.print(b291settingsBytes);
+          if (strcmp(b291settingsBytes, "X") == 0) {
+            getFlag = 1;
+          }
+        }
+      }
     }
     
-    else if (strncmp((char*)data, "receiver", 8) == 0) {
-              char b285settingsBytes[2];
-              strncpy( b285settingsBytes, (char*)data + 8, sizeof(b285settingsBytes)); 
-              for (int i = 0; i < portTableSize; i++) {
-                if (( strcmp ( "receiver", portArray[i].descr ) == 0) && ( portArray[i].out != "no")) {
-                  Serial2.print( portArray[i].out );
-                  Serial2.print( b285settingsBytes );
-                  Serial2.print("\r");
-                  Serial.print( portArray[i].out );
-                  Serial.print( b285settingsBytes );
-                  if (strcmp(b285settingsBytes, "X") == 0) {
-                  getFlag = 1;
-                  }
-                }
-              }
+    else if (msg.startsWith("receiver")) {
+      char b285settingsBytes[3] = {0};
+      msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
+      
+      for (int i = 0; i < portTableSize; i++) {
+        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+          Serial2.print(portArray[i].out);
+          Serial2.print(b285settingsBytes);
+          Serial2.print("\r");
+          Serial.print(portArray[i].out);
+          Serial.print(b285settingsBytes);
+          if (strcmp(b285settingsBytes, "X") == 0) {
+            getFlag = 1;
+          }
+        }
+      }
     }
 
-    else if (strncmp((char*)data, "testEvent", 9) == 0) {
-      char testEventBytes[5];
-      strncpy( testEventBytes, (char*)data + 9, sizeof(testEventBytes));
+    else if (msg.startsWith("testEvent")) {
+      char testEventBytes[6] = {0};
+      msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
       Serial2.print(testEventBytes);
       Serial2.print("\r");
       Serial.println(testEventBytes);
     }
 
-    else if (strncmp((char*)data, "setDate", 7) == 0) {
-      char setDateBytes[9];
-      strncpy( setDateBytes, (char*)data + 7, sizeof(setDateBytes));
+    else if (msg.startsWith("setDate")) {
+      char setDateBytes[10] = {0};
+      msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
       Serial2.print(setDateBytes);
       Serial2.print("\r");
       Serial.println(setDateBytes);
     }
 
-    else if (strncmp((char*)data, "setTime", 7) == 0) {
-      char setTimeBytes[9];
-      strncpy( setTimeBytes, (char*)data + 7, sizeof(setTimeBytes));
+    else if (msg.startsWith("setTime")) {
+      char setTimeBytes[10] = {0};
+      msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
       Serial2.print(setTimeBytes);
       Serial2.print("\r");
       Serial.println(setTimeBytes);
     }
 
-    else if (strncmp((char*)data, "setEvent", 8) == 0) {
-      char setEventBytes[32];
-      strncpy( setEventBytes, (char*)data + 8, sizeof(setEventBytes));
+    else if (msg.startsWith("setEvent")) {
+      char setEventBytes[33] = {0};
+      msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
       Serial2.print(setEventBytes);
       Serial2.print("\r");
       Serial.println(setEventBytes);
     }
 
-    else if (strncmp((char*)data, "callEvent", 9) == 0) {
-      char callEventBytes[5];
-      strncpy( callEventBytes, (char*)data + 9, sizeof(callEventBytes));
+    else if (msg.startsWith("callEvent")) {
+      char callEventBytes[6] = {0};
+      msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
       Serial2.print(callEventBytes);
       Serial2.print("\r");
       Serial.println(callEventBytes);
     }
 
-    else if (strncmp((char*)data, "delEvent", 8) == 0) {
-      char delEventBytes[5];
-      strncpy( delEventBytes, (char*)data + 8, sizeof(delEventBytes));
+    else if (msg.startsWith("delEvent")) {
+      char delEventBytes[6] = {0};
+      msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
       Serial2.print(delEventBytes);
       Serial2.print("\r");
       Serial.println(delEventBytes);
     }
 
-    else if (strncmp((char*)data, "toggle", 6) == 0) {
-      data +=6;
-      if (strncmp((char*)data, "true", 4) == 0) {
-      Serial2.print("0R0");
-      Serial2.print("\r");
-      Serial.println("0R0");
-      } else if (strncmp((char*)data, "false", 5) == 0) {
-      Serial2.print("0R1");
-      Serial2.print("\r");
-      Serial.println("0R1");
+    else if (msg.startsWith("toggle")) {
+      String subToggle = msg.substring(6);
+      if (subToggle.startsWith("true")) {
+        Serial2.print("0R0");
+        Serial2.print("\r");
+        Serial.println("0R0");
+      } else if (subToggle.startsWith("false")) {
+        Serial2.print("0R1");
+        Serial2.print("\r");
+        Serial.println("0R1");
       }
     }
   }
@@ -691,8 +705,6 @@ void setup() {
  }
 
   Serial2.setTimeout(5000);
-  //Serial2.write(0x13);
-  //Serial2.write(0x11);
   
 initLittleFS();
 
@@ -788,44 +800,78 @@ void loop() {
   }
   
   // ==========================================
-  // NEU: XON/XOFF ABFANGEN & DATEN EINLESEN
+  // OPTIMIERT: XON/XOFF ABFANGEN & DATEN EINLESEN (NON-BLOCKING)
   // ==========================================
   while (Serial2.available() > 0) {
-      int incomingByte = Serial2.peek(); // Schaut das nächste Byte an, ohne es zu löschen
-      
+      int incomingByte = Serial2.peek(); // Schaut das nächste Byte an
+
       if (incomingByte == 0x13) {        // XOFF empfangen
           b203ReadyToSend = false;
-          Serial2.read();                // Byte aus dem Puffer entfernen
+          Serial2.read();                // Aus Puffer löschen
           Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
       } 
       else if (incomingByte == 0x11) {   // XON empfangen
           b203ReadyToSend = true;
-          Serial2.read();                // Byte aus dem Puffer entfernen
+          Serial2.read();                // Aus Puffer löschen
           Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
       } 
       else {
-          // Normaler Text (endet mit \n)
-          b203data = Serial2.readStringUntil('\n'); 
-          break; // Schleife verlassen, um b203data im nächsten Block zu verarbeiten
+          // Normaler Text: Zeichen für Zeichen lesen statt blockierendem readStringUntil
+          char c = Serial2.read();
+          
+          if (c == '\n') {
+              getFlag = 1; // Signalisiert: Datensatz ist komplett
+              break;       // Schleife verlassen, um b203data im nächsten Block zu verarbeiten
+          } 
+          else if (c != '\r') { 
+              // Carriage Return ignorieren, den Rest an den String anhängen
+              b203data += c; 
+          }
       }
   }
-  
-  if ((b203data.length() > 0 ) && (getFlag == 1)) {
+
+  // ==========================================
+  // DATENVERARBEITUNG & WEBSOCKET-VERSAND
+  // ==========================================
+  if ((getFlag == 1) && (b203data.length() > 0)) {
       Serial.println(b203data);
       ws.textAll(b203data);
-      b203data = '\0';
+      
+      b203data.clear(); // Löscht den Inhalt des String-Objekts speicherschonend
       getFlag = 0;
   }
 
   // ==========================================
-  // WEB-/MANUELLER BUTTON-PFAD
+  // WEB-/MANUELLER BUTTON-PFAD (MIT MAXIMALEM DEBUG)
   // ==========================================
   if (buttonHold == 1) {
+      Serial.println(F("\n--- [DEBUG] Button-Pfad aktiv ---"));
+      Serial.print(F("[DEBUG] Gesuchter buttonName: '"));
+      Serial.print(buttonName);
+      Serial.println(F("'"));
+
       int a = 0;
+      bool buttonFound = false;
+
       while (strcmp(configArray[a].btnID, "none") != 0 && configArray[a].btnID[0] != '\0') {
           
+          // Debugging für jeden Array-Durchlauf (optional, sehr gesprächig)
+          /*
+          Serial.print(F("[DEBUG] Prüfe Index ")); Serial.print(a);
+          Serial.print(F(": configArray[a].btnID = '")); Serial.print(configArray[a].btnID); Serial.println(F("'"));
+          */
+
           if (strcmp(buttonName, configArray[a].btnID) == 0) {
+              buttonFound = true;
+              Serial.print(F("[DEBUG] TREFFER! Button in Konfiguration gefunden an Index: "));
+              Serial.println(a);
+              Serial.print(F("[DEBUG] Zugeordnetes Ziel-Gerät (config): '"));
+              Serial.print(configArray[a].device);
+              Serial.println(F("'"));
               
+              Serial.print(F("[DEBUG] Starte Port-Tabellen-Prüfung. Einträge gesamt: "));
+              Serial.println(portTableSize);
+
               for (int i = 0; i < portTableSize; i++) {
                   String currentOut = portArray[i].out;
                   String currentDescr = portArray[i].descr;
@@ -833,9 +879,16 @@ void loop() {
                   bool deviceMatch = (strcmp(configArray[a].device, currentDescr.c_str()) == 0) || 
                                      (strstr(configArray[a].device, currentDescr.c_str()) != NULL);
 
+                  // Ausführlicher Vergleichs-Log für jeden Port
+                  Serial.print(F("  -> Port [")); Serial.print(i); Serial.print(F("] Descr: '")); Serial.print(currentDescr);
+                  Serial.print(F("', Out: '")); Serial.print(currentOut);
+                  Serial.print(F("' -> Match? ")); Serial.println(deviceMatch ? F("JA") : F("NEIN"));
+
                   if (deviceMatch && currentOut != "no") {
+                      Serial.println(F("     [DEBUG] Port-Bedingungen erfüllt! Verarbeite Befehl..."));
                       
                       if (strcmp(configArray[a].btnID, "b203reset") == 0) {
+                          Serial.println(F("     [DEBUG] Führe b203reset aus..."));
                           if (configArray[a].command != 0x40) {
                               sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
                           }
@@ -844,16 +897,19 @@ void loop() {
                           }
                       }
                       else if (configArray[a].cmdFlag > 0) {
+                          Serial.print(F("     [DEBUG] cmdFlag > 0 erkannt. Serieller Befehl. Status b203ReadyToSend: "));
+                          Serial.println(b203ReadyToSend ? F("BEREIT") : F("BLOCKIERT (XOFF)"));
                           
-                          // NEU: Vor dem Senden prüfen, ob der B203 bereit ist
                           if (b203ReadyToSend) { 
-                                  Serial2.print(currentOut);
-                                  Serial2.print(configArray[a].serCmd);
-                                  Serial2.print("\r");
-                                  Serial.print(currentOut);
-                                  Serial.println(configArray[a].serCmd);
+                              Serial2.print(currentOut);
+                              Serial2.print(configArray[a].serCmd);
+                              Serial2.print("\r");
+                              
+                              Serial.print(F("     [XON-SEND] "));
+                              Serial.print(currentOut);
+                              Serial.println(configArray[a].serCmd);
                           } else {
-                              Serial.println(F("[Warnung] Befehl verworfen, da B203 im XOFF-Status ist!"));
+                              Serial.println(F("     [WARNUNG] Befehl verworfen, da B203 im XOFF-Status ist!"));
                           }
 
                           if (configArray[a].repeat == 0) {
@@ -861,49 +917,80 @@ void loop() {
                           }
                       } 
                       else if (configArray[a].cmdFlag == 0) {
+                          Serial.print(F("     [DEBUG] cmdFlag == 0 erkannt. isBibus = "));
+                          Serial.println(configArray[a].isBibus);
+                          
                           if (configArray[a].command != 0x40) { 
                               if (configArray[a].isBibus == 1) {
-                                if (b203ReadyToSend) { 
+                                  Serial.print(F("     [DEBUG] BiBus-Pfad aktiv. Status b203ReadyToSend: "));
+                                  Serial.println(b203ReadyToSend ? F("BEREIT") : F("BLOCKIERT"));
+                                  
+                                  if (b203ReadyToSend) { 
                                   char sendBuffer[64]; 
-                                  char cmdHex[8];      
-                                  snprintf(cmdHex, sizeof(cmdHex), "%02X", configArray[a].command);
 
+                                  // 1. "0x" oder "0X" am Anfang überspringen
                                   const char* bibusPtr = configArray[a].bibusCmd;
                                   if (strncmp(bibusPtr, "0x", 2) == 0 || strncmp(bibusPtr, "0X", 2) == 0) {
-                                      bibusPtr += 2;
+                                    bibusPtr += 2;
                                   }
 
-                                  char bibusFormatiert[8];
-                                  if (strlen(bibusPtr) == 1) {
-                                      snprintf(bibusFormatiert, sizeof(bibusFormatiert), "0%s", bibusPtr);
+                                  // 2. Auf exakt 5 Zeichen formatieren (mit führenden Nullen auffüllen)
+                                  char bibusFormatiert[6]; // 5 Zeichen + 1 Nullterminator
+                                  int len = strlen(bibusPtr);
+
+                                  if (len >= 5) {
+                                    // Falls der String zu lang ist, nehmen wir die letzten 5 Zeichen
+                                    snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr + (len - 5));
                                   } else {
-                                      snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr);
+                                  // Falls er zu kurz ist (z.B. "40"), füllen wir links mit Nullen auf ("00040")
+                                    snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%05X", (unsigned int)strtol(bibusPtr, NULL, 16));
                                   }
 
-                                  // Ihr perfekt formatierter Bahhhh-Befehl
-                                  snprintf(sendBuffer, sizeof(sendBuffer), "B%s%s%s\r", currentOut.c_str(), bibusFormatiert, cmdHex);
+                                  // 3. Zusammenbauen des neuen Sende-Strings (OHNE currentOut)
+                                  // Format wird zu: B + 5-stelliger BiBus-Code + \r
+                                  snprintf(sendBuffer, sizeof(sendBuffer), "B%s\r", bibusFormatiert);
+
+                                  // 4. Absenden über die Schnittstellen
                                   Serial2.print(sendBuffer);
-                                  
-                                  Serial.print(F("Gesendet (BiBus): "));
+
+                                  Serial.print(F("     [BIBUS-SEND-5CHAR] "));
                                   Serial.println(sendBuffer);
-                                }
-                              } else {
-                              sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                              }
-                              if (configArray[a].repeat == 0) {
-                                buttonHold = 0;
-                              }
+                                  }
+
+                                  } else {
+                                    Serial.print(F("     [DEBUG] Native Revox Frame gesendet. Addr: 0x"));
+                                    Serial.print(configArray[a].address, HEX);
+                                    Serial.print(F(", Cmd: 0x"));
+                                    Serial.println(configArray[a].command, HEX);
+                                    sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                                  }
+                              
+                                  if (configArray[a].repeat == 0) {
+                                    buttonHold = 0;
+                                  }
+                          }
                       }
+                  } else if (deviceMatch && currentOut == "no") {
+                      Serial.println(F("     [DEBUG] Gerät passte, aber Ausgang steht auf 'no'."));
                   }
               }
-              break;
+              break; // Aus der while-Schleife austreten
           }
           ++a;
       }
+      
+      if (!buttonFound) {
+          Serial.print(F("[DEBUG] FEHLER: buttonName '"));
+          Serial.print(buttonName);
+          Serial.print(F("' wurde im configArray bis Index "));
+          Serial.print(a);
+          Serial.println(F(" NICHT gefunden (Suche beendet bei 'none')."));
+      }
+      Serial.println(F("--- [DEBUG] Button-Pfad beendet ---\n"));
   }
 
   // ==========================================
-  // INFRAROT-PFAD (Unverändert)
+  // INFRAROT-PFAD (Vollständig geschlossen)
   // ==========================================
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
@@ -947,6 +1034,6 @@ void loop() {
               }
           }
           IrReceiver.resume(); 
-      }
-  }
-}
+      } // <--- Schließt IrReceiver.decode()
+  } // <--- Schließt die millis()-Zeitabfrage für IR
+} // <

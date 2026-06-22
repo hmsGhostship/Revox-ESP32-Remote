@@ -44,19 +44,19 @@
 
 		<div id="Config" class="tabcontent">
     	<table>
-        	<thead>
-            	<tr>
-                	<th>Button ID</th>
-                	<th>IR-reception code (Hex or Decimal)</th>
-                	<th>Flag (Serial)</th>
-                	<th>BiBus Activ (Direct command)</th> <!-- Umbenannt für bessere Klarheit -->
-                	<th>BiBus Prefix (Hex)</th> <!-- <-- DIESE ÜBERSCHRIFT NEU HINZUFÜGEN -->
-            	</tr>
-        	</thead>
-        	<tbody id="configTable">
-           	<!-- Wird dynamisch durch JS befüllt -->
-        	</tbody>
-    	</table>
+    <thead>
+        <tr>
+            <th>Button ID</th>
+            <th>IR-reception code (Hex or Decimal)</th>
+            <th>Flag (Serial)</th>
+            <th>BiBus Active</th> <!-- Zeigt die Aktivierungs-Checkbox -->
+            <th>BiBus Command (Hex)</th> <!-- Zeigt das Eingabefeld für den Befehl -->
+        </tr>
+    </thead>
+    <tbody id="configTable">
+        <!-- Wird dynamisch durch JS befüllt -->
+    </tbody>
+</table>
     	<div class='button-pwr-container-dev span2'>
         	<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
     	</div>

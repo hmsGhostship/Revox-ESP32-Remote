@@ -5,6 +5,8 @@ let portconfigData = [];
  // Globale Variable, um alle restlichen Daten im Hintergrund zu behalten
 let configData = [];
 
+const HIDE_AMP_TUN_WITHOUT_RECEIVER = true; 
+
 // \u00e4 = ä, \u00f6 = ö, \u00fc = ü, \u00df = ß
 
 window.addEventListener('load', onLoad);
@@ -29,8 +31,39 @@ window.addEventListener('load', onLoad);
     setB285Speakers();
     setB285Volume();
     setPorts();
+    setBibus();
   }
 
+function setBibus() {
+  // Event-Listener für gegenseitige Beeinflussung der Checkboxen
+document.getElementById('configTable')?.addEventListener('change', (event) => {
+    const target = event.target;
+    const index = target.getAttribute('data-index');
+    if (!index) return;
+
+    // Fall 1: BiBus Active wurde geklickt
+    if (target.classList.contains('bibus-checkbox')) {
+        if (target.checked) {
+            // Suchen der Flag (Serial) Checkbox in derselben Zeile
+            const serialCheckbox = document.querySelector(`#configTable .config-checkbox[data-index="${index}"]`);
+            if (serialCheckbox) {
+                serialCheckbox.checked = false; // Deaktivieren
+            }
+        }
+    }
+
+    // Fall 2: Flag (Serial) wurde geklickt
+    if (target.classList.contains('config-checkbox')) {
+        if (target.checked) {
+            // Suchen der BiBus Active Checkbox in derselben Zeile
+            const bibusCheckbox = document.querySelector(`#configTable .bibus-checkbox[data-index="${index}"]`);
+            if (bibusCheckbox) {
+                bibusCheckbox.checked = false; // Deaktivieren
+            }
+        }
+    }
+});
+}
 
 // 1. FEHLER BEHOBEN: Anführungszeichen bei "'" korrekt maskiert
 const escapeHtml = (str) => String(str).replace(/[&<>"']/g, m => ({
@@ -45,34 +78,46 @@ function updateValue(index, key, value) {
   }
 }
 
-// Zeichnet die Tabelle basierend auf dem aktuellen Zustand von portconfigData neu
 function renderTable() {
   const tbody = document.getElementById('table-body');
   if (!tbody) return;
 
-  const rows = portconfigData.map((item, index) => {
+  // HTML-Generierung optimiert
+  tbody.innerHTML = portconfigData.map((item, index) => {
     const safeName = escapeHtml(item.name || '');
     const safeDescr = escapeHtml(item.descr || '');
     
+    // Generiert die Optionen von 0 bis 9
+    const options = Array.from({ length: 10 }, (_, i) => `
+      <option value="${i}" ${Number(item.out) === i ? 'selected' : ''}>${i}</option>
+    `).join('');
+
     return `
-      <tr>
+      <tr data-index="${index}">
         <td><input class="portselect" type="text" value="${safeName}" autocomplete="off" disabled></td>
         <td><input class="portselect" type="text" value="${safeDescr}" autocomplete="off" disabled></td>
         <td>
-          <select class="portselect" onchange="updateValue(${index}, 'out', this.value)">
+          <select class="portselect" data-action="update-out">
             <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
-            ${[...Array(10).keys()].map(i => `
-              <option value="${i}" ${item.out == i ? 'selected' : ''}>${i}</option>
-            `).join('')}
+            ${options}
           </select>
         </td>
         <td><input type="checkbox" ${item.feedback ? 'checked' : ''} disabled></td>
       </tr>
     `;
-  });
-
-  tbody.innerHTML = rows.join('');
+  }).join('');
 }
+
+// Event-Delegation statt Inline-onchange (Einmalig im Skript registrieren)
+document.getElementById('table-body')?.addEventListener('change', (event) => {
+  const target = event.target;
+  if (target.matches('select[data-action="update-out"]')) {
+    const rowIndex = target.closest('tr').getAttribute('data-index');
+    if (typeof updateValue === 'function') {
+      updateValue(Number(rowIndex), 'out', target.value);
+    }
+  }
+});
 
 function syncSelectField() {
   const selectElem = document.getElementById('change');
@@ -457,56 +502,69 @@ function switchConfiguration(selectedValue) {
   }
 
   function getButton() {
-    const buttons = document.querySelectorAll('.button, .misc_button, .power_btn');
+  const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
 
-    buttons.forEach(btn => {
+  buttons.forEach(btn => {
+    btn.classList.add('js-bound');
     
-    // --- 1. BLOCK: DRÜCKEN (mousedown / touchstart) ---
-    ['mousedown', 'touchstart'].forEach(eventType => {
-      btn.addEventListener(eventType, (event) => {
-        if (event.cancelable) event.preventDefault(); // Stoppt iOS-Doppelklicks
+    // --- 1. BLOCK: DRÜCKEN ---
+    btn.addEventListener('mousedown', (event) => {
+      const Id = event.currentTarget.id;
+      const Name = event.currentTarget.name;
 
-        const Id = event.currentTarget.id;
-        const Name = event.currentTarget.name;
-
-        // WebSocket: Push senden
-        if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + 'Push' + Id);
-          websocket.send(Name + 'Push' + Id);
-        }
-      }, { passive: false });
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log(Name + 'Push' + Id);
+        websocket.send(Name + 'Push' + Id);
+      }
     });
 
-    // --- 2. BLOCK: LOSLASSEN (mouseup / touchend) ---
-    ['mouseup', 'touchend'].forEach(eventType => {
-      btn.addEventListener(eventType, (event) => {
-        if (event.cancelable) event.preventDefault();
+    // --- 2. BLOCK: LOSLASSEN ---
+    btn.addEventListener('mouseup', (event) => {
+      const Id = event.currentTarget.id;
+      const Name = event.currentTarget.name;
 
-        const Id = event.currentTarget.id;
-        const Name = event.currentTarget.name;
+      // Wir holen uns das Ziel SOFORT als Text-String
+      const linkElement = event.currentTarget.closest('a');
+      const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
 
-          // WebSocket: Release senden
-          if (websocket.readyState === WebSocket.OPEN) {
-            console.log(Name + 'Release' + Id);
-            websocket.send(Name + 'Release' + Id);
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log(Name + 'Release' + Id);
+        websocket.send(Name + 'Release' + Id);
+        
+        const checkBuffer = setInterval(() => {
+          if (websocket.bufferedAmount === 0) {
+            clearInterval(checkBuffer);
+            websocket.close(1000, "Normal Closure"); 
+            sicherLeiten(targetUrl); // Nutzt die neue, sichere Funktion
           }
-
-          // --- HIER PASSIERT DIE WEITERLEITUNG ---
-          // Wir suchen den Link (<A>-Tag) um den Button herum
-          const linkElement = event.currentTarget.closest('a');
-          if (linkElement && linkElement.getAttribute('href')) {
-            const destination = linkElement.getAttribute('href');
-          
-            // Wichtig für das iPhone: 80ms warten, damit das 'Release'-Paket 
-            // den ESP32 sicher erreicht, bevor die Seite stirbt.
-            setTimeout(() => {
-              window.location.href = destination;
-            }, 80);
-          }
-        }, { passive: false });
-      });
+        }, 5);
+        
+        setTimeout(() => {
+          clearInterval(checkBuffer);
+          websocket.close();
+          sicherLeiten(targetUrl);
+        }, 150);
+        
+      } else {
+        sicherLeiten(targetUrl);
+      }
     });
+  });
+}
+
+// Komplett neue Funktion – verarbeitet NUR Text, kein HTML-Element!
+function sicherLeiten(zielUrl) {
+  if (zielUrl) {
+    window.location.href = zielUrl;
   }
+}
+
+function executeNavigation(element) {
+  const linkElement = element.closest('a');
+  if (linkElement && linkElement.getAttribute('href')) {
+    window.location.href = linkElement.getAttribute('href');
+  }
+}
 
   function openB203(evt, TabName) {
     // Declare all variables
@@ -663,20 +721,18 @@ function switchConfiguration(selectedValue) {
   }
 
   async function loadData() {
-    try {
-      const response = await fetch(`/portconfig.json?v=${Date.now()}`);
-      if (!response.ok) throw new Error(`HTTP-Fehler!`);
-      portconfigData = await response.json();
+  try {
+    const response = await fetch(`/portconfig.json?v=${Date.now()}`);
+    if (!response.ok) throw new Error(`HTTP-Fehler! Status: ${response.status}`);
     
-      // 1. Dropdown an den Zustand der JSON-Daten anpassen
-      syncSelectField();
-    
-      // 2. Tabelle das erste Mal zeichnen
-      renderTable(); 
-    } catch (error) {
-      console.error("Fehler beim Laden:", error);
-    }
+    portconfigData = await response.json();
+
+    syncSelectField();
+    renderTable();
+  } catch (error) {
+    console.error("Fehler beim Laden der Portkonfiguration:", error);
   }
+}
 
   function updateValue(index, field, value) {
     portconfigData[index][field] = value;
@@ -716,36 +772,57 @@ function switchConfiguration(selectedValue) {
     }
     
     try {
+        // TIMING-SCHUTZ: Falls portconfigData noch leer ist, laden wir sie hier direkt sync nach
+        if (!Array.isArray(portconfigData) || portconfigData.length === 0) {
+            console.log("Meldung: portconfigData ist leer. Lade Port-Konfiguration direkt nach...");
+            try {
+                const portResponse = await fetch(`/portconfig.json?v=${Date.now()}`);
+                if (portResponse.ok) {
+                    portconfigData = await portResponse.json();
+                }
+            } catch (e) {
+                console.error("Fehler beim automatischen Nachladen der Port-Konfiguration:", e);
+            }
+        }
+
         console.log("Meldung: Klick registriert. Starte Fetch-Anfrage an den ESP...");
-        // Abfrage an den ESP32 senden (inklusive Cache-Buster Zeitstempel)
         const response = await fetch('/api/config?_cb=' + Date.now());
         if (!response.ok) throw new Error('Laden fehlgeschlagen');
         
         configData = await response.json();
         console.log("Meldung: JSON erfolgreich empfangen. Anzahl Eintr\u00e4ge:", configData.length);
         
-        // Bestehenden Inhalt der Tabelle löschen
         tbody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         
-        configData.forEach((item, index) => {
+        const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
+        const ausnahmeCmdBtnIDs = ["b203reset"];
 
-            // Systemtasten und nicht benötigte Befehle herausfiltern (Ganze Zeile ignorieren)
-            const ignoriertBtnIDs = ["falseIR", "trueIR", "amppoweron", "tun20", "tun21", "tun22", "tun23", "tun24", "tun25", "tun26", "tun27", "tun28", "tun29", "none"];
-            
+        // Robuste Prüfung auf das Wort 'receiver' in descr oder device
+        let hatReceiverInPortconfig = false;
+        if (Array.isArray(portconfigData) && portconfigData.length > 0) {
+            hatReceiverInPortconfig = portconfigData.some(port => {
+                if (!port) return false;
+                const textMenge = `${port.descr || ''} ${port.device || ''}`.toLowerCase();
+                return textMenge.includes('receiver');
+            });
+        }
+
+        console.log("DEBUG: Wurde 'receiver' in der Portkonfiguration gefunden?", hatReceiverInPortconfig);
+
+        configData.forEach((item, index) => {
             if (item.btnID && ignoriertBtnIDs.includes(item.btnID)) {
-                return; // Überspringt diese Zeile und geht zur nächsten
+                return; 
             }
             
             const tr = document.createElement('tr');
             
-            // 1. HEX-Formatierung des IR-Codes
+            // HEX-Formatierung des IR-Codes
             let rawCode = item.irRecvCode;
-            let displayCode = "";
-
+            let displayCode = "0x0";
             if (typeof rawCode === 'number') {
                 displayCode = '0x' + rawCode.toString(16).toUpperCase();
-            } 
-            else if (typeof rawCode === 'string') {
+            } else if (typeof rawCode === 'string') {
                 rawCode = rawCode.trim();
                 if (rawCode.toLowerCase().startsWith('0x')) {
                     displayCode = '0x' + rawCode.substring(2).toUpperCase();
@@ -753,37 +830,39 @@ function switchConfiguration(selectedValue) {
                     let parsed = parseInt(rawCode, 10);
                     displayCode = isNaN(parsed) ? '0x0' : '0x' + parsed.toString(16).toUpperCase();
                 }
-            } else {
-                displayCode = '0x0';
             }
 
-            // 2. HEX-Formatierung für das bibusCmd (Falls es ein numerischer Hex-Wert ist)
+            // HEX-Formatierung für das bibusCmd (Fix für exakt 5 Zeichen nach 0x)
 let rawBibus = item.bibusCmd;
 let displayBibus = "";
 
 if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
     if (typeof rawBibus === 'number') {
-        // .padStart(2, '0') sorgt für mindestens 2 Stellen (z.B. 0x0A statt 0xA)
-        displayBibus = '0x' + rawBibus.toString(16).toUpperCase().padStart(2, '0');
+        // Zahl wird in Hex gewandelt und links mit Nullen auf 5 Stellen aufgefüllt
+        displayBibus = '0x' + rawBibus.toString(16).toUpperCase().padStart(5, '0');
     } else if (typeof rawBibus === 'string') {
         rawBibus = rawBibus.trim();
+        
         if (rawBibus.toLowerCase().startsWith('0x')) {
+            // "0x" abschneiden, den Rest in Großbuchstaben wandeln und auf 5 Stellen auffüllen
             let hexPart = rawBibus.substring(2).toUpperCase();
-            displayBibus = '0x' + hexPart.padStart(2, '0');
-        } else if (/^[0-9a-fA-F]+$/.test(rawBibus) && rawBibus.length <= 4) {
-            displayBibus = '0x' + rawBibus.toUpperCase().padStart(2, '0');
+            displayBibus = '0x' + hexPart.padStart(5, '0');
+        } else if (/^[0-9a-fA-F]+$/.test(rawBibus)) {
+            // Reiner Hex-String (z. B. "1A" oder "001A") -> direkt auf 5 Stellen bringen
+            displayBibus = '0x' + rawBibus.toUpperCase().padStart(5, '0');
         } else {
+            // Dezimalzahl als Text (z. B. "26") -> in Hex wandeln und auf 5 Stellen bringen
             let parsed = parseInt(rawBibus, 10);
             if (!isNaN(parsed)) {
-                displayBibus = '0x' + parsed.toString(16).toUpperCase().padStart(2, '0');
+                displayBibus = '0x' + parsed.toString(16).toUpperCase().padStart(5, '0');
             } else {
-                displayBibus = rawBibus; 
+                displayBibus = rawBibus; // Fallback für Text
             }
         }
     }
 }
 
-            // 3. Prüfen, ob der Befehl 0x40 (Dezimal 64) entspricht
+            // Prüfen, ob der Befehl 0x40 entspricht
             let isCommand40 = false;
             if (item.command !== undefined && item.command !== null) {
                 if (typeof item.command === 'number' && item.command === 64) {
@@ -796,71 +875,59 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
                 }
             }
 
-            // 4. Felder basierend auf Bedingungen vorbereiten
-
-            // Bedingung 1: Flag (Seriell) NUR anzeigen, wenn ein serCmd definiert ist UND es keine Ausnahme-Taste ist
+            // Felder basierend auf Bedingungen vorbereiten
             let checkboxCmdHtml = "";
-            
-            // Liste der Buttons, bei denen das cmdFlag ausgeblendet sein soll
-            const ausnahmeCmdBtnIDs = ["b203reset"];
             const istAusnahmeBtn = item.btnID && ausnahmeCmdBtnIDs.includes(item.btnID);
+            
+            const btnIDLower = (item.btnID || "").toLowerCase();
+            const istAmpOderTun = btnIDLower.startsWith("amp") || btnIDLower.startsWith("tun");
 
-            if (item.serCmd !== null && item.serCmd !== undefined && !istAusnahmeBtn) {
-                const isCmdChecked = (item.cmdFlag === "1" || item.cmdFlag === 1 || item.cmdFlag === true) ? "checked" : "";
-                checkboxCmdHtml = `
-                    <input type="checkbox" 
-                           ${isCmdChecked} 
-                           data-index="${index}" 
-                           class="config-checkbox">
-                `;
-            } else if (istAusnahmeBtn) {
-                // Ein dezenter Strich als sauberer Platzhalter für die ausgeblendete Box
-                checkboxCmdHtml = `<span style="color: #999; font-size: 0.85em;">-</span>`;
+            // Ausblenden, wenn es ein amp/tun Button ist, aber KEIN receiver ermittelt wurde
+            const hideAmpTun = HIDE_AMP_TUN_WITHOUT_RECEIVER && istAmpOderTun && !hatReceiverInPortconfig;
+
+            // Zustand aus dem JSON für die gegenseitige Beeinflussung ermitteln
+            const istSeriellImJsonAktiv = (item.cmdFlag === "1" || item.cmdFlag === 1 || item.cmdFlag === true);
+
+            // LOGIK FÜR FLAG (SERIAL):
+            if (hideAmpTun || istAusnahmeBtn) {
+                checkboxCmdHtml = `<span class="placeholder-dash">-</span>`;
+            } else if (item.serCmd !== null && item.serCmd !== undefined) {
+                const isCmdChecked = istSeriellImJsonAktiv ? "checked" : "";
+                checkboxCmdHtml = `<input type="checkbox" ${isCmdChecked} data-index="${index}" class="config-checkbox">`;
+            } else {
+                checkboxCmdHtml = `<span class="placeholder-dash">-</span>`;
             }
 
-            // Bedingung 2: BiBus-Felder NUR anzeigen, wenn Command NICHT 0x40 ist
+            // NEUE LOGIK FÜR BIBUS: Immer anzeigen, wenn es nicht Command 40 ist
             let checkboxBibusHtml = "";
             let bibusCmdInputHtml = "";
-            
+
             if (!isCommand40) {
-                // BiBus Aktiv Checkbox
-                const isBibusChecked = (item.isBibus === true) ? "checked" : "";
-                checkboxBibusHtml = `
-                    <input type="checkbox" 
-                           ${isBibusChecked} 
-                           data-index="${index}" 
-                           class="bibus-checkbox">
-                `;
-
-                // Eingabefeld für den eigentlichen BiBus-Befehl
-                bibusCmdInputHtml = `
-                    <input type="text" 
-                           class="bibusCmd-input" 
-                           data-index="${index}" 
-                           value="${displayBibus}" 
-                           style="width: 70px; text-align: center;">
-                `;
+              const isBibusChecked = (item.isBibus === true && !istSeriellImJsonAktiv) ? "checked" : "";
+              checkboxBibusHtml = `<input type="checkbox" ${isBibusChecked} data-index="${index}" class="bibus-checkbox">`;
+              bibusCmdInputHtml = `<input type="text" class="bibusCmd-input" data-index="${index}" value="${displayBibus}">`;
             }
-
-            // 5. HTML-Struktur der Zeile befüllen
+            
+            // HTML-Struktur befüllen
             tr.innerHTML = `
                 <td class="btnID-text">${item.btnID || '-'}</td>
                 <td>
                     <input type="text" class="irRecvCode-input" data-index="${index}" value="${displayCode}">
                 </td>
-                <td style="text-align: center; vertical-align: middle;">
+                <td class="cell-center">
                     ${checkboxCmdHtml}
                 </td>
-                <td style="text-align: center; vertical-align: middle;">
+                <td class="cell-center">
                     ${checkboxBibusHtml}
                 </td>
                 <td>
                     ${bibusCmdInputHtml}
                 </td>
             `;
-            tbody.appendChild(tr);
+            fragment.appendChild(tr);
         });
 
+        tbody.appendChild(fragment);
         console.log("Meldung: Tabelle wurde erfolgreich im HTML sichtbar bef\u00fcllt!");
 
     } catch (error) {
@@ -870,6 +937,22 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
 }
 
   async function saveConfig() {
+    // ==================================================================
+    // NEU: ABSICHERUNG
+    // ==================================================================
+    if (!Array.isArray(portconfigData) || portconfigData.length === 0) {
+        console.log("Meldung: portconfigData war beim Speichern leer. Lade Port-Konfiguration nach...");
+        try {
+            const portResponse = await fetch(`/portconfig.json?v=${Date.now()}`);
+            if (portResponse.ok) {
+                portconfigData = await portResponse.json();
+            }
+        } catch (e) { 
+            console.error("Fehler beim Laden im Speicher-Prozess:", e); 
+        }
+    }
+
+    // ==================================================================
     // 1. IR-Codes verarbeiten
     const inputs = document.querySelectorAll('#configTable .irRecvCode-input');
     inputs.forEach(input => {
@@ -892,40 +975,57 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
         }
     });
 
-    // 2. ALLE Zeilen durchgehen für das cmdFlag (Löst das Problem der ausgeblendeten Checkboxen!)
-    // Anstatt nur nach existierenden Checkboxen zu suchen, prüfen wir das zugrundeliegende Datenobjekt
+    // ==================================================================
+    // KORREKTUR: Identische, robuste Prüfung wie in der loadConfig-Funktion
+    // ==================================================================
+    let hatReceiverInPortconfig = false;
+    if (Array.isArray(portconfigData) && portconfigData.length > 0) {
+        hatReceiverInPortconfig = portconfigData.some(port => {
+            if (!port) return false;
+            const textMenge = `${port.descr || ''} ${port.device || ''}`.toLowerCase();
+            return textMenge.includes('receiver');
+        });
+    }
+    // ==================================================================
+
+    // 2. ALLE Zeilen durchgehen für das cmdFlag und isBibus (Kombinierter Schritt)
     configData.forEach((item, index) => {
         if (!item || item.btnID === undefined) return;
 
-        // Definition der Ausnahme-Buttons (muss exakt identisch zur loadConfig sein)
         const ausnahmeCmdBtnIDs = ["b203reset", "b203enter"];
+        const istAusnahmeBtn = ausnahmeCmdBtnIDs.includes(item.btnID);
         
-        if (ausnahmeCmdBtnIDs.includes(item.btnID)) {
-            // Option A: Wenn ausgeblendet, soll das cmdFlag auf 0 gesetzt werden
-            configData[index].cmdFlag = 0; 
-            
-            // Option B (Alternativ): Falls Sie den geladenen Wert behalten wollen, 
-            // kommentieren Sie die Zeile oben aus und diese hier ein:
-            // return; 
+        const btnIDLower = item.btnID.toLowerCase();
+        const istAmpOderTun = btnIDLower.startsWith("amp") || btnIDLower.startsWith("tun");
+
+        // ÄNDERUNG HIER: Entspricht Option 1 oder Option 2 aus Ihrem vorherigen Schritt.
+        // Wenn HIDE_AMP_TUN_WITHOUT_RECEIVER in loadConfig deaktiviert ist, erzwingen wir hier false.
+        const hideAmpTun = false; 
+
+        if (hideAmpTun) {
+            configData[index].cmdFlag = 0;
+            configData[index].isBibus = false;
+        } else if (istAusnahmeBtn) {
+            configData[index].cmdFlag = 0;
+            const bibusCheckbox = document.querySelector(`#configTable .bibus-checkbox[data-index="${index}"]`);
+            if (bibusCheckbox) configData[index].isBibus = bibusCheckbox.checked;
         } else {
-            // Für alle normalen Buttons suchen wir die dazugehörige Checkbox im HTML
-            const checkbox = document.querySelector(`#configTable .config-checkbox[data-index="${index}"]`);
-            if (checkbox) {
-                // Direkt als Zahl (1 oder 0) speichern, passend zu Ihrem uint8_t in C++
-                configData[index].cmdFlag = checkbox.checked ? 1 : 0;
+            // Sichtbare Standard-Zeilen: Werte direkt aus den Checkboxen auslesen
+            const serialCheckbox = document.querySelector(`#configTable .config-checkbox[data-index="${index}"]`);
+            if (serialCheckbox) {
+                configData[index].cmdFlag = serialCheckbox.checked ? 1 : 0;
+            }
+
+            const bibusCheckbox = document.querySelector(`#configTable .bibus-checkbox[data-index="${index}"]`);
+            if (bibusCheckbox) {
+                configData[index].isBibus = bibusCheckbox.checked;
             }
         }
     });
 
-    // 3. Checkboxen für isBibus verarbeiten (true oder false)
-    const bibusCheckboxes = document.querySelectorAll('#configTable .bibus-checkbox');
-    bibusCheckboxes.forEach(checkbox => {
-        const index = parseInt(checkbox.getAttribute('data-index'), 10);
-        if (!configData || configData[index] === undefined) return; 
-        configData[index].isBibus = checkbox.checked;
-    });
-
-    // 4. Textfelder für bibusCmd verarbeiten (Hex-Erkennung)
+    // ==================================================================
+    // 4. Textfelder für bibusCmd verarbeiten (Fix für exakt 5 Zeichen nach 0x)
+    // ==================================================================
     const bibusInputs = document.querySelectorAll('#configTable .bibusCmd-input');
     bibusInputs.forEach(input => {
         const index = parseInt(input.getAttribute('data-index'), 10);
@@ -942,9 +1042,8 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
         if (val.toLowerCase().startsWith('0x')) {
             parsedNumber = parseInt(val, 16); 
         } else {
-            // KORREKTUR: Basis 10 für normale Zahlen, oder Basis 16 falls reine Hex-Eingaben ohne 0x erlaubt sind
             parsedNumber = parseInt(val, 10); 
-            // Fallback: Falls es reines Hex ohne 0x war (z.B. "FF")
+            // Wenn es keine Dezimalzahl ist, aber reines Hex (z. B. "1A"), als Hex parsen
             if (isNaN(parsedNumber) && /^[0-9a-fA-F]+$/.test(val)) {
                 parsedNumber = parseInt(val, 16);
             }
@@ -953,8 +1052,8 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
         if (isNaN(parsedNumber)) {
             configData[index].bibusCmd = val; 
         } else {
-            // ANPASSUNG: Hier ebenfalls padStart(2, '0') nutzen, damit das JSON saubere Daten enthält
-            configData[index].bibusCmd = "0x" + parsedNumber.toString(16).toUpperCase().padStart(2, '0');
+            // FIX: padStart(5, '0') erzwingt nun exakt 5 Stellen nach dem 0x im JSON
+            configData[index].bibusCmd = "0x" + parsedNumber.toString(16).toUpperCase().padStart(5, '0');
         }
     });
 

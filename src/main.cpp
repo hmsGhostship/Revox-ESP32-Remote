@@ -847,8 +847,23 @@ void loop() {
                           
                           // NEU: Vor dem Senden prüfen, ob der B203 bereit ist
                           if (b203ReadyToSend) { 
-                              
+                                  Serial2.print(currentOut);
+                                  Serial2.print(configArray[a].serCmd);
+                                  Serial2.print("\r");
+                                  Serial.print(currentOut);
+                                  Serial.println(configArray[a].serCmd);
+                          } else {
+                              Serial.println(F("[Warnung] Befehl verworfen, da B203 im XOFF-Status ist!"));
+                          }
+
+                          if (configArray[a].repeat == 0) {
+                              buttonHold = 0;
+                          }
+                      } 
+                      else if (configArray[a].cmdFlag == 0) {
+                          if (configArray[a].command != 0x40) { 
                               if (configArray[a].isBibus == 1) {
+                                if (b203ReadyToSend) { 
                                   char sendBuffer[64]; 
                                   char cmdHex[8];      
                                   snprintf(cmdHex, sizeof(cmdHex), "%02X", configArray[a].command);
@@ -871,31 +886,13 @@ void loop() {
                                   
                                   Serial.print(F("Gesendet (BiBus): "));
                                   Serial.println(sendBuffer);
-                              } 
-                              else {
-                                  Serial2.print(currentOut);
-                                  Serial2.print(configArray[a].serCmd);
-                                  Serial2.print("\r");
-                                  
-                                  Serial.print(currentOut);
-                                  Serial.println(configArray[a].serCmd);
-                              }
-                              
-                          } else {
-                              Serial.println(F("[Warnung] Befehl verworfen, da B203 im XOFF-Status ist!"));
-                          }
-
-                          if (configArray[a].repeat == 0) {
-                              buttonHold = 0;
-                          }
-                      } 
-                      else if (configArray[a].cmdFlag == 0) {
-                          if (configArray[a].command != 0x40) { 
+                                }
+                              } else {
                               sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                          }
-                          if (configArray[a].repeat == 0) {
-                              buttonHold = 0;
-                          }
+                              }
+                              if (configArray[a].repeat == 0) {
+                                buttonHold = 0;
+                              }
                       }
                   }
               }

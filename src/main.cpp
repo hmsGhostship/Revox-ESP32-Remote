@@ -308,12 +308,12 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       }
     }
 
-    else if (msg.startsWith("tape2")) {
+    else if (msg.startsWith("tape1")) {
       char b215settingsBytes[3] = {0};
       msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
       
       for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("tape2", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+        if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
           Serial2.print(portArray[i].out);
           Serial2.print(b215settingsBytes);
           Serial2.print("\r");
@@ -799,45 +799,45 @@ void loop() {
       ws.pingAll(); 
   }
   
-  // ==========================================
-  // OPTIMIERT: XON/XOFF ABFANGEN & DATEN EINLESEN (NON-BLOCKING)
-  // ==========================================
-  while (Serial2.available() > 0) {
-      int incomingByte = Serial2.peek(); // Schaut das nächste Byte an
-
-      if (incomingByte == 0x13) {        // XOFF empfangen
+ // ==========================================   
+  // REVOLUTIONIERT: URSPRÜNGLICHES LESEN + XON/XOFF PRÜFUNG
+  // ==========================================   
+  if (Serial2.available() > 0) {
+      // Nutzt das bewährte, blockierungsfreie Warten von Arduino
+      b203data = Serial2.readStringUntil('\n'); 
+      
+      // Falls Carriage Return am Ende steht, sauber entfernen
+      if (b203data.endsWith("\r")) {
+          b203data.remove(b203data.length() - 1);
+      }
+      
+      // XOFF im String enthalten?
+      if (b203data.indexOf((char)0x13) != -1) {
           b203ReadyToSend = false;
-          Serial2.read();                // Aus Puffer löschen
           Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
-      } 
-      else if (incomingByte == 0x11) {   // XON empfangen
+          b203data.replace(String((char)0x13), ""); // Steuerzeichen aus Text löschen
+      }
+      // XON im String enthalten?
+      else if (b203data.indexOf((char)0x11) != -1) {
           b203ReadyToSend = true;
-          Serial2.read();                // Aus Puffer löschen
           Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
-      } 
-      else {
-          // Normaler Text: Zeichen für Zeichen lesen statt blockierendem readStringUntil
-          char c = Serial2.read();
-          
-          if (c == '\n') {
-              getFlag = 1; // Signalisiert: Datensatz ist komplett
-              break;       // Schleife verlassen, um b203data im nächsten Block zu verarbeiten
-          } 
-          else if (c != '\r') { 
-              // Carriage Return ignorieren, den Rest an den String anhängen
-              b203data += c; 
-          }
+          b203data.replace(String((char)0x11), ""); // Steuerzeichen aus Text löschen
+      }
+
+      // Wenn nach dem Filtern noch Text übrig ist, Flag setzen
+      if (b203data.length() > 0) {
+          getFlag = 1;
       }
   }
-
-  // ==========================================
+  
+  // ==========================================   
   // DATENVERARBEITUNG & WEBSOCKET-VERSAND
-  // ==========================================
-  if ((getFlag == 1) && (b203data.length() > 0)) {
+  // ==========================================   
+  if ((b203data.length() > 0) && (getFlag == 1)) {
       Serial.println(b203data);
       ws.textAll(b203data);
       
-      b203data.clear(); // Löscht den Inhalt des String-Objekts speicherschonend
+      b203data = ""; // Sicherer als '\0' bei Arduino-Strings
       getFlag = 0;
   }
 

@@ -196,44 +196,35 @@ function switchConfiguration(selectedValue) {
   }
 
   function onMessage(event) {
-    console.log(event.data);
-    const Identifier = event.data.slice(1, 3);
-    let NoId = 0;
-    let PR99 = 1;
-    let A725 = 2;
-    let B285 = 3;
-    let B215 = 4;
-    let B225_2 = 5;
-    let B226 = 6;
-    let A725_2 = 7;
-    let B291 = 8;
-    let B203 = 50;
-    if (Number(Identifier) == NoId) {
-        //Nothing to do
-      } else if  (Number(Identifier) == PR99 ){
+  console.log("WebSocket empfangen:", event.data);
+  
+  const rawString = event.data;
+  if (!rawString || typeof rawString !== 'string') return;
 
-      } else if  (Number(Identifier) == A725 ){
-
-      } else if  (Number(Identifier) == B285 ){
-        getB285Settings();
-      } else if  (Number(Identifier) == B215 ){
-        getB215Settings();
-      } else if  (Number(Identifier) == B225_2 ){
-
-      } else if  (Number(Identifier) == B226 ){
-        getB226Settings();
-      } else if  (Number(Identifier) == A725_2 ){
-
-      } else if  (Number(Identifier) == B291 ){
-        getB291Settings();
-      } else if  (Number(Identifier) >= B203) {
-        getB203Settings();
-      }
+  // KORREKTUR: Bei "206..." holt .slice(1, 3) exakt die "06" heraus!
+  const Identifier = rawString.slice(1, 3);
+  const idNum = Number(Identifier);
+  
+  // IDs laut deinem Code (B226 ist die 6, B203 ist die 22)
+  let NoId = 0, PR99 = 1, A725 = 2, B285 = 3, B215 = 4, B225_2 = 5, B226 = 6, A725_2 = 7, B291 = 8, B203 = 22;
+  
+  if (idNum == B285) {
+    getB285Settings(rawString);
+  } else if (idNum == B215) {
+    getB215Settings(rawString);
+  } else if (idNum == B226) { 
+    // Trifft jetzt perfekt zu, da idNum == 6!
+    getB226Settings(rawString); 
+  } else if (idNum == B291) {
+    getB291Settings(rawString);
+  } else if (idNum == B203) { 
+    getB203Settings(rawString); 
   }
+}
 
   function setIRstate() {
 
-    document.getElementById('IR')?.addEventListener('change', () => {
+    document.getElementById('IR')?.addEventListener('change', (event) => {
           const Id = event.target.id;
           const Value = event.target.checked;
           const Name = event.target.name;
@@ -246,7 +237,7 @@ function switchConfiguration(selectedValue) {
 
   function setB285Speakers() {
 
-    document.getElementById('speakers')?.addEventListener('change', () => {
+    document.getElementById('speakers')?.addEventListener('change', (event) => {
           const Id = event.target.id;
           const Value = event.target.value;
           const Name = event.target.name;
@@ -259,7 +250,7 @@ function switchConfiguration(selectedValue) {
 
   function setB285Volume() {
 
-    document.getElementById('volumeSlider')?.addEventListener('change', () => {
+    document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
           const Id = event.target.id;
           const Value = event.target.value;
           const Name = event.target.name;
@@ -292,7 +283,7 @@ function switchConfiguration(selectedValue) {
 
   function setb203() {
 
-    document.getElementById('b203_set')?.addEventListener('click', () => {
+    document.getElementById('b203_set')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const language = document.querySelector('select[id="language"]').value;
       const easy = document.querySelector('select[id="easy"]').value;
@@ -307,18 +298,19 @@ function switchConfiguration(selectedValue) {
 
   function getb215() {
 
-    document.getElementById('b215_get')?.addEventListener('click', () => {
+    document.getElementById('b215_get')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "tape2X" );
-      websocket.send("tape2X");
+      console.log( "tape1X" );
+      websocket.send("tape1X");
       }
     });
   }
+  
 
   function getb226() {
 
-    document.getElementById('b226_get')?.addEventListener('click', () => {
+    document.getElementById('b226_get')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       if (websocket.readyState === WebSocket.OPEN) {
         console.log( "cdplayerX" );
@@ -329,7 +321,7 @@ function switchConfiguration(selectedValue) {
 
   function getb285() {
 
-    document.getElementById('b285_get')?.addEventListener('click', () => {
+    document.getElementById('b285_get')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       if (websocket.readyState === WebSocket.OPEN) {
         console.log( "receiverX" );
@@ -338,20 +330,20 @@ function switchConfiguration(selectedValue) {
     });
   }
 
-  function getb203() {
-
-    document.getElementById('b203_get')?.addEventListener('click', () => {
-      const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( Name + "0X" );
-        websocket.send( Name + "0X");
-      }
-    });
-  }
+function getb203() {
+  // Übergebe 'event' in die Klammer, damit target.name funktioniert
+  document.getElementById('b203_get')?.addEventListener('click', (event) => {
+    const Name = event.target.name; // Ergibt jetzt korrekt "getsettings"
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log(Name + "0X");
+      websocket.send(Name + "0X"); // Sendet "getsettings0X" an den Arduino
+    }
+  });
+}
 
   function getb291() {
 
-    document.getElementById('b291_get')?.addEventListener('click', () => {
+    document.getElementById('b291_get')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       if (websocket.readyState === WebSocket.OPEN) {
         console.log( "phonoX" );
@@ -376,8 +368,8 @@ function switchConfiguration(selectedValue) {
 
   function getb215tabevent() {
     if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "tape2X" );
-      websocket.send("tape2X");
+      console.log( "tape1X" );
+      websocket.send("tape1X");
     }
   }
 
@@ -410,7 +402,7 @@ function switchConfiguration(selectedValue) {
 
   function setDateb203() {
 
-    document.getElementById('setDate')?.addEventListener('click', () => {
+    document.getElementById('setDate')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const setdate = document.querySelector("#set_date").value;
       let millenShort  = setdate.slice(2)
@@ -425,7 +417,7 @@ function switchConfiguration(selectedValue) {
 
   function setTimeb203() {
 
-    document.getElementById('setTime')?.addEventListener('click', () => {
+    document.getElementById('setTime')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const setdate = document.querySelector("#set_time").value;
       let formtime = setdate.replace(/:/g, "");
@@ -438,7 +430,7 @@ function switchConfiguration(selectedValue) {
 
   function callEventb203() {
 
-    document.getElementById('b203callevent')?.addEventListener('click', () => {
+    document.getElementById('b203callevent')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const b203call = document.querySelector('select[id="b203evn"]').value;
       if (websocket.readyState === WebSocket.OPEN) {
@@ -450,7 +442,7 @@ function switchConfiguration(selectedValue) {
 
   function delEventb203() {
 
-    document.getElementById('b203delevent')?.addEventListener('click', () => {
+    document.getElementById('b203delevent')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const b203del = document.querySelector('select[id="b203evn"]').value;
       if (websocket.readyState === WebSocket.OPEN) {
@@ -462,7 +454,7 @@ function switchConfiguration(selectedValue) {
 
   function testEventb203() {
 
-    document.getElementById('b203testevent')?.addEventListener('click', () => {
+    document.getElementById('b203testevent')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const b203test = document.querySelector('select[id="b203evn"]').value;
       if (websocket.readyState === WebSocket.OPEN) {
@@ -474,7 +466,7 @@ function switchConfiguration(selectedValue) {
 
   function setEventb203() {
 
-    document.getElementById('b203setevent')?.addEventListener('click', () => {
+    document.getElementById('b203setevent')?.addEventListener('click', (event) => {
       const Name = event.target.name;
       const b203evn = document.querySelector('select[id="b203evn"]').value;
       const datatype = document.querySelector('select[id="datetype"]').value;
@@ -622,40 +614,49 @@ function executeNavigation(element) {
     return p3 + p2 + p1;
   }
 
-  function getB203Settings() {
-    const datetimestr = event.data.slice(3, 15);
-    // 1. String zerlegen mittels substring
-    const day = datetimestr.substring(0, 2);
-    const month = datetimestr.substring(2, 4);
-    const year = datetimestr.substring(4, 6);
-    const yearlong = ("20" + year);
-    const hour = datetimestr.substring(6, 8);
-    const minute = datetimestr.substring(8, 10);
-    const second = datetimestr.substring(10, 12);
-    // 2. Formatieren für HTML-Inputs
-    const dateValue = `${yearlong}-${month}-${day}`; // YYYY-MM-DD
-    const timeValue = `${hour}:${minute}:${second}`;       // HH:mm
-    // 3. Werte in die Elemente einsetzen
-    document.getElementById("set_date").value = dateValue;
-    document.getElementById("set_time").value = timeValue;
-    const rawdata = event.data.slice(-6);
-    const lang = rawdata.charAt(0);
-    document.getElementById("language").value = lang;
-    const easymod = rawdata.charAt(1);
-    document.getElementById("easy").value = easymod;
-    const time = rawdata.charAt(2);
-    document.getElementById("timer").value = time;
-    const pwron = rawdata.charAt(3);
-    document.getElementById("poweron").value = pwron;
-    const irled = rawdata.charAt(4);
-    if (irled == "0") {
-      document.getElementById("IR").checked = true;
-    } else if (irled == "1") {
-          document.getElementById("IR").checked = false;
-    }
-  }
+function getB203Settings(incomingData) {
+  const rawString = incomingData || event.data;
+  console.log("Verarbeite B203 Daten:", rawString);
+  
+  // Datum extrahieren (ddmmyy ab Index 3)
+  const datestr = rawString.slice(3, 9); 
+  const day = datestr.substring(0, 2);     
+  const month = datestr.substring(2, 4);   
+  const year = datestr.substring(4, 6);    
+  const yearlong = "20" + year;            
+  
+  // Uhrzeit extrahieren (hhmmss ab Index 9)
+  const timestr = rawString.slice(9, 15);
+  const hour = timestr.substring(0, 2);    
+  const minute = timestr.substring(2, 4);  
+  const second = timestr.substring(4, 6);  
+  
+  const dateInput = document.getElementById("set_date");
+  const timeInput = document.getElementById("set_time");
+  if (dateInput) dateInput.value = `${yearlong}-${month}-${day}`; 
+  if (timeInput) timeInput.value = `${hour}:${minute}:${second}`; 
 
-  function getB215Settings() {
+  // Setup-Dropdowns befüllen
+  const langElem = document.getElementById("language");
+  if (langElem) langElem.value = rawString.charAt(15);
+  
+  const easyElem = document.getElementById("easy");
+  if (easyElem) easyElem.value = rawString.charAt(16);
+  
+  const timerElem = document.getElementById("timer");
+  if (timerElem) timerElem.value = rawString.charAt(17);
+  
+  const pwrElem = document.getElementById("poweron");
+  if (pwrElem) pwrElem.value = rawString.charAt(18);
+  
+  // IR-Schalter
+  const irCheckbox = document.getElementById("IR");
+  if (irCheckbox) {
+      irCheckbox.checked = (rawString.charAt(19) == "0");
+  }
+}
+
+  function getB215Settings(incomingData) {
     const rawdata = event.data.slice(3);
     const functions = rawdata.charAt(0);
     document.getElementById("functions").value = functions;
@@ -669,39 +670,81 @@ function executeNavigation(element) {
     document.getElementById("bandzaehler").value = tapecounter;
   }
 
-  function getB226Settings() {
-    const rawdata = event.data.slice(3);
-    const b226state = rawdata.charAt(0);
-    document.getElementById("b226state").value = b226state;
-    const tracknumber = rawdata.slice(1, 3);
-    document.getElementById("tracknumber").value = tracknumber;
-    const indexnumber = rawdata.slice(3, 5);
-    document.getElementById("indexnumber").value = indexnumber;
-    const elapsedtimemm = rawdata.slice(5, 7);
-    const elapsedtimess = rawdata.slice(7, 9);
-    const elapsedtime = (elapsedtimemm + ":" + elapsedtimess);
-    document.getElementById("elapsedtime").value = elapsedtime;
-    const remainingtimemm = rawdata.slice(9, 11);
-    const remainingtimess = rawdata.slice(11, 13);
-    const remainingtime = (remainingtimemm + ":" + remainingtimess);
-    document.getElementById("remainingtime").value = remainingtime;
-  }
+function getB226Settings(incomingData) {
+  // Holt die Daten direkt aus dem Parameter
+  const rawString = incomingData || event.data;
+  console.log("Verarbeite B226 Daten:", rawString);
 
-  function getB285Settings() {
-    const rawdata = event.data.slice(3);
-    const b285source = rawdata.charAt(0);
-    document.getElementById("b285source").value = b285source;
-    const getspeakers = rawdata.charAt(1);
-    document.getElementById("getspeakers").value = getspeakers;
-    const volume = rawdata.slice(2, 4);
-    document.getElementById("volume").value = volume;
-    const tunerstation = rawdata.slice(4, 6);
-    document.getElementById("tunerstation").value = tunerstation;
-    const stationid = rawdata.slice(6, 10);
-    document.getElementById("stationid").value = stationid;
-    const frequency = rawdata.slice(10, 15);
-    document.getElementById("frequency").value = frequency;
+  // 1. Gerätestatus extrahieren (Index 3, 1 Zeichen -> z.B. "2")
+  const b226stateId = rawString.charAt(3); 
+  const stateElem = document.getElementById("b226state");
+  if (stateElem) {
+    stateElem.value = b226stateId; // Findet im HTML die <option value="2">Play</option>
   }
+  
+  // 2. Track-Nummer extrahieren (Index 4 und 5 -> z.B. "01")
+  const tracknumber = rawString.slice(4, 6);
+  const trackElem = document.getElementById("tracknumber");
+  if (trackElem) trackElem.value = tracknumber;
+  
+  // 3. Index-Nummer extrahieren (Index 6 und 7 -> z.B. "01")
+  const indexnumber = rawString.slice(6, 8);
+  const indexElem = document.getElementById("indexnumber");
+  if (indexElem) indexElem.value = indexnumber;
+  
+  // 4. Abgelaufene Zeit extrahieren (Index 8 bis 12 -> "0019")
+  const elapsedtimemm = rawString.slice(8, 10);  // "00"
+  const elapsedtimess = rawString.slice(10, 12); // "19"
+  const elapsedtime = elapsedtimemm + ":" + elapsedtimess;
+  const elapsedElem = document.getElementById("elapsedtime");
+  if (elapsedElem) elapsedElem.value = elapsedtime;
+  
+  // 5. Verbleibende Zeit extrahieren (Index 12 bis 16 -> "6700")
+  const remainingtimemm = rawString.slice(12, 14); // "67"
+  const remainingtimess = rawString.slice(14, 16); // "00"
+  const remainingtime = remainingtimemm + ":" + remainingtimess;
+  const remainingElem = document.getElementById("remainingtime");
+  if (remainingElem) remainingElem.value = remainingtime;
+}
+
+ function getB285Settings(incomingData) {
+  // Holt die Daten direkt aus dem sicheren Parameter (oder Fallback auf event.data)
+  const rawString = incomingData || event.data;
+  console.log("Verarbeite B285 Daten:", rawString);
+
+  // Nutzdaten ab Index 3 abschneiden (überspringt Port und ID '03')
+  const rawdata = rawString.slice(3);
+  
+  // 1. Signalquelle (z.B. Tuner, CD, Tape)
+  const b285source = rawdata.charAt(0);
+  const sourceElem = document.getElementById("b285source");
+  if (sourceElem) sourceElem.value = b285source;
+  
+  // 2. Lautsprecher-Status (A / B / A+B)
+  const getspeakers = rawdata.charAt(1);
+  const speakersElem = document.getElementById("getspeakers");
+  if (speakersElem) speakersElem.value = getspeakers;
+  
+  // 3. Lautstärke (Volume - 2 Zeichen)
+  const volume = rawdata.slice(2, 4);
+  const volElem = document.getElementById("volume");
+  if (volElem) volElem.value = volume;
+  
+  // 4. Tuner Stationsplatz (2 Zeichen)
+  const tunerstation = rawdata.slice(4, 6);
+  const stationElem = document.getElementById("tunerstation");
+  if (stationElem) stationElem.value = tunerstation;
+  
+  // 5. Stations-ID / Name (4 Zeichen)
+  const stationid = rawdata.slice(6, 10);
+  const stationIdElem = document.getElementById("stationid");
+  if (stationIdElem) stationIdElem.value = stationid;
+  
+  // 6. Frequenz (5 Zeichen)
+  const frequency = rawdata.slice(10, 15);
+  const freqElem = document.getElementById("frequency");
+  if (freqElem) freqElem.value = frequency;
+}
 
   function getB291Settings() {
     const rawdata = event.data.slice(3);

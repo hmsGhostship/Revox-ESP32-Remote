@@ -123,7 +123,7 @@ void loadPortConfig() {
     Serial.print("Warnung: JSON zu groß! Begrenzt auf Maximum: ");
     Serial.println(maxArrayCapacity);
   } else {
-    portTableSize = array.size();     // Setzt die Größe exakt auf die echten Einträge (z.B. 6)
+    portTableSize = array.size();     // Setzt die Größe exakt auf die echten Einträge (z.B. 8)
   }
   
   // Array mit den echten Daten befüllen
@@ -138,10 +138,23 @@ void loadPortConfig() {
     strncpy(portArray[index].descr, obj["descr"] | "", sizeof(portArray[index].descr) - 1);
     portArray[index].descr[sizeof(portArray[index].descr) - 1] = '\0';
     
-    strncpy(portArray[index].out, obj["out"] | "", sizeof(portArray[index].out) - 1);
+    // --- TYPSICHERE PORT-ERKENNUNG (Fix für Zahlen und Strings) ---
+    String outString = "";
+    if (obj["out"].is<int>()) {
+      outString = String(obj["out"].as<int>()); // Wandelt z.B. die Zahl 2 in den String "2"
+    } else {
+      outString = obj["out"] | "";              // Liest Strings wie "no" oder "4" aus
+    }
+    
+    strncpy(portArray[index].out, outString.c_str(), sizeof(portArray[index].out) - 1);
     portArray[index].out[sizeof(portArray[index].out) - 1] = '\0';
+    // ---------------------------------------------------------------
     
     portArray[index].feedback = obj["feedback"] | false;
+
+    // Optionaler Debug-Ausdruck für den Seriellen Monitor
+    Serial.printf("RAM-Port geladen [%d]: %s (%s) -> Port: %s\n", 
+                  index, portArray[index].name, portArray[index].descr, portArray[index].out);
 
     index++;
   }

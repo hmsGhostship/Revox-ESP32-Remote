@@ -12,26 +12,26 @@ const HIDE_AMP_TUN_WITHOUT_RECEIVER = true;
 window.addEventListener('load', onLoad);
 //window.addEventListener('DOMContentLoaded', loadConfig);
 
-  function onLoad(event) {
-    initWebSocket();
-    getButton();
-    setIRstate();
-    setb203();
-    getb203();
-    setEventb203();
-    setDateb203();
-    setTimeb203();
-    callEventb203();
-    delEventb203();
-    testEventb203();
-    getb215();
-    getb226();
-    getb291();
-    getb285();
-    setB285Speakers();
-    setB285Volume();
-    setPorts();
-    setBibus();
+function onLoad(event) {
+  initWebSocket();
+  getButton();
+  setIRstate();
+  setb203();
+  getb203();
+  setEventb203();
+  setDateb203();
+  setTimeb203();
+  callEventb203();
+  delEventb203();
+  testEventb203();
+  getb215();
+  getb226();
+  getb291();
+  getb285();
+  setB285Speakers();
+  setB285Volume();
+  setPorts();
+  setBibus();
   }
 
 function setBibus() {
@@ -82,14 +82,16 @@ function renderTable() {
   const tbody = document.getElementById('table-body');
   if (!tbody) return;
 
-  // HTML-Generierung optimiert
   tbody.innerHTML = portconfigData.map((item, index) => {
     const safeName = escapeHtml(item.name || '');
     const safeDescr = escapeHtml(item.descr || '');
     
-    // Generiert die Optionen von 0 bis 9
+    // Konvertiert den aktuellen Wert sicher zu einer Zahl für den Vergleich
+    const currentOutValue = (item.out === 'no' || item.out === 'Nicht verf&uuml;gbar') ? 'no' : Number(item.out);
+    
+    // Generiert die Optionen von 0 bis 9 (Vergleich mittels Number)
     const options = Array.from({ length: 10 }, (_, i) => `
-      <option value="${i}" ${Number(item.out) === i ? 'selected' : ''}>${i}</option>
+      <option value="${i}" ${currentOutValue === i ? 'selected' : ''}>${i}</option>
     `).join('');
 
     return `
@@ -98,7 +100,7 @@ function renderTable() {
         <td><input class="portselect" type="text" value="${safeDescr}" autocomplete="off" disabled></td>
         <td>
           <select class="portselect" data-action="update-out">
-            <option value="no" ${item.out === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
+            <option value="no" ${currentOutValue === 'no' ? 'selected' : ''}>Nicht verf&uuml;gbar</option>
             ${options}
           </select>
         </td>
@@ -108,14 +110,24 @@ function renderTable() {
   }).join('');
 }
 
-// Event-Delegation statt Inline-onchange (Einmalig im Skript registrieren)
-document.getElementById('table-body')?.addEventListener('change', (event) => {
-  const target = event.target;
-  if (target.matches('select[data-action="update-out"]')) {
-    const rowIndex = target.closest('tr').getAttribute('data-index');
-    if (typeof updateValue === 'function') {
-      updateValue(Number(rowIndex), 'out', target.value);
-    }
+// Überwacht Änderungen auf der gesamten Seite, filtert aber gezielt Ihre Port-Dropdowns heraus
+document.addEventListener('change', (event) => {
+const target = event.target;
+  
+  // Prüfen, ob das geänderte Element unser Port-Select ist
+  if (target && target.matches('select[data-action="update-out"]')) {
+    // Suchen der Tabellenzeile (tr), um den Index zu bekommen
+    const row = target.closest('tr');
+    if (!row) return;
+    const rowIndex = row.getAttribute('data-index');
+    const rawValue = target.value;
+    // Wert umwandeln: Wenn 'no', dann als String lassen, sonst als echte Zahl
+    const finalValue = rawValue === 'no' ? 'no' : Number(rawValue);
+    console.log(`[Event] Dropdown geändert! Zeile: ${rowIndex}, Neuer Wert:`, finalValue);
+    // Wert im Array überschreiben
+      if (typeof updateValue === 'function') {
+        updateValue(Number(rowIndex), 'out', finalValue);
+      }
   }
 });
 
@@ -126,17 +138,16 @@ function syncSelectField() {
   // Wir prüfen primär, ob der Alternativzustand B251 aktiv ist
   const isB251Active = portconfigData.some(item => item.name === "B251");
 
-  // Optionen generieren und den Zustand exakt setzen
-  selectElem.innerHTML = `
-    <option value="B285" ${!isB251Active ? 'selected' : ''}>B285 (Standard)</option>
-    <option value="B251" ${isB251Active ? 'selected' : ''}>B251 (+ Tuner B261)</option>
-  `;
+    // Optionen generieren und den Zustand exakt setzen
+    selectElem.innerHTML = `
+      <option value="B285" ${!isB251Active ? 'selected' : ''}>B285 (Standard)</option>
+      <option value="B251" ${isB251Active ? 'selected' : ''}>B251 (+ Tuner B261)</option>
+    `;
 }
 
 function switchConfiguration(selectedValue) {
   if (selectedValue === "B251") {
     // === ZUSTAND B251 AKTIVIEREN ===
-    
     // 1. "B285" suchen und alle drei Werte anpassen
     const entry = portconfigData.find(item => item.name === "B285");
     if (entry) {
@@ -176,159 +187,159 @@ function switchConfiguration(selectedValue) {
   // UI komplett aktualisieren (Tabelle spiegelt alle Änderungen sofort wider)
   renderTable();
 }
-  function initWebSocket() {
-    console.log('Trying to open a WebSocket connection...');
-    websocket = new WebSocket(gateway);
-    websocket.onopen    = onOpen;
-    websocket.onclose   = onClose;
-    websocket.onmessage = onMessage; // <-- add this line
-  }
+
+function initWebSocket() {
+  console.log('Trying to open a WebSocket connection...');
+  websocket = new WebSocket(gateway);
+  websocket.onopen    = onOpen;
+  websocket.onclose   = onClose;
+  websocket.onmessage = onMessage; // <-- add this line
+}
   
 // When websocket is established, call the getReadings() function
-  function onOpen(event) {
-    console.log('Connection opened');
-    websocket.send('get_data');
-  }
+function onOpen(event) {
+  console.log('Connection opened');
+  websocket.send('get_data');
+}
 
-  function onClose(event) {
-    console.log('Connection closed');
-    setTimeout(initWebSocket, 2000);
-  }
+function onClose(event) {
+  console.log('Connection closed');
+  setTimeout(initWebSocket, 2000);
+}
 
-  function onMessage(event) {
+function onMessage(event) {
   console.log("WebSocket empfangen:", event.data);
   
   const rawString = event.data;
   if (!rawString || typeof rawString !== 'string') return;
 
-  // KORREKTUR: Bei "206..." holt .slice(1, 3) exakt die "06" heraus!
+  // Extrahiert zwei Zeichen ab Index 1 (z.B. "52")
   const Identifier = rawString.slice(1, 3);
   const idNum = Number(Identifier);
   
-  // IDs laut deinem Code (B226 ist die 6, B203 ist die 22)
-  let NoId = 0, PR99 = 1, A725 = 2, B285 = 3, B215 = 4, B225_2 = 5, B226 = 6, A725_2 = 7, B291 = 8, B203 = 22;
+  // Ermittelt die allererste Ziffer der ID (z.B. bei 52 durch 10 teilen und abrunden = 5)
+  const firstDigit = Math.floor(idNum / 10);
   
+  // IDs laut Ihrem System
+  let NoId = 0, PR99 = 1, A725 = 2, B285 = 3, B215 = 4, B225_2 = 5, B226 = 6, A725_2 = 7, B291 = 8;
+  
+  // IF-Abfragen für Standardgeräte
   if (idNum == B285) {
     getB285Settings(rawString);
   } else if (idNum == B215) {
     getB215Settings(rawString);
   } else if (idNum == B226) { 
-    // Trifft jetzt perfekt zu, da idNum == 6!
     getB226Settings(rawString); 
   } else if (idNum == B291) {
     getB291Settings(rawString);
-  } else if (idNum == B203) { 
+  } 
+  // REVOX B203 Bedingung: Reagiert dynamisch, wenn die erste Stelle eine 5 oder eine 9 ist
+  else if (firstDigit === 5 || firstDigit === 9) { 
+    console.log(`B203 erkannt mit ID ${idNum} (Klasse ${firstDigit}x), rufe getB203Settings auf...`);
     getB203Settings(rawString); 
   }
 }
 
-  function setIRstate() {
+function setIRstate() {
+  document.getElementById('IR')?.addEventListener('change', (event) => {
+    const Id = event.target.id;
+    const Value = event.target.checked;
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log(Name + Value + Id);
+      websocket.send(Name + Value + Id);
+    }
+  });
+}
 
-    document.getElementById('IR')?.addEventListener('change', (event) => {
-          const Id = event.target.id;
-          const Value = event.target.checked;
-          const Name = event.target.name;
-          if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + Value + Id);
-          websocket.send(Name + Value + Id);
-         }
-    });
-  }
+function setB285Speakers() {
 
-  function setB285Speakers() {
+  document.getElementById('speakers')?.addEventListener('change', (event) => {
+    const Id = event.target.id;
+    const Value = event.target.value;
+    const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log(Name + Value);
+        websocket.send(Name + Value);
+      }
+  });
+}
 
-    document.getElementById('speakers')?.addEventListener('change', (event) => {
-          const Id = event.target.id;
-          const Value = event.target.value;
-          const Name = event.target.name;
-          if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + Value);
-          websocket.send(Name + Value);
-         }
-    });
-  }
+function setB285Volume() {
+  document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
+    const Id = event.target.id;
+    const Value = event.target.value;
+    const Name = event.target.name;
+      if (websocket.readyState === WebSocket.OPEN) {
+        console.log(Name + "V" + Value);
+        websocket.send(Name + "V" +Value);
+      }
+  });
+}
 
-  function setB285Volume() {
-
-    document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
-          const Id = event.target.id;
-          const Value = event.target.value;
-          const Name = event.target.name;
-          if (websocket.readyState === WebSocket.OPEN) {
-          console.log(Name + "V" + Value);
-          websocket.send(Name + "V" +Value);
-         }
-    });
-  }
-
-  function setPorts() {
-
-    document.getElementById('b203setport')?.addEventListener('click', () => {
-    // 1. Alle Elemente mit der gewünschten Klasse auswählen (z.B. "meine-klasse")
-    const elemente = document.querySelectorAll('.portConfig');
-    // 2. Die Werte der Elemente in ein Array oder Objekt extrahieren
-      const datenObjekte = Array.from(elemente).map((element) => {
-        return {
-          descr: element.getAttribute('data-descr'), // Beispiel für ein weiteres Attribut (data-*)
-          out: element.value, // Der Hauptwert/Text des Elements
-          feedback: element.getAttribute('data-feedback'), // Beispiel für ein weiteres Attribut (data-*)
-        };
-      });
-      // 3. Das Array/Objekt in einen JSON-String umwandeln
-      const jsonErgebnis = JSON.stringify(datenObjekte, null, 2);
-      console.log(jsonErgebnis);
-    });
-  }
+function setPorts() {
+  document.getElementById('b203setport')?.addEventListener('click', () => {
+  // 1. Alle Elemente mit der gewünschten Klasse auswählen (z.B. "meine-klasse")
+  const elemente = document.querySelectorAll('.portConfig');
+  // 2. Die Werte der Elemente in ein Array oder Objekt extrahieren
+  const datenObjekte = Array.from(elemente).map((element) => {
+    return {
+      descr: element.getAttribute('data-descr'), // Beispiel für ein weiteres Attribut (data-*)
+      out: element.value, // Der Hauptwert/Text des Elements
+      feedback: element.getAttribute('data-feedback'), // Beispiel für ein weiteres Attribut (data-*)
+    };
+  });
+  // 3. Das Array/Objekt in einen JSON-String umwandeln
+  const jsonErgebnis = JSON.stringify(datenObjekte, null, 2);
+  console.log(jsonErgebnis);
+  });
+}
 
 
-  function setb203() {
-
-    document.getElementById('b203_set')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const language = document.querySelector('select[id="language"]').value;
-      const easy = document.querySelector('select[id="easy"]').value;
-      const timer = document.querySelector('select[id="timer"]').value;
-      const poweron = document.querySelector('select[id="poweron"]').value;
+function setb203() {
+  document.getElementById('b203_set')?.addEventListener('click', (event) => {
+    const Name = event.target.name;
+    const language = document.querySelector('select[id="language"]').value;
+    const easy = document.querySelector('select[id="easy"]').value;
+    const timer = document.querySelector('select[id="timer"]').value;
+    const poweron = document.querySelector('select[id="poweron"]').value;
       if (websocket.readyState === WebSocket.OPEN) {
         console.log( Name + "0S" + language + easy + timer + poweron );
         websocket.send( Name + "0S" + language + easy + timer + poweron );
-      }
-    });
-  }
+    }
+  });
+}
 
-  function getb215() {
-
-    document.getElementById('b215_get')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "tape1X" );
-      websocket.send("tape1X");
-      }
-    });
-  }
+function getb215() {
+  document.getElementById('b215_get')?.addEventListener('click', (event) => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "tape1X" );
+    websocket.send("tape1X");
+    }
+  });
+}
   
 
-  function getb226() {
+function getb226() {
+  document.getElementById('b226_get')?.addEventListener('click', (event) => {
+    const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log( "cdplayerX" );
+      websocket.send("cdplayerX");
+    }
+  });
+}
 
-    document.getElementById('b226_get')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( "cdplayerX" );
-        websocket.send("cdplayerX");
-      }
-    });
-  }
-
-  function getb285() {
-
-    document.getElementById('b285_get')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( "receiverX" );
-        websocket.send("receiverX");
-      }
-    });
-  }
+function getb285() {
+  document.getElementById('b285_get')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log( "receiverX" );
+      websocket.send("receiverX");
+    }
+  });
+}
 
 function getb203() {
   // Übergebe 'event' in die Klammer, damit target.name funktioniert
@@ -341,161 +352,153 @@ function getb203() {
   });
 }
 
-  function getb291() {
-
-    document.getElementById('b291_get')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( "phonoX" );
-        websocket.send( "phonoX");
-      }
-    });
-  }
-
-  function getb291tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+function getb291() {
+  document.getElementById('b291_get')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+    if (websocket.readyState === WebSocket.OPEN) {
       console.log( "phonoX" );
-      websocket.send("phonoX");
+      websocket.send( "phonoX");
     }
-  }
+  });
+}
 
-  function getb226tabevent() {
+function getb291tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "phonoX" );
+    websocket.send("phonoX");
+  }
+}
+
+function getb226tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "cdplayerX" );
+    websocket.send("cdplayerX");
+  }
+}
+
+function getb215tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "tape1X" );
+    websocket.send("tape1X");
+  }
+}
+
+function getb203tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "getsettings0X" );
+    websocket.send( "getsettings0X");
+  }
+}
+
+function getWIFIConfig() {
+  fetch('/get-config')
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('ssid').value = data.ssid;
+    document.getElementById('password').value = data.password;
+  });
+}
+
+
+
+function getb285tabevent() {
+  if (websocket.readyState === WebSocket.OPEN) {
+    console.log( "receiverX" );
+    websocket.send("receiverX");
+  }
+}
+
+
+
+function setDateb203() {
+  document.getElementById('setDate')?.addEventListener('click', (event) => {
+    const Name = event.target.name;
+    const setdate = document.querySelector("#set_date").value;
+    let millenShort  = setdate.slice(2)
+    let splitdate = millenShort.replace(/-/g, "");
+    const swaped = swapPairs(splitdate);
     if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "cdplayerX" );
-      websocket.send("cdplayerX");
+      console.log( Name + "0D" + swaped );
+      websocket.send( Name + "0D" + swaped );
     }
-  }
+  });
+}
 
-  function getb215tabevent() {
+function setTimeb203() {
+  document.getElementById('setTime')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+  const setdate = document.querySelector("#set_time").value;
+  let formtime = setdate.replace(/:/g, "");
     if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "tape1X" );
-      websocket.send("tape1X");
+      console.log( Name + "0T" + formtime );
+      websocket.send( Name + "0T" + formtime );
     }
-  }
+  });
+}
 
-  function getb203tabevent() {
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( "getsettings0X" );
-        websocket.send( "getsettings0X");
-      }
-  }
-
-  function getWIFIConfig() {
-      fetch('/get-config')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('ssid').value = data.ssid;
-          document.getElementById('password').value = data.password;
-        });
-  }
-
-
-
-  function getb285tabevent() {
+function callEventb203() {
+  document.getElementById('b203callevent')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+  const b203call = document.querySelector('select[id="b203evn"]').value;
     if (websocket.readyState === WebSocket.OPEN) {
-      console.log( "receiverX" );
-      websocket.send("receiverX");
+      console.log( Name + "0C" + b203call );
+      websocket.send( Name + "0C" + b203call );
     }
-  }
+  });
+}
 
-
-
-  function setDateb203() {
-
-    document.getElementById('setDate')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const setdate = document.querySelector("#set_date").value;
-      let millenShort  = setdate.slice(2)
-      let splitdate = millenShort.replace(/-/g, "");
-      const swaped = swapPairs(splitdate);
-        if (websocket.readyState === WebSocket.OPEN) {
-          console.log( Name + "0D" + swaped );
-          websocket.send( Name + "0D" + swaped );
-        }
-    });
-  }
-
-  function setTimeb203() {
-
-    document.getElementById('setTime')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const setdate = document.querySelector("#set_time").value;
-      let formtime = setdate.replace(/:/g, "");
-        if (websocket.readyState === WebSocket.OPEN) {
-          console.log( Name + "0T" + formtime );
-          websocket.send( Name + "0T" + formtime );
-        }
-    });
-  }
-
-  function callEventb203() {
-
-    document.getElementById('b203callevent')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const b203call = document.querySelector('select[id="b203evn"]').value;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( Name + "0C" + b203call );
-        websocket.send( Name + "0C" + b203call );
-      }
-    });
-  }
-
-  function delEventb203() {
-
-    document.getElementById('b203delevent')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const b203del = document.querySelector('select[id="b203evn"]').value;
-      if (websocket.readyState === WebSocket.OPEN) {
+function delEventb203() {
+  document.getElementById('b203delevent')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+  const b203del = document.querySelector('select[id="b203evn"]').value;
+    if (websocket.readyState === WebSocket.OPEN) {
       console.log( Name + "0E" + b203del + "E" );
       websocket.send( Name + "0E" + b203del + "E" );
-      }
-    });
-  }
+    }
+  });
+}
 
-  function testEventb203() {
+function testEventb203() {
+  document.getElementById('b203testevent')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+  const b203test = document.querySelector('select[id="b203evn"]').value;
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log( Name + "0V" + b203test  );
+      websocket.send( Name + "0V" + b203test );
+    }
+  });
+}
 
-    document.getElementById('b203testevent')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const b203test = document.querySelector('select[id="b203evn"]').value;
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( Name + "0V" + b203test  );
-        websocket.send( Name + "0V" + b203test );
-      }
-    });
-  }
-
-  function setEventb203() {
-
-    document.getElementById('b203setevent')?.addEventListener('click', (event) => {
-      const Name = event.target.name;
-      const b203evn = document.querySelector('select[id="b203evn"]').value;
-      const datatype = document.querySelector('select[id="datetype"]').value;
-      const weekday  = document.querySelectorAll('input[name="day"]');
-      let weekdayString = "";
-      weekday.forEach((checkbox) => {
+function setEventb203() {
+  document.getElementById('b203setevent')?.addEventListener('click', (event) => {
+  const Name = event.target.name;
+  const b203evn = document.querySelector('select[id="b203evn"]').value;
+  const datatype = document.querySelector('select[id="datetype"]').value;
+  const weekday  = document.querySelectorAll('input[name="day"]');
+  let weekdayString = "";
+    weekday.forEach((checkbox) => {
         weekdayString += checkbox.checked ? "1" : "0";
       });
-      const signalsource = document.querySelector('select[id="signalsource"]').value;
-      const sourceadd = document.querySelector("#sourceadd").value;
-      const output  = document.querySelectorAll('input[name="out"]');
-      let outputString = "";
-      output.forEach((checkbox) => {
+  const signalsource = document.querySelector('select[id="signalsource"]').value;
+  const sourceadd = document.querySelector("#sourceadd").value;
+  const output  = document.querySelectorAll('input[name="out"]');
+  let outputString = "";
+    output.forEach((checkbox) => {
         outputString += checkbox.checked ? "1" : "0";
       });
-      const eventstarttime = document.querySelector("#eventstarttime").value;
-      let formevstarttime = eventstarttime.replace(/:/g, "");
-      const eventsoptime = document.querySelector("#eventstoptime").value;
-      let formevstoptime = eventsoptime.replace(/:/g, "");
-      if (websocket.readyState === WebSocket.OPEN) {
-        console.log( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime);
-        websocket.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
-      }
-    });
-  }
+  const eventstarttime = document.querySelector("#eventstarttime").value;
+  let formevstarttime = eventstarttime.replace(/:/g, "");
+  const eventsoptime = document.querySelector("#eventstoptime").value;
+  let formevstoptime = eventsoptime.replace(/:/g, "");
+    if (websocket.readyState === WebSocket.OPEN) {
+      console.log( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime);
+      websocket.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
+    }
+  });
+}
 
-  function getButton() {
-  const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
-
+function getButton() {
+const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
   buttons.forEach(btn => {
     btn.classList.add('js-bound');
     
@@ -523,22 +526,31 @@ function getb203() {
         console.log(Name + 'Release' + Id);
         websocket.send(Name + 'Release' + Id);
         
-        const checkBuffer = setInterval(() => {
-          if (websocket.bufferedAmount === 0) {
+        // NUR WENN EINE TARGET-URL EXISTIERT (Ein Link geklickt wurde)
+        if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
+          const checkBuffer = setInterval(() => {
+            if (websocket.bufferedAmount === 0) {
+              clearInterval(checkBuffer);
+              websocket.close(1000, "Normal Closure"); 
+              sicherLeiten(targetUrl); // Nutzt die neue, sichere Funktion
+            }
+          }, 5);
+          
+          setTimeout(() => {
             clearInterval(checkBuffer);
-            websocket.close(1000, "Normal Closure"); 
-            sicherLeiten(targetUrl); // Nutzt die neue, sichere Funktion
-          }
-        }, 5);
-        
-        setTimeout(() => {
-          clearInterval(checkBuffer);
-          websocket.close();
-          sicherLeiten(targetUrl);
-        }, 150);
+            websocket.close();
+            sicherLeiten(targetUrl);
+          }, 150);
+        } else {
+          // Normaler Button ohne Link: Wir tun nichts weiter, Verbindung BLEIBT OFFEN!
+          console.log("Normaler Funktions-Button erkannt. WebSocket bleibt geöffnet.");
+        }
         
       } else {
-        sicherLeiten(targetUrl);
+        // Falls der Socket schon zu war, aber eine URL existiert, leiten wir weiter
+        if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
+          sicherLeiten(targetUrl);
+        }
       }
     });
   });
@@ -781,31 +793,37 @@ function getB226Settings(incomingData) {
     portconfigData[index][field] = value;
   }
 
-  async function saveData() {
-    try {
-      const response = await fetch('/api/save-data', { // Ersetze dies mit deinem echten Speicher-Pfad/API
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(portconfigData) // Schickt den aktuellen Zustand aus dem Browser-Speicher
-      });
-
-      if (!response.ok) throw new Error("Fehler beim Speichern auf dem Server");
+async function saveData() {
+  try {
+    console.log("Sende Port-Konfiguration an den ESP...", portconfigData);
     
-      alert("Konfiguration erfolgreich gespeichert!");
+    const response = await fetch('/api/save-data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(portconfigData) 
+    });
+
+    if (!response.ok) throw new Error(`Server antwortete mit Status: ${response.status}`);
     
-      // Nach dem Speichern laden wir die Daten neu, um sicherzustellen, 
-      // dass Server und UI zu 100% synchron sind.
-      await loadData(); 
+    // Wir warten, bis der Server die Antwort ("JSON gespeichert") komplett gesendet hat
+    const result = await response.json();
+    console.log("Antwort vom ESP erhalten:", result);
+    
+    alert("Konfiguration erfolgreich im ESP gespeichert!");
+    
+    // Daten neu laden, um das UI zu aktualisieren
+    await loadData(); 
 
-      window.location.href = '/'; // Leitet zur Hauptseite weiter
+    // HINWEIS: window.location.href = '/' wurde entfernt! 
+    // Dadurch bleiben Sie im Tab und können sofort sehen, ob die Tabelle aktualisiert wurde.
 
-    } catch (error) {
-      console.error("Speicherfehler:", error);
-      alert("Fehler beim Sichern der Daten.");
-    }
+  } catch (error) {
+    console.error("Speicherfehler:", error);
+    alert("Fehler beim Sichern der Daten im ESP-Speicher.");
   }
+}
 
  async function loadConfig() {
     const tbody = document.getElementById('configTable');

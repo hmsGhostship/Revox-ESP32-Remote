@@ -21,12 +21,12 @@
 		</div>
 
 		<div class="tab">
-			<button class="tablinks active" onclick="openB203(event, 'B203tab')">Control</button>
-			<button class="tablinks" onclick="openB203(event, 'B203Setuptab')">Setup</button>
-  			<button class="tablinks" onclick="openB203(event, 'B203Timertab')">Timer</button>
-			<button class="tablinks" onclick="openB203(event, 'PortConfig')">Port-Config</button>
-			<button class="tablinks" onclick="openB203(event, 'WIFIConfig')">Wifi-Config</button>
-			<button class="tablinks" onclick="openB203(event, 'Config')">Command-Config</button>
+			<button type="button" class="tablinks active" onclick="openB203(event, 'B203tab')">Control</button>
+			<button type="button" class="tablinks" onclick="openB203(event, 'B203Setuptab')">Setup</button>
+  			<button type="button" class="tablinks" onclick="openB203(event, 'B203Timertab')">Timer</button>
+			<button type="button" class="tablinks" onclick="openB203(event, 'PortConfig')">Port-Config</button>
+			<button type="button" class="tablinks" onclick="openB203(event, 'WIFIConfig')">Wifi-Config</button>
+			<button type="button" class="tablinks" onclick="openB203(event, 'Config')">Command-Config</button>
 		</div>
 
 		<div id="WIFIConfig" class="tabcontent">
@@ -58,7 +58,7 @@
     	</tbody>
 		</table>
     	<div class='button-pwr-container-dev span2'>
-        	<button name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
+        	<button type="button" name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
     	</div>
 		</div>
 		
@@ -84,7 +84,7 @@
   		</table>
   		<br>
   		<div class='button-pwr-container-dev span2'>
-  		<button name='setPortConf' id='b203setport' class='set_button span12' onclick="saveData()">Einstellungen Speichern</button>
+  		<button type="button" name='setPortConf' id='b203setport' class='set_button span12' onclick="saveData()">Einstellungen Speichern</button>
   		</div>
 					
 		</div>
@@ -92,24 +92,24 @@
 		<div id="B203tab" class="tabcontent" style="display:block">
   		
 		<div class='button-pwr-container-dev span2'>
-			<p><button name='button' id='b203poweroff' class='power_btn span12 pwr_color'>OFF</button></p>
+			<p><button type="button" name='button' id='b203poweroff' class='power_btn span12 pwr_color'>OFF</button></p>
 		</div>
 
 		<div class='button-group-container-dev span2'>
-			<p><button name='button' id='b203exit' class='button span6'>Exit</button></p>
-			<p><button name='button' id='b203time' class='button span6'>Time</button></p>
-			<p><button name='button' id='b203event' class='button span6'>Event</button></p>
-			<p><button name='button' id='b203select' class='button span6'>Select</button></p>
-			<p><button name='button' id='b203test' class='button span6'>Test</button></p>
+			<p><button type="button" name='button' id='b203exit' class='button span6'>Exit</button></p>
+			<p><button type="button" name='button' id='b203time' class='button span6'>Time</button></p>
+			<p><button type="button" name='button' id='b203event' class='button span6'>Event</button></p>
+			<p><button type="button" name='button' id='b203select' class='button span6'>Select</button></p>
+			<p><button type="button" name='button' id='b203test' class='button span6'>Test</button></p>
 		</div>
 		
 		<div class='button-group-container-misc span2'>
-			<p><button name='button' id='b203prev' class='button span6'><<</button></p>
-			<p><button name='button' id='b203next' class='button span6'>>></button></p>
+			<p><button type="button" name='button' id='b203prev' class='button span6'><<</button></p>
+			<p><button type="button" name='button' id='b203next' class='button span6'>>></button></p>
 		</div>
 
 		<div class='button-pwr-container-dev span2'>
-			<p><button name='button' id='b203enter' class='power_btn span12 load_color'>Enter</button></p>
+			<p><button type="button" name='button' id='b203enter' class='power_btn span12 load_color'>Enter</button></p>
 		</div>
 
 		</div>
@@ -154,8 +154,8 @@
     				<span class="off">OFF</span>
   					</div>
 				</label>
-				<p><button name='getsettings' id='b203_get' class='set_button span12'>Laden</button></p>
-				<p><button name='setup' id='b203_set' class='set_button span12'>Speichern</button></p>
+				<p><button type="button" name='getsettings' id='b203_get' class='set_button span12'>Laden</button></p>
+				<p><button type="button" name='setup' id='b203_set' class='set_button span12'>Speichern</button></p>
 				
 			</div>
 			
@@ -163,18 +163,18 @@
     			<div class="form-group">
         		<label for="set_date">Datum:</label> 
         		<input class="b203_event" type="date" id="set_date" name="select_date" step="1" value="2026-01-01" required> 
-        		<button name='setDate' id='setDate' class='set_button span12'>Datum stellen</button>
+        		<button type="button" name='setDate' id='setDate' class='set_button span12'>Datum stellen</button>
     			</div>
     
     	    	<div class="form-group">
         		<label for="set_time">Uhrzeit:</label> 
         		<input class="b203_event" type="time" id="set_time" name="select_time" step="1" value="12:00:00" required> 
-        		<button name='setTime' id='setTime' class='set_button span12'>Uhrzeit stellen</button>
+        		<button type="button" name='setTime' id='setTime' class='set_button span12'>Uhrzeit stellen</button>
     			</div>
 			</div>
 
 				<div class='select-group-container span2'>
-			<p><button name='button' id='b203reset' class='button span12'>Reset</button></p>
+			<p><button type="button" name='button' id='b203reset' class='button span12'>Reset</button></p>
 			</div>
 		</div>
 
@@ -245,10 +245,10 @@
 			<input class="b203_event" type="time" id="eventstoptime" name="select" step="1" value="12:00:00" required>
 
 
-			<p><button name='setEvent' id='b203setevent' class='set_event_button span7'>Speichern</button></p>
-			<p><button name='call' id='b203callevent' class='set_event_button span7'>Aufrufen</button></p>
-			<p><button name='delete' id='b203delevent' class='set_event_button span7'>L&ouml;schen</button></p>
-			<p><button name='testEvent' id='b203testevent' class='set_event_button span12'>Test</button></p>	
+			<p><button type="button" name='setEvent' id='b203setevent' class='set_event_button span7'>Speichern</button></p>
+			<p><button type="button" name='call' id='b203callevent' class='set_event_button span7'>Aufrufen</button></p>
+			<p><button type="button" name='delete' id='b203delevent' class='set_event_button span7'>L&ouml;schen</button></p>
+			<p><button type="button" name='testEvent' id='b203testevent' class='set_event_button span12'>Test</button></p>	
 		</div>
 	</body>
 </html>

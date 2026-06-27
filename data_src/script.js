@@ -1,7 +1,10 @@
+//@ts-check
+// @ts-ignore
+let ws;
 const gateway = `ws://${window.location.hostname}/ws`;
-let websocket;
-
+/** @type {Object[]} */
 let portconfigData = [];
+/** @type {Object[]} */
  // Globale Variable, um alle restlichen Daten im Hintergrund zu behalten
 let configData = [];
 
@@ -12,7 +15,7 @@ const HIDE_AMP_TUN_WITHOUT_RECEIVER = true;
 window.addEventListener('load', onLoad);
 //window.addEventListener('DOMContentLoaded', loadConfig);
 
-function onLoad(event) {
+function onLoad() {
   initWebSocket();
   getButton();
   setIRstate();
@@ -190,16 +193,16 @@ function switchConfiguration(selectedValue) {
 
 function initWebSocket() {
   console.log('Trying to open a WebSocket connection...');
-  websocket = new WebSocket(gateway);
-  websocket.onopen    = onOpen;
-  websocket.onclose   = onClose;
-  websocket.onmessage = onMessage; // <-- add this line
+  ws = new WebSocket(gateway);
+  ws.onopen    = onOpen;
+  ws.onclose   = onClose;
+  ws.onmessage = onMessage; // <-- add this line
 }
   
 // When websocket is established, call the getReadings() function
 function onOpen(event) {
   console.log('Connection opened');
-  websocket.send('get_data');
+  ws.send('get_data');
 }
 
 function onClose(event) {
@@ -245,9 +248,9 @@ function setIRstate() {
     const Id = event.target.id;
     const Value = event.target.checked;
     const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log(Name + Value + Id);
-      websocket.send(Name + Value + Id);
+      ws.send(Name + Value + Id);
     }
   });
 }
@@ -258,9 +261,9 @@ function setB285Speakers() {
     const Id = event.target.id;
     const Value = event.target.value;
     const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + Value);
-        websocket.send(Name + Value);
+        ws.send(Name + Value);
       }
   });
 }
@@ -270,31 +273,61 @@ function setB285Volume() {
     const Id = event.target.id;
     const Value = event.target.value;
     const Name = event.target.name;
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + "V" + Value);
-        websocket.send(Name + "V" +Value);
+        ws.send(Name + "V" +Value);
       }
   });
 }
 
 function setPorts() {
   document.getElementById('b203setport')?.addEventListener('click', () => {
-  // 1. Alle Elemente mit der gewünschten Klasse auswählen (z.B. "meine-klasse")
-  const elemente = document.querySelectorAll('.portConfig');
-  // 2. Die Werte der Elemente in ein Array oder Objekt extrahieren
-  const datenObjekte = Array.from(elemente).map((element) => {
-    return {
-      descr: element.getAttribute('data-descr'), // Beispiel für ein weiteres Attribut (data-*)
-      out: element.value, // Der Hauptwert/Text des Elements
-      feedback: element.getAttribute('data-feedback'), // Beispiel für ein weiteres Attribut (data-*)
-    };
-  });
-  // 3. Das Array/Objekt in einen JSON-String umwandeln
-  const jsonErgebnis = JSON.stringify(datenObjekte, null, 2);
-  console.log(jsonErgebnis);
+    
+    // ABSICHERUNG: Wenn das globale Array leer oder ungültig ist, brechen wir ab
+    if (!Array.isArray(portconfigData) || portconfigData.length === 0) {
+      alert("Fehler: Keine Konfigurationsdaten zum Speichern vorhanden!");
+      return;
+    }
+
+    // TYP-SICHERUNG FÜR C++: Wir bereinigen die Daten kurz, damit ArduinoJson 
+    // die richtigen Datentypen (Strings für "out" und Booleans für "feedback") erhält.
+    const bereinigteDaten = portconfigData.map(item => {
+      return {
+        name: item.name || "",
+        descr: item.descr || "",
+        out: item.out === 'no' ? 'no' : String(item.out), // Konvertiert Zahlen wie 4 zu "4"
+        feedback: item.feedback === true || item.feedback === 1 // Garantiert echtes true/false
+      };
+    });
+
+    // In JSON-String umwandeln
+    const jsonErgebnis = JSON.stringify(bereinigteDaten);
+    console.log("Sende Port-JSON an C++ Server:", jsonErgebnis);
+
+    // POST-Request an deinen C++ Server senden
+    fetch('/api/save-data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: jsonErgebnis
+    })
+    .then(response => {
+      if (response.ok) {
+        console.log("Daten erfolgreich im LittleFS gespeichert.");
+        // WEITERLEITUNG: Seite neu laden, C++ liefert die korrekte Oberfläche aus
+        window.location.href = "/";
+      } else {
+        console.error("Fehler beim Speichern:", response.statusText);
+        alert("Fehler beim Speichern der Einstellungen!");
+      }
+    })
+    .catch(error => {
+      console.error("Netzwerkfehler:", error);
+      alert("Verbindung zum Revox-Server fehlgeschlagen!");
+    });
   });
 }
-
 
 function setb203() {
   document.getElementById('b203_set')?.addEventListener('click', (event) => {
@@ -303,9 +336,9 @@ function setb203() {
     const easy = document.querySelector('select[id="easy"]').value;
     const timer = document.querySelector('select[id="timer"]').value;
     const poweron = document.querySelector('select[id="poweron"]').value;
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         console.log( Name + "0S" + language + easy + timer + poweron );
-        websocket.send( Name + "0S" + language + easy + timer + poweron );
+        ws.send( Name + "0S" + language + easy + timer + poweron );
     }
   });
 }
@@ -313,9 +346,9 @@ function setb203() {
 function getb215() {
   document.getElementById('b215_get')?.addEventListener('click', (event) => {
     const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
     console.log( "tape1X" );
-    websocket.send("tape1X");
+    ws.send("tape1X");
     }
   });
 }
@@ -324,9 +357,9 @@ function getb215() {
 function getb226() {
   document.getElementById('b226_get')?.addEventListener('click', (event) => {
     const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( "cdplayerX" );
-      websocket.send("cdplayerX");
+      ws.send("cdplayerX");
     }
   });
 }
@@ -334,9 +367,9 @@ function getb226() {
 function getb285() {
   document.getElementById('b285_get')?.addEventListener('click', (event) => {
   const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( "receiverX" );
-      websocket.send("receiverX");
+      ws.send("receiverX");
     }
   });
 }
@@ -345,9 +378,9 @@ function getb203() {
   // Übergebe 'event' in die Klammer, damit target.name funktioniert
   document.getElementById('b203_get')?.addEventListener('click', (event) => {
     const Name = event.target.name; // Ergibt jetzt korrekt "getsettings"
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log(Name + "0X");
-      websocket.send(Name + "0X"); // Sendet "getsettings0X" an den Arduino
+      ws.send(Name + "0X"); // Sendet "getsettings0X" an den Arduino
     }
   });
 }
@@ -355,38 +388,38 @@ function getb203() {
 function getb291() {
   document.getElementById('b291_get')?.addEventListener('click', (event) => {
   const Name = event.target.name;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( "phonoX" );
-      websocket.send( "phonoX");
+      ws.send( "phonoX");
     }
   });
 }
 
 function getb291tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+  if (ws.readyState === WebSocket.OPEN) {
     console.log( "phonoX" );
-    websocket.send("phonoX");
+    ws.send("phonoX");
   }
 }
 
 function getb226tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+  if (ws.readyState === WebSocket.OPEN) {
     console.log( "cdplayerX" );
-    websocket.send("cdplayerX");
+    ws.send("cdplayerX");
   }
 }
 
 function getb215tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+  if (ws.readyState === WebSocket.OPEN) {
     console.log( "tape1X" );
-    websocket.send("tape1X");
+    ws.send("tape1X");
   }
 }
 
 function getb203tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+  if (ws.readyState === WebSocket.OPEN) {
     console.log( "getsettings0X" );
-    websocket.send( "getsettings0X");
+    ws.send( "getsettings0X");
   }
 }
 
@@ -402,9 +435,9 @@ function getWIFIConfig() {
 
 
 function getb285tabevent() {
-  if (websocket.readyState === WebSocket.OPEN) {
+  if (ws.readyState === WebSocket.OPEN) {
     console.log( "receiverX" );
-    websocket.send("receiverX");
+    ws.send("receiverX");
   }
 }
 
@@ -417,9 +450,9 @@ function setDateb203() {
     let millenShort  = setdate.slice(2)
     let splitdate = millenShort.replace(/-/g, "");
     const swaped = swapPairs(splitdate);
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0D" + swaped );
-      websocket.send( Name + "0D" + swaped );
+      ws.send( Name + "0D" + swaped );
     }
   });
 }
@@ -429,9 +462,9 @@ function setTimeb203() {
   const Name = event.target.name;
   const setdate = document.querySelector("#set_time").value;
   let formtime = setdate.replace(/:/g, "");
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0T" + formtime );
-      websocket.send( Name + "0T" + formtime );
+      ws.send( Name + "0T" + formtime );
     }
   });
 }
@@ -440,9 +473,9 @@ function callEventb203() {
   document.getElementById('b203callevent')?.addEventListener('click', (event) => {
   const Name = event.target.name;
   const b203call = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0C" + b203call );
-      websocket.send( Name + "0C" + b203call );
+      ws.send( Name + "0C" + b203call );
     }
   });
 }
@@ -451,9 +484,9 @@ function delEventb203() {
   document.getElementById('b203delevent')?.addEventListener('click', (event) => {
   const Name = event.target.name;
   const b203del = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0E" + b203del + "E" );
-      websocket.send( Name + "0E" + b203del + "E" );
+      ws.send( Name + "0E" + b203del + "E" );
     }
   });
 }
@@ -462,9 +495,9 @@ function testEventb203() {
   document.getElementById('b203testevent')?.addEventListener('click', (event) => {
   const Name = event.target.name;
   const b203test = document.querySelector('select[id="b203evn"]').value;
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0V" + b203test  );
-      websocket.send( Name + "0V" + b203test );
+      ws.send( Name + "0V" + b203test );
     }
   });
 }
@@ -490,9 +523,9 @@ function setEventb203() {
   let formevstarttime = eventstarttime.replace(/:/g, "");
   const eventsoptime = document.querySelector("#eventstoptime").value;
   let formevstoptime = eventsoptime.replace(/:/g, "");
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       console.log( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime);
-      websocket.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
+      ws.send( Name + "0E" + b203evn + datatype + weekdayString + signalsource + sourceadd + outputString + formevstarttime + formevstoptime );
     }
   });
 }
@@ -507,9 +540,9 @@ const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:
       const Id = event.currentTarget.id;
       const Name = event.currentTarget.name;
 
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + 'Push' + Id);
-        websocket.send(Name + 'Push' + Id);
+        ws.send(Name + 'Push' + Id);
       }
     });
 
@@ -522,23 +555,23 @@ const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:
       const linkElement = event.currentTarget.closest('a');
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
 
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + 'Release' + Id);
-        websocket.send(Name + 'Release' + Id);
+        ws.send(Name + 'Release' + Id);
         
         // NUR WENN EINE TARGET-URL EXISTIERT (Ein Link geklickt wurde)
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
           const checkBuffer = setInterval(() => {
-            if (websocket.bufferedAmount === 0) {
+            if (ws.bufferedAmount === 0) {
               clearInterval(checkBuffer);
-              websocket.close(1000, "Normal Closure"); 
+              ws.close(1000, "Normal Closure"); 
               sicherLeiten(targetUrl); // Nutzt die neue, sichere Funktion
             }
           }, 5);
           
           setTimeout(() => {
             clearInterval(checkBuffer);
-            websocket.close();
+            ws.close();
             sicherLeiten(targetUrl);
           }, 150);
         } else {

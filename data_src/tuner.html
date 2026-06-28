@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang='de'>
 	<head>
-		<h3>Revox Tuner<br>B261</h3>
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Revox CD Remote</title>
 		<link rel='stylesheet' href='style.css'>
 		<script src='script.js'></script>
@@ -9,14 +10,20 @@
 	</head>
 
 	<body>
+
+	    <!-- Header-Bereich: Korrekt im body platziert -->
+    	<header>
+        	<h3>Revox Tuner<br>B261</h3>
+    	</header>
+	<body>
 		<div class='button-group-container-dev span2'>
         <span class='button-group-title-dev'>Ger&auml;teauswahl</span>
-		<a href='tape1.html'><button id='amptape1' name='button' class='button span1'>Tape1</button></a>
-		<a href='tape2.html'><button id='amptape2' name='button' class='button span1'>Tape2</button></a>
-		<a href='amplifier.html'><button id='amplifier' name='page' class='button span1'>Amplifier</button></a>
-		<a href='phono.html'><button id='ampphono' name='button' class='button span1'>Phono</button></a>
-		<a href='cd.html'><button id='ampcd' name='button' class='button span1'>CD</button></a>
-		<a href='b203.html'><button id='pb203' name='page' class='button span1'>B203</button></a>
+		<a href='tape1.html' id='amptape1' name='button' class='button span1'>Tape1</a>
+		<a href='tape2.html' id='amptape2' name='button' class='button span1'>Tape2</a>
+		<a href='amplifier.html' id='amplifier' name='page' class='button span1'>Amplifier</a>
+		<a href='phono.html' id='ampphono' name='button' class='button span1'>Phono</a>
+		<a href='cd.html' id='ampcd' name='button' class='button span1'>CD</a>
+		<a href='b203.html' id='pb203' name='page' class='button span1'>B203</a>
 		</div>
 
 		<div class='button-pwr-container-dev span2'>

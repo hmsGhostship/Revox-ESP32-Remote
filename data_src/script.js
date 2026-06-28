@@ -552,8 +552,11 @@ const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:
       const Name = event.currentTarget.name;
 
       // Wir holen uns das Ziel SOFORT als Text-String
-      const linkElement = event.currentTarget.closest('a');
+      //const linkElement = event.currentTarget.closest('a');
+      // NEU: Erkennt, ob der Button SELBST der Link ist ODER in einem Link liegt
+      const linkElement = event.currentTarget.closest('a') || event.currentTarget;
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
+            
 
       if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + 'Release' + Id);

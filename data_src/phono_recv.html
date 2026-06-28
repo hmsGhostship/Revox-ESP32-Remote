@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang='de'>
 	<head>
-		<h3>Revox Record Player<br>B291</h3>
+		<meta charset="UTF-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Revox CD Remote</title>
 		<link rel='stylesheet' href='style.css'>
 		<script src='script.js'></script>
@@ -9,14 +10,21 @@
 	</head>
 
 	<body>
+
+    	<!-- Header-Bereich: Korrekt im body platziert -->
+    	<header>
+      	  <h3>Revox Timer Controller<br>B203</h3>
+   		</header>
+
+
 		<div class='button-group-container-dev span2'>
 
 			<span class='button-group-title-dev'>Ger&auml;teauswahl</span>
-			<a href='tape1_recv.html'><button id='amptape1' name='button' class='button span1'>Tape1</button></a>
-			<a href='tape2_recv.html'><button id='amptape2' name='button' class='button span1'>Tape2</button></a>
-			<a href='receiver.html'><button id='receiver' name='page' class='button span1'>Receiver</button></a>
-			<a href='cd_recv.html'><button id='ampcd' name='button' class='button span1'>CD</button></a>
-			<a href='b203_recv.html'><button id='b203' name='page' class='button span1'>B203</button></a>
+			<a href='tape1_recv.html' id='amptape1' name='button' class='button span1'>Tape1</a>
+			<a href='tape2_recv.html' id='amptape2' name='button' class='button span1'>Tape2</a>
+			<a href='receiver.html' id='receiver' name='page' class='button span1'>Receiver</a>
+			<a href='cd_recv.html' id='ampcd' name='button' class='button span1'>CD</a>
+			<a href='b203_recv.html' id='b203' name='page' class='button span1'>B203</a>
 		</div>
 
 		<div class="tab">

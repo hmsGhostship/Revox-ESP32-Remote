@@ -485,7 +485,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "RevoxESP32IR.kicad_pro",
+    "filename": "RevoxESP32Light.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -640,8 +640,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "RevoxESP32IR.kicad_sch",
-        "name": "RevoxESP32IR",
+        "filename": "RevoxESP32Light.kicad_sch",
+        "name": "RevoxESP32Light",
         "uuid": "c54c9437-626d-4884-948b-197fe8972bde"
       }
     ],
@@ -651,7 +651,7 @@
   "sheets": [
     [
       "c54c9437-626d-4884-948b-197fe8972bde",
-      "RevoxESP32IR"
+      "RevoxESP33Remote"
     ]
   ],
   "text_variables": {},

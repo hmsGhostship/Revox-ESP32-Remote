@@ -52,6 +52,8 @@ char buttonName[18];
 int irid =0;
 String b203Buffer = ""; // Sammelt die einzelnen Zeichen
 String b203data = "";   // Hält die letzte fertige Zeile für den WebSocket bereit
+String pendingWsCommand = "";     // Speichert den verzögerten Befehl
+unsigned long wsWakeupTime = 0;   // Merkt sich, wann das Paket ankam
 const int PIN_RECV = 25;
 const int PIN_CTS = 26;
 const int PIN_RTS = 27;
@@ -283,24 +285,25 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     
-    // 1. Erstelle einen sicheren, nullterminierten Arbeits-String
+    Serial.println(F("[WLAN-AKTIVITÄT] WebSocket-Befehl empfangen, CPU wacht auf..."));
+    
+    lastActivity = millis(); // Sofort Schlaf verhindern
+    
     String msg = String((char*)data).substring(0, len);
     
-    // --- AB HIER ARBEITEN WIR NUR NOCH MIT DER "msg" ---
-
+    // Wenn es ein Button-Pfad ist, nutzen wir den bestehenden loop-Ablauf
     if (msg.startsWith("button")) {
-      String subMsg = msg.substring(6); // Schneidet "button" ab
-      
+      String subMsg = msg.substring(6);
       if (subMsg.startsWith("Push")) {
-        // Kopiert den Rest sicher in buttonName und garantiert die Nullterminierung
         memset(buttonName, 0, sizeof(buttonName));
         subMsg.substring(4).toCharArray(buttonName, sizeof(buttonName));
         buttonHold = 1;
+        wsWakeupTime = millis(); // Zeitstempel für Takt-Stabilisierung im buttonHold-Pfad
       } else if (subMsg.startsWith("Release")) {
         buttonHold = 0;
+        lastActivity = millis();
       }
     }
-
     else if (msg.startsWith("speakers")) {
       char b285Speaker[4] = {0}; // +1 für sichere Nullterminierung initialisiert
       msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
@@ -481,6 +484,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
         Serial2.print("\r");
         Serial.println("0R1");
       }
+    }
+    else {
+      pendingWsCommand = msg;
+      wsWakeupTime = millis(); // Zeitstempel sichern
     }
   }
 }
@@ -920,73 +927,246 @@ loadWIFIConfig();
 }
 
 void loop() {
-// ==========================================   
-// 0. SYSTEM-STATUS (OPTIONAL: WLAN-WAKEUP ANZEIGE)
-// ==========================================   
-if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) {
-    Serial.println(F("[WLAN-WAKEUP]"));
-}
+  // ==========================================   
+  // 0. SYSTEM-STATUS (OPTIONAL: WLAN-WAKEUP ANZEIGE)
+  // ==========================================   
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) {
+      Serial.println(F("[WLAN-WAKEUP]"));
+  }
 
-// ==========================================   
-// WEBSOCKET & NETWORK MAINTENANCE
-// ==========================================   
-ws.cleanupClients();
+  // ==========================================   
+  // WEBSOCKET & NETWORK MAINTENANCE
+  // ==========================================   
+  ws.cleanupClients();
 
-if (millis() - lastPingTime >= pingInterval) {
-    lastPingTime = millis();
-    ws.pingAll(); 
-}
-// ==========================================   
-// NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
-// ==========================================   
-while (Serial2.available() > 0) {
-    char inChar = (char)Serial2.read();
+  if (millis() - lastPingTime >= pingInterval) {
+      lastPingTime = millis();
+      ws.pingAll(); 
+  }
+  
+  // ==========================================   
+  // NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
+  // ==========================================   
+  while (Serial2.available() > 0) {
+      char inChar = (char)Serial2.read();
 
-    // Sofortige XOFF-Erkennung
-    if (inChar == (char)0x13) {          
-        b203ReadyToSend = false;
-        Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
-        continue; 
-    } 
-    // Sofortige XON-Erkennung
-    else if (inChar == (char)0x11) {     
-        b203ReadyToSend = true;
-        Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
-        continue; 
-    }
+      // Sofortige XOFF-Erkennung
+      if (inChar == (char)0x13) {          
+          b203ReadyToSend = false;
+          Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
+          continue; 
+      } 
+      // Sofortige XON-Erkennung
+      else if (inChar == (char)0x11) {     
+          b203ReadyToSend = true;
+          Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
+          continue; 
+      }
 
-    // Wenn ein Zeilenumbruch erkannt wird, ist die Zeile komplett
-    if (inChar == '\n') {
-        if (b203Buffer.length() > 0) {
-            // \r Bereinigung am Ende
-            if (b203Buffer.endsWith("\r")) {
-                b203Buffer.remove(b203Buffer.length() - 1);
-            }
-            
-            // Jetzt übergeben wir die fertige Zeile an die globale Variable b203data
-            b203data = b203Buffer;
-            b203Buffer = ""; // Buffer sofort frei machen für die nächste Zeile
-            
-            // ==========================================   
-            // DATENVERARBEITUNG & WEBSOCKET-VERSAND
-            // ==========================================   
-            if (b203data.length() > 0) {
-                Serial.println(b203data);
-                ws.textAll(b203data);
-                
-                // Wichtig: Wir leeren b203data hier NICHT, damit der 
-                // nächste Connect sie noch lesen kann. Sie wird erst 
-                // beim nächsten '\n' überschrieben.
-            }
-        }
-    } 
-    else {
-        // Zeichen im Zwischenspeicher sammeln
-        b203Buffer += inChar;
-    }
-}
+      // Wenn ein Zeilenumbruch erkannt wird, ist die Zeile komplett
+      if (inChar == '\n') {
+          if (b203Buffer.length() > 0) {
+              // \r Bereinigung am Ende
+              if (b203Buffer.endsWith("\r")) {
+                  b203Buffer.remove(b203Buffer.length() - 1);
+              }
+              
+              // Jetzt übergeben wir die fertige Zeile an die globale Variable b203data
+              b203data = b203Buffer;
+              b203Buffer = ""; // Buffer sofort frei machen für die nächste Zeile
+              
+              // DATENVERARBEITUNG & WEBSOCKET-VERSAND
+              if (b203data.length() > 0) {
+                  Serial.println(b203data);
+                  ws.textAll(b203data);
+              }
+          }
+      } 
+      else {
+          // Zeichen im Zwischenspeicher sammeln
+          b203Buffer += inChar;
+      }
+  }
 
   // ==========================================
+  // NEU: VERZÖGERTER DIREKT-BEFEHLS-PFAD (NACH SLEEP-WAKEUP)
+  // ==========================================
+  // Führt Direktbefehle erst nach 50ms Schutzzeit aus, damit der Serial2-Takt stabil ist
+  if (pendingWsCommand.length() > 0 && (millis() - wsWakeupTime >= 50)) {
+      Serial.println(F("[LOOP] Takt nach Wakeup stabilisiert. Führe Direkt-Befehl aus..."));
+      
+      String msg = pendingWsCommand;
+      pendingWsCommand = ""; // Sofort leeren, damit es nur einmal ausgeführt wird
+      
+      if (msg.startsWith("speakers")) {
+          char b285Speaker[4] = {0};
+          msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b285Speaker);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.println(b285Speaker);
+              }
+          }
+      }
+      else if (msg.startsWith("volSlider")) {
+          char b285Volume[5] = {0};
+          msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b285Volume);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.println(b285Volume);
+              }
+          }
+      }
+      else if (msg.startsWith("setup")) {
+          char setupBytes[8] = {0};
+          msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
+          Serial2.print(setupBytes);
+          Serial2.print("\r");
+          Serial.println(setupBytes);
+      }
+      else if (msg.startsWith("getsettings")) {
+          char settingsBytes[4] = {0};
+          msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
+          Serial2.print(settingsBytes);
+          Serial2.print("\r");
+          Serial.println(settingsBytes);
+          if (strcmp(settingsBytes, "0X") == 0) {
+              getFlag = 1;
+          }
+      }
+      else if (msg.startsWith("tape1")) {
+          char b215settingsBytes[3] = {0};
+          msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b215settingsBytes);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.print(b215settingsBytes);
+                  if (strcmp(b215settingsBytes, "X") == 0) {
+                      getFlag = 1;
+                  }
+              }
+          }
+      }
+      else if (msg.startsWith("cdplayer")) {
+          char b226settingsBytes[3] = {0};
+          msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b226settingsBytes);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.print(b226settingsBytes);
+                  if (strcmp(b226settingsBytes, "X") == 0) {
+                      getFlag = 1;
+                  }
+              }
+          }
+      }
+      else if (msg.startsWith("phono")) {
+          char b291settingsBytes[3] = {0};
+          msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b291settingsBytes);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.print(b291settingsBytes);
+                  if (strcmp(b291settingsBytes, "X") == 0) {
+                      getFlag = 1;
+                  }
+              }
+          }
+      }
+      else if (msg.startsWith("receiver")) {
+          char b285settingsBytes[3] = {0};
+          msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
+          
+          for (int i = 0; i < portTableSize; i++) {
+              if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                  Serial2.print(portArray[i].out);
+                  Serial2.print(b285settingsBytes);
+                  Serial2.print("\r");
+                  Serial.print(portArray[i].out);
+                  Serial.print(b285settingsBytes);
+                  if (strcmp(b285settingsBytes, "X") == 0) {
+                      getFlag = 1;
+                  }
+              }
+          }
+      }
+      else if (msg.startsWith("testEvent")) {
+          char testEventBytes[6] = {0};
+          msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
+          Serial2.print(testEventBytes);
+          Serial2.print("\r");
+          Serial.println(testEventBytes);
+      }
+      else if (msg.startsWith("setDate")) {
+          char setDateBytes[10] = {0};
+          msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
+          Serial2.print(setDateBytes);
+          Serial2.print("\r");
+          Serial.println(setDateBytes);
+      }
+      else if (msg.startsWith("setTime")) {
+          char setTimeBytes[10] = {0};
+          msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
+          Serial2.print(setTimeBytes);
+          Serial2.print("\r");
+          Serial.println(setTimeBytes);
+      }
+      else if (msg.startsWith("setEvent")) {
+          char setEventBytes[33] = {0};
+          msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
+          Serial2.print(setEventBytes);
+          Serial2.print("\r");
+          Serial.println(setEventBytes);
+      }
+      else if (msg.startsWith("callEvent")) {
+          char callEventBytes[6] = {0};
+          msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
+          Serial2.print(callEventBytes);
+          Serial2.print("\r");
+          Serial.println(callEventBytes);
+      }
+      else if (msg.startsWith("delEvent")) {
+          char delEventBytes[6] = {0};
+          msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
+          Serial2.print(delEventBytes);
+          Serial2.print("\r");
+          Serial.println(delEventBytes);
+      }
+      else if (msg.startsWith("toggle")) {
+          String subToggle = msg.substring(6);
+          if (subToggle.startsWith("true")) {
+              Serial2.print("0R0");
+              Serial2.print("\r");
+              Serial.println("0R0");
+          } else if (subToggle.startsWith("false")) {
+              Serial2.print("0R1");
+              Serial2.print("\r");
+              Serial.println("0R1");
+          }
+      }
+  }
+// ==========================================
   // WEB-/MANUELLER BUTTON-PFAD (IHR ORIGINALER CODE)
   // ==========================================
   if (buttonHold == 1) {

@@ -1005,11 +1005,11 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
               bibusCmdInputHtml = `<input type="text" class="bibusCmd-input" data-index="${index}" value="${displayBibus}">`;
             }
             
-            // HTML-Struktur befüllen
+// HTML-Struktur befüllen (Mit Breitenanpassung für die Eingabefelder)
             tr.innerHTML = `
                 <td class="btnID-text">${item.btnID || '-'}</td>
                 <td>
-                    <input type="text" class="irRecvCode-input" data-index="${index}" value="${displayCode}">
+                    <input type="text" class="irRecvCode-input table-input-field" data-index="${index}" value="${displayCode}">
                 </td>
                 <td class="cell-center">
                     ${checkboxCmdHtml}
@@ -1018,7 +1018,7 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
                     ${checkboxBibusHtml}
                 </td>
                 <td>
-                    ${bibusCmdInputHtml}
+                    ${bibusCmdInputHtml ? bibusCmdInputHtml.replace('class="bibusCmd-input"', 'class="bibusCmd-input table-input-field"') : ''}
                 </td>
             `;
             fragment.appendChild(tr);

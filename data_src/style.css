@@ -741,3 +741,24 @@ tbody td {
   text-align: center;
   vertical-align: middle; /* Richtet den Text auch vertikal mittig aus */
 }
+
+/* Macht die Eingabefelder in der Konfigurationstabelle breiter und lesbarer */
+.table-input-field {
+    display: block;             /* Macht das Eingabefeld zu einem Block-Element */
+    width: 100% !important;     /* Überschreibt alle versteckten Framework-Standardbreiten */
+    max-width: 100% !important; /* Verhindert jegliche Deckelung der Breite */
+    text-align: center;         /* Zentriert den geschriebenen Text in der Box */
+    padding: 6px 8px;           /* Angenehmer Innenabstand für den Text */
+    font-family: monospace;     /* Übersichtliche Festbreitenschrift */
+    box-sizing: border-box;     /* Verhindert, dass das Feld durch Padding aus der Spalte ragt */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Optional: Gibt der gesamten Spalte im Tabellenkopf etwas mehr Raum */
+#Config th:nth-child(2) {
+    width: 25%;                 /* Reserviert 25% der Tabellenbreite für die IR-Codes */
+}
+#Config th:nth-child(5) {
+    width: 20%;                 /* Reserviert 20% für die BiBus-Kommandos */
+}

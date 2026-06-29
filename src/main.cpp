@@ -50,7 +50,8 @@ unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
 int irid =0;
-String b203data;
+String b203Buffer = ""; // Sammelt die einzelnen Zeichen
+String b203data = "";   // Hält die letzte fertige Zeile für den WebSocket bereit
 const int PIN_RECV = 25;
 const int PIN_CTS = 26;
 const int PIN_RTS = 27;
@@ -919,60 +920,71 @@ loadWIFIConfig();
 }
 
 void loop() {
-  // ==========================================   
-  // 0. SYSTEM-STATUS (OPTIONAL: WLAN-WAKEUP ANZEIGE)
-  // ==========================================   
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) {
-      // Kann einkommentiert werden, falls Sie Netzwerk-Wakeups sehen wollen
-      // Serial.println(F("[WLAN-WAKEUP]"));
-  }
+// ==========================================   
+// 0. SYSTEM-STATUS (OPTIONAL: WLAN-WAKEUP ANZEIGE)
+// ==========================================   
+if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) {
+    Serial.println(F("[WLAN-WAKEUP]"));
+}
 
-  // ==========================================   
-  // WEBSOCKET & NETWORK MAINTENANCE
-  // ==========================================   
-  ws.cleanupClients();
+// ==========================================   
+// WEBSOCKET & NETWORK MAINTENANCE
+// ==========================================   
+ws.cleanupClients();
 
-  if (millis() - lastPingTime >= pingInterval) {
-      lastPingTime = millis();
-      ws.pingAll(); 
-  }
-  
-  // ==========================================   
-  // REVOLUTIONIERT: URSPRÜNGLICHES LESEN + XON/XOFF PRÜFUNG
-  // ==========================================   
-  if (Serial2.available() > 0) {
-      b203data = Serial2.readStringUntil('\n'); 
-      
-      if (b203data.endsWith("\r")) {
-          b203data.remove(b203data.length() - 1);
-      }
-      
-      if (b203data.indexOf((char)0x13) != -1) {
-          b203ReadyToSend = false;
-          Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
-          b203data.replace(String((char)0x13), ""); 
-      }
-      else if (b203data.indexOf((char)0x11) != -1) {
-          b203ReadyToSend = true;
-          Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
-          b203data.replace(String((char)0x11), ""); 
-      }
+if (millis() - lastPingTime >= pingInterval) {
+    lastPingTime = millis();
+    ws.pingAll(); 
+}
+// ==========================================   
+// NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
+// ==========================================   
+while (Serial2.available() > 0) {
+    char inChar = (char)Serial2.read();
 
-      if (b203data.length() > 0) {
-          getFlag = 1;
-      }
-  }
-  
-  // ==========================================   
-  // DATENVERARBEITUNG & WEBSOCKET-VERSAND
-  // ==========================================   
-  if ((b203data.length() > 0) && (getFlag == 1)) {
-      Serial.println(b203data);
-      ws.textAll(b203data);
-      
-      b203data = ""; 
-      getFlag = 0;
-  }
+    // Sofortige XOFF-Erkennung
+    if (inChar == (char)0x13) {          
+        b203ReadyToSend = false;
+        Serial.println(F("[B203] XOFF empfangen - Senden blockiert"));
+        continue; 
+    } 
+    // Sofortige XON-Erkennung
+    else if (inChar == (char)0x11) {     
+        b203ReadyToSend = true;
+        Serial.println(F("[B203] XON empfangen - Senden freigegeben"));
+        continue; 
+    }
+
+    // Wenn ein Zeilenumbruch erkannt wird, ist die Zeile komplett
+    if (inChar == '\n') {
+        if (b203Buffer.length() > 0) {
+            // \r Bereinigung am Ende
+            if (b203Buffer.endsWith("\r")) {
+                b203Buffer.remove(b203Buffer.length() - 1);
+            }
+            
+            // Jetzt übergeben wir die fertige Zeile an die globale Variable b203data
+            b203data = b203Buffer;
+            b203Buffer = ""; // Buffer sofort frei machen für die nächste Zeile
+            
+            // ==========================================   
+            // DATENVERARBEITUNG & WEBSOCKET-VERSAND
+            // ==========================================   
+            if (b203data.length() > 0) {
+                Serial.println(b203data);
+                ws.textAll(b203data);
+                
+                // Wichtig: Wir leeren b203data hier NICHT, damit der 
+                // nächste Connect sie noch lesen kann. Sie wird erst 
+                // beim nächsten '\n' überschrieben.
+            }
+        }
+    } 
+    else {
+        // Zeichen im Zwischenspeicher sammeln
+        b203Buffer += inChar;
+    }
+}
 
   // ==========================================
   // WEB-/MANUELLER BUTTON-PFAD (IHR ORIGINALER CODE)
@@ -1155,13 +1167,17 @@ void loop() {
 		  IrReceiver.resume();
 		}
 	}
-	// ==========================================
-  // KORRIGIERT: 6. DYNAMISCHES SCHLAF-FENSTER (MIT SPERRZEIT)
-  // ==========================================
-  // Wenn ein WebSocket-Button aktiv ist oder serielle Daten anliegen, halten wir das System wach
-  if (buttonHold > 0 || Serial2.available() > 0 || b203data.length() > 0) {
-      lastActivity = millis(); // Aktivität registrieren -> Wachbleiben!
-  }
+ 
+// ==========================================
+// KORRIGIERT: 6. DYNAMISCHES SCHLAF-FENSTER (MIT SPERRZEIT)
+// ==========================================
+// Wir halten das System wach, wenn:
+// 1. Ein Button aktiv ist (buttonHold > 0)
+// 2. Neue Bytes im seriellen Hardware-Puffer liegen (Serial2.available() > 0)
+// 3. Eine Zeile angefangen, aber noch unvollständig im Zwischenspeicher liegt (b203Buffer.length() > 0)
+if (buttonHold > 0 || Serial2.available() > 0 || b203Buffer.length() > 0) {
+    lastActivity = millis(); // Aktivität registrieren -> Wachbleiben!
+}
 
   // Erst wenn seit der letzten Aktivität (IR, Web, Serial) mehr als 2000ms vergangen sind,
   // erlauben wir dem ESP32 wieder den Wechsel in den Light Sleep.

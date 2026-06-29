@@ -492,7 +492,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
       //wsopen = 1;
       if (b203data.length() > 0 ) {
       ws.textAll(b203data);
-      b203data = '\0';
+      b203data = String('\0');
       }
       break;
     case WS_EVT_DISCONNECT:

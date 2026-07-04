@@ -1005,7 +1005,7 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
               bibusCmdInputHtml = `<input type="text" class="bibusCmd-input" data-index="${index}" value="${displayBibus}">`;
             }
             
-// HTML-Struktur befüllen (Mit Breitenanpassung für die Eingabefelder)
+            // HTML-Struktur befüllen (Mit Breitenanpassung für die Eingabefelder)
             tr.innerHTML = `
                 <td class="btnID-text">${item.btnID || '-'}</td>
                 <td>

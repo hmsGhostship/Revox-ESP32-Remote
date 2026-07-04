@@ -14,6 +14,7 @@ struct command {
     char btnID[32];
     uint32_t irRecvCode;
     uint8_t address;
+    uint8_t addressRep;
     uint8_t command;
     uint8_t cmdFlag;
     char serCmd[8];

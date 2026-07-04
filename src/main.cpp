@@ -87,65 +87,53 @@ bool b203ReadyToSend = true; // Steuert den XON/XOFF Fluss
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-    if (type == WS_EVT_DATA) {
-        // Der ESP32 wurde gerade durch WLAN-Daten geweckt und verarbeitet sie jetzt!
-        Serial.println(F("\n[WLAN-WAKEUP] WebSocket-Daten empfangen!"));
-    }
-}
 
+// 1. Sichere Port-Prüfung (Verhindert Speicher-Fehlzugriffe)
 int portExists(const char* searchName) {
-    if (searchName == NULL) return 0;
+    if (searchName == NULL || searchName[0] == '\0') return 0;
     
     for (size_t i = 0; i < portTableSize; i++) {
-        if (portArray[i].name != NULL && strcmp(portArray[i].name, searchName) == 0) {
+        // KORRIGIERT: Prüft, ob der Eintrag im RAM überhaupt befüllt ist (erstes Zeichen nicht \0)
+        if (portArray[i].name[0] != '\0' && strcmp(portArray[i].name, searchName) == 0) {
             return 1; // Gefunden!
         }
     }
     return 0; // Nicht gefunden
 }
 
+// 2. Speicheroptimierte Konfigurations-Ladefunktion
 void loadPortConfig() {
-  // 1. Prüfen, ob die Datei überhaupt existiert
   if (!LittleFS.exists(PortConfigPath)) {
     Serial.println(F("Port-Konfiguration existiert nicht im Dateisystem!"));
     return;
   }
 
-  // 2. Datei öffnen
   File file = LittleFS.open(PortConfigPath, "r");
   if (!file) {
-    // WICHTIG: Wenn die Datei blockiert ist, brechen wir SOFORT ab!
-    // Die alten Ports bleiben im RAM geschützt.
-    Serial.println(F("WARNUNG: Port Configuration blockiert oder konnte nicht geöffnet werden! Lade-Vorgang abgebrochen."));
+    Serial.println(F("WARNUNG: Port Configuration blockiert! Lade-Vorgang abgebrochen."));
     return;
   }
   
-  // 3. Prüfen, ob die Datei vielleicht temporär 0 Bytes groß ist (Sicherheitsanker)
   if (file.size() == 0) {
-    Serial.println(F("WARNUNG: portConfig.json ist im Dateisystem aktuell 0 Bytes groß. Lade-Vorgang abgebrochen."));
+    Serial.println(F("WARNUNG: portConfig.json ist aktuell 0 Bytes groß. Lade-Vorgang abgebrochen."));
     file.close();
     return;
   }
 
   JsonDocument doc;
-
-  // 4. Datei parsen
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
     Serial.print(F("Fehler beim Parsen der JSON: "));
     Serial.println(error.f_str());
     file.close();
-    // WICHTIG: Bei Fehlern NIEMALS weitermachen!
     return;
   }
 
-  file.close(); // Datei sofort schließen, Daten liegen sicher im doc-RAM
+  file.close(); 
   
-  // 5. Erst WENN das JSON fehlerfrei gelesen wurde, verarbeiten wir die Daten
   JsonArray array = doc.as<JsonArray>();
   if (array.isNull() || array.size() == 0) {
-    Serial.println(F("WARNUNG: Gelesenes JSON-Array ist leer oder ungültig! RAM wird nicht überschrieben."));
+    Serial.println("WARNUNG: Gelesenes JSON-Array ist leer! RAM wird nicht ueberschrieben.");
     return;
   }
 
@@ -160,7 +148,6 @@ void loadPortConfig() {
     temporaereGroesse = array.size();
   }
   
-  // Daten temporär zwischenspeichern, um das echte Array erst bei Erfolg zu beschreiben
   int index = 0;
   for (JsonObject obj : array) {
     if (index >= temporaereGroesse) break;
@@ -183,13 +170,13 @@ void loadPortConfig() {
     
     portArray[index].feedback = obj["feedback"] | false;
 
-    Serial.printf("RAM-Port geladen [%d]: %s (%s) -> Port: %s\n", 
+    // KORRIGIERT: printf-Texte in den Flash-Speicher verschoben (RAM entlastet)
+    Serial.printf(PSTR("RAM-Port geladen [%d]: %s (%s) -> Port: %s\n"), 
                   index, portArray[index].name, portArray[index].descr, portArray[index].out);
 
     index++;
   }
 
-  // Erst ganz am Ende, wenn alles fehlerfrei durchlief, setzen wir die globale Größe
   portTableSize = temporaereGroesse;
   Serial.print(F("Erfolgreich geladen. Aktuelle portTableSize: "));
   Serial.println(portTableSize);
@@ -199,7 +186,7 @@ void loadCommandConfig() {
   // Datei öffnen
   File file = LittleFS.open(ConfigPath, "r");
   if (!file) {
-    Serial.println(F("Fehler: /config.json konnte nicht geöffnet werden"));
+    Serial.println("Fehler: /config.json konnte nicht geöffnet werden");
     return;
   }
 
@@ -276,7 +263,7 @@ void loadCommandConfig() {
     Serial.print(F(" | BiBusCmd: "));
     Serial.print(configArray[index].bibusCmd); // Als Text ausgeben, da String!
     Serial.print(F(" | cmdFlag: "));
-    Serial.println(configArray[index].cmdFlag); // Als Text ausgeben, da String!
+    Serial.println(configArray[index].cmdFlag);
 
     index++;
   }
@@ -294,7 +281,7 @@ void processButtonPath() {
         Serial.println(F("\n--- [DEBUG] Button-Pfad aktiv ---"));
         Serial.print(F("[DEBUG] Gesuchter buttonName: '"));
         Serial.print(buttonName);
-        Serial.println(F("'"));
+        Serial.println("'");
 
         int a = 0;
         bool buttonFound = false;
@@ -402,7 +389,7 @@ void processDirectCommands() {
             return; // Funktion sofort verlassen, im nächsten Loop-Durchlauf erneut prüfen
         }
 
-        Serial.println(F("[LOOP] Takt nach Wakeup stabilisiert. Führe Direkt-Befehl aus..."));
+        Serial.println(F(u8"[LOOP] Takt nach Wakeup stabilisiert. Fuehre Direkt-Befehl aus..."));
         
         String msg = pendingWsCommand;
         pendingWsCommand = ""; // Sofort leeren, damit es nur einmal ausgeführt wird
@@ -582,13 +569,13 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     
-    Serial.println(F("[WLAN-AKTIVITÄT] WebSocket-Befehl empfangen, CPU wacht auf..."));
-    
+    Serial.println(F("[WLAN-AKTIVITAET] WebSocket-Befehl empfangen, CPU wacht auf..."));
     lastActivity = millis(); // Sofort Schlaf verhindern
     
-    String msg = String((char*)data).substring(0, len);
+    // KORRIGIERT: Absolut speichersicheres Einlesen
+    String msg((char*)data, len);
     
-    // Wenn es ein Button-Pfad ist, nutzen wir den bestehenden loop-Ablauf
+    // Wenn es ein Echtzeit-Button-Pfad ist (Push/Release), direkt hier schalten
     if (msg.startsWith("button")) {
       String subMsg = msg.substring(6);
       if (subMsg.startsWith("Push")) {
@@ -601,190 +588,13 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
         lastActivity = millis();
       }
     }
-    else if (msg.startsWith("speakers")) {
-      char b285Speaker[6] = {0}; // +1 für sichere Nullterminierung initialisiert
-      msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b285Speaker);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.println(b285Speaker);
-        }
-      }
-    }
-
-    else if (msg.startsWith("volSlider")) {
-      char b285Volume[5] = {0}; // Initialisiert mit Nullen
-      msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b285Volume);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.println(b285Volume);
-        }
-      }
-    }
-
-    else if (msg.startsWith("setup")) {
-      char setupBytes[8] = {0};
-      msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
-      Serial2.print(setupBytes);
-      Serial2.print("\r");
-      Serial.println(setupBytes);
-    }
-
-    else if (msg.startsWith("getsettings")) {
-      char settingsBytes[4] = {0};
-      msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
-      Serial2.print(settingsBytes);
-      Serial2.print("\r");
-      Serial.println(settingsBytes);
-      if (strcmp(settingsBytes, "0X") == 0) {
-        getFlag = 1;
-      }
-    }
-
-    else if (msg.startsWith("tape1")) {
-      char b215settingsBytes[3] = {0};
-      msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b215settingsBytes);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.print(b215settingsBytes);
-          if (strcmp(b215settingsBytes, "X") == 0) {
-            getFlag = 1;
-          }
-        }
-      }
-    }
-
-    else if (msg.startsWith("cdplayer")) {
-      char b226settingsBytes[3] = {0};
-      msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b226settingsBytes);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.print(b226settingsBytes);
-          if (strcmp(b226settingsBytes, "X") == 0) {
-            getFlag = 1;
-          }
-        }
-      }
-    }
-
-    else if (msg.startsWith("phono")) {
-      char b291settingsBytes[3] = {0};
-      msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b291settingsBytes);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.print(b291settingsBytes);
-          if (strcmp(b291settingsBytes, "X") == 0) {
-            getFlag = 1;
-          }
-        }
-      }
-    }
-    
-    else if (msg.startsWith("receiver")) {
-      char b285settingsBytes[3] = {0};
-      msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
-      
-      for (int i = 0; i < portTableSize; i++) {
-        if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-          Serial2.print(portArray[i].out);
-          Serial2.print(b285settingsBytes);
-          Serial2.print("\r");
-          Serial.print(portArray[i].out);
-          Serial.print(b285settingsBytes);
-          if (strcmp(b285settingsBytes, "X") == 0) {
-            getFlag = 1;
-          }
-        }
-      }
-    }
-
-    else if (msg.startsWith("testEvent")) {
-      char testEventBytes[6] = {0};
-      msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
-      Serial2.print(testEventBytes);
-      Serial2.print("\r");
-      Serial.println(testEventBytes);
-    }
-
-    else if (msg.startsWith("setDate")) {
-      char setDateBytes[10] = {0};
-      msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
-      Serial2.print(setDateBytes);
-      Serial2.print("\r");
-      Serial.println(setDateBytes);
-    }
-
-    else if (msg.startsWith("setTime")) {
-      char setTimeBytes[10] = {0};
-      msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
-      Serial2.print(setTimeBytes);
-      Serial2.print("\r");
-      Serial.println(setTimeBytes);
-    }
-
-    else if (msg.startsWith("setEvent")) {
-      char setEventBytes[33] = {0};
-      msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
-      Serial2.print(setEventBytes);
-      Serial2.print("\r");
-      Serial.println(setEventBytes);
-    }
-
-    else if (msg.startsWith("callEvent")) {
-      char callEventBytes[6] = {0};
-      msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
-      Serial2.print(callEventBytes);
-      Serial2.print("\r");
-      Serial.println(callEventBytes);
-    }
-
-    else if (msg.startsWith("delEvent")) {
-      char delEventBytes[6] = {0};
-      msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
-      Serial2.print(delEventBytes);
-      Serial2.print("\r");
-      Serial.println(delEventBytes);
-    }
-
-    else if (msg.startsWith("toggle")) {
-      String subToggle = msg.substring(6);
-      if (subToggle.startsWith("true")) {
-        Serial2.print("0R0");
-        Serial2.print("\r");
-        Serial.println(F("0R0"));
-      } else if (subToggle.startsWith("false")) {
-        Serial2.print(F("0R1"));
-        Serial2.print("\r");
-        Serial.println(F("0R1"));
-      }
-    }
+    // ALLES ANDERE (speakers, volSlider, tape1, setup, etc.) geht an die Hauptschleife!
+    // Dadurch greift automatisch Ihre 50ms Schutzzeit und die XON/XOFF Flow-Control.
     else {
       pendingWsCommand = msg;
-      wsWakeupTime = millis(); // Zeitstempel sichern
+      wsWakeupTime = millis(); // Zeitstempel für die loop() sichern
+      Serial.print(F("[WS-API] Befehl an Hauptschleife uebergeben: "));
+      Serial.println(pendingWsCommand);
     }
   }
 }
@@ -794,18 +604,26 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
   switch (type) {
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-      //wsopen = 1;
-      if (b203data.length() > 0 ) {
-      ws.textAll(b203data);
-      b203data = String('\0');
+      
+      // Prüfen, ob noch eine ungelesene Nachricht für das neu verbundene Gerät bereitsteht
+      if (b203data.length() > 0) {
+          // KORRIGIERT: Nur an den neuen Client senden, nicht an alle (textAll)
+          client->text(b203data);
+          
+          // KORRIGIERT: Speicher absolut sauber und sicher leeren
+          b203data = ""; 
       }
       break;
+      
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
+      
     case WS_EVT_DATA:
+      Serial.println(F("\n[WLAN-WAKEUP] WebSocket-Daten empfangen!"));
       handleWebSocketMessage(arg, data, len);
       break;
+      
     case WS_EVT_PONG:
     case WS_EVT_ERROR:
       break;
@@ -878,15 +696,21 @@ void setupServerRoutes(){
       request->send(response);
     });
 
-    // 2. CONFIG ROUTEN
+    // NEU: Eigene, saubere Route für das WiFi-Setup (Kollision auf / behoben!)
+    server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(LittleFS, "/config/wifi_config.html", String(), false);
+    });
+
+    // 2. CONFIG ROUTEN (GET)
     server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request){
       if (LittleFS.exists(ConfigPath)) {
         request->send(LittleFS, ConfigPath, "application/json");
       } else {
-        request->send(200, "application/json", "[]");
+        request->send(200, F("application/json"), F("[]"));
       }
     });
 
+    // CONFIG ROUTEN (POST)
     server.on("/api/config", HTTP_POST, [](AsyncWebServerRequest *request) {
     }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
       static File uploadFile;
@@ -902,21 +726,33 @@ void setupServerRoutes(){
           Serial.println(F("Config-Datei im LittleFS erfolgreich aktualisiert."));
           loadCommandConfig(); 
         }
-        request->send(200, "text/plain", "OK");
+        request->send(200, F("text/plain"), F("OK"));
       }
     });
 
-    // 3. POST-ROUTE FÜR /api/save-data (Mit String-Puffer)
+    // 3. POST-ROUTE FÜR /api/save-data (Mit Schutzwall und RAM-Sicherung)
     server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request) {
     }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
       static String jsonBuffer = "";
+      
       if (index == 0) {
         jsonBuffer = "";
+        jsonBuffer.reserve(total); // Speicher vorab reservieren (Heap-Schutz)
       }
+      
       for (size_t i = 0; i < len; i++) {
         jsonBuffer += (char)data[i];
       }
+      
       if (index + len == total) {
+        // SCHUTZWALL gegen Geister-Requests integriert
+        if (jsonBuffer.length() < 15 || jsonBuffer == "[]" || jsonBuffer == "[\n]") {
+          Serial.println(F("WARNUNG: Leerer/ungueltiger POST blockiert! Datei wird NICHT ueberschrieben."));
+          request->send(200, F("application/json"), F("{\"status\":\"ignored\",\"message\":\"Leere Daten ignoriert\"}"));
+          jsonBuffer = "";
+          return;
+        }
+
         File portFile = LittleFS.open(PortConfigPath, "w");
         if (portFile) {
           portFile.print(jsonBuffer);
@@ -929,25 +765,22 @@ void setupServerRoutes(){
             htmlPath = "/amplifier.html.gz";
           }
         }
-        request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
+        request->send(200, F("application/json"), F("{\"status\":\"success\",\"message\":\"JSON gespeichert\"}"));
         jsonBuffer = "";
       }
     });
 
-    // 4. STATISCHE DATEIEN (NUR STRUKTUREN FREIGEBEN)
+    // 4. STATISCHE DATEIEN
     server.serveStatic("/css/", LittleFS, "/css/");
     server.serveStatic("/js/", LittleFS, "/js/");
     server.serveStatic("/style.css", LittleFS, "/style.css");
     server.serveStatic("/script.js", LittleFS, "/script.js");
     server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico");
 
-    // WICHTIG: Die drei server.serveStatic für .json WURDEN HIER ENTFERNT!
-
-    // Fallback für dynamische JSONs mit Cache-Breaker (?v=...) und HTML-Seiten
+    // Fallback für dynamische JSONs und HTML-Seiten
     server.onNotFound([](AsyncWebServerRequest *request) {
-      String url = request->url(); // Gibt den reinen Pfad OHNE das "?v=..." zurück!
+      String url = request->url();
 
-      // Schutz vor leeren oder reinen Slash-Anfragen
       if (url == "/" || url.length() == 0) {
         String pathToSend = String(htmlPath);
         AsyncWebServerResponse *response = request->beginResponse(LittleFS, pathToSend, "text/html");
@@ -956,7 +789,6 @@ void setupServerRoutes(){
         return;
       }
       
-      // NEU: Flexibles Laden aller JSON-Dateien (ignoriert den Cache-Breaker im Browser)
       if (url.endsWith(".json")) {
         if (LittleFS.exists(url)) {
           request->send(LittleFS, url, "application/json");
@@ -964,7 +796,6 @@ void setupServerRoutes(){
         }
       }
 
-      // Fallback für explizite HTML-Endungen
       if (url.endsWith(".html") || url.endsWith(".hml")) {
         String baseName = url.substring(0, url.lastIndexOf('.'));
         String gzipPath = baseName + ".html.gz";
@@ -989,42 +820,54 @@ void initLittleFS() { // Initialize LittleFS
 }
 
 void loadWIFIConfig() {
+  bool configLoaded = false;
+  
+  // 1. Datei öffnen und auswerten
   File file = LittleFS.open(WificonfigPath, "r");
   if (!file) {
-    Serial.println(F("Konnte die Config-Datei nicht finden. Erstelle Standardwerte..."));
-    return;
+    Serial.println(F("Konnte die Config-Datei nicht finden. Weiche auf Access Point aus..."));
+  } else {
+    size_t size = file.size();
+    if (size > 0) {
+      std::unique_ptr<char[]> buf(new char[size]);
+      file.readBytes(buf.get(), size);
+
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, buf.get());
+      
+      if (!error) {
+        wifi_ssid = doc["ssid"].as<String>();
+        wifi_pass = doc["password"].as<String>();
+        configLoaded = true;
+      } else {
+        Serial.print(F("Fehler beim Parsen der WLAN-JSON: "));
+        Serial.println(error.f_str());
+      }
+    }
+    file.close();
   }
-  size_t size = file.size();
-  std::unique_ptr<char[]> buf(new char[size]);
-  file.readBytes(buf.get(), size);
 
-  JsonDocument doc;
-  deserializeJson(doc, buf.get());
-
-  wifi_ssid = doc["ssid"].as<String>();
-  wifi_pass = doc["password"].as<String>();
-  
-  file.close();
-
-  // Hostnamen vergeben
+  // 2. Hostnamen vergeben
   WiFi.setHostname(hostName); 
-  
-  // Verbinde mit dem WLAN
-  WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
-  Serial.print(F("Verbinde mit WLAN"));
 
-  // NEU: Dem ESP Zeit geben, sich zu verbinden (10 Sekunden Timeout)
-  int timeout_counter = 0;
-  while (WiFi.status() != WL_CONNECTED && timeout_counter < 20) { 
-    delay(500);
-    Serial.print(F("."));
-    timeout_counter++;
+  // 3. Verbindungsversuch nur starten, wenn die Config erfolgreich geladen wurde
+  if (configLoaded && wifi_ssid.length() > 0) {
+    WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
+    Serial.print(F("Verbinde mit WLAN"));
+
+    // Dem ESP Zeit geben, sich zu verbinden (10 Sekunden Timeout)
+    int timeout_counter = 0;
+    while (WiFi.status() != WL_CONNECTED && timeout_counter < 20) { 
+      delay(500);
+      Serial.print(F("."));
+      timeout_counter++;
+    }
+    Serial.println();
   }
-  Serial.println();
 
-  // Erst JETZT prüfen, ob es geklappt hat
+  // 4. Status prüfen: Wenn nicht verbunden (oder keine Config da), AP starten!
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(F("WLAN nicht verbunden. Starte Access Point..."));
+    Serial.println(F("WLAN nicht verbunden oder keine Config. Starte Access Point..."));
     WiFi.disconnect(); 
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid_ap, password_ap, 1, 0);
@@ -1033,16 +876,21 @@ void loadWIFIConfig() {
     Serial.print(F("AP IP Adresse: "));
     Serial.println(IP);
     
-    // TIPP: Hier KEIN Stromsparen aktivieren, damit das Konfigurations-WLAN (AP) stabil bleibt!
+    // WICHTIG: Im AP-Modus erzwingen wir volle Leistung für eine stabile Verbindung!
+    esp_wifi_set_ps(WIFI_PS_NONE); 
     
   } else {
     Serial.print(F("Erfolgreich verbunden! IP: "));
     Serial.println(WiFi.localIP());
 
-    // === ERGÄNZUNG FÜR LIGHT SLEEP ===
-    // Nur wenn die Verbindung zum Heim-WLAN steht, aktivieren wir das automatische Stromsparen.
-    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
-    Serial.println(F("WLAN-Stromsparmodus (Light Sleep) erfolgreich aktiviert."));
+    // Nur im echten Heim-WLAN aktivieren wir das automatische Stromsparen (Light Sleep)
+    #ifdef ENABLE_LOW_POWER
+      esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
+      Serial.println(F("[POWER] WLAN-Stromsparmodus (Light Sleep) AKTIVIERT."));
+    #else
+      esp_wifi_set_ps(WIFI_PS_NONE);
+      Serial.println(F("[POWER] Stromsparmodus DEAKTIVIERT (Volle Leistung)."));
+    #endif
   }
 }
 
@@ -1062,10 +910,10 @@ void saveWIFIConfig(String ssid, String pass) {
 }
 
 struct B203SetData {
-  char language [2];
-  char easy [2];
-  char timer [2];
-  char poweron [2];
+  char language [4];
+  char easy [4];
+  char timer [4];
+  char poweron [4];
 };
 
 B203SetData b203settings = { "0", "0", "0", "0" };
@@ -1080,43 +928,20 @@ void setup() {
   pinMode(PIN_RTS, INPUT);
   pinMode(PIN_CTS, OUTPUT);
 
+  // KORRIGIERT: Pegelwandler-Enable kompakter und sauberer schalten
   pinMode(OE_FXMA108, OUTPUT);
-  if (Set_OE_FXMA108 == true){
-    digitalWrite(OE_FXMA108, HIGH);
-  } else if (Set_OE_FXMA108 == false) {
-    digitalWrite(OE_FXMA108, LOW);
-  }
+  digitalWrite(OE_FXMA108, Set_OE_FXMA108 ? HIGH : LOW);
   
- Serial2.begin(REVOX_BAUD, SERIAL_8N1, RXD2, TXD2);
+  Serial2.begin(REVOX_BAUD, SERIAL_8N1, RXD2, TXD2);
 
- if (Serial2) {
-  Serial.println(F("Revox Serial startet"));
- }
+  if (Serial2) {
+    Serial.println(F("Revox Serial startet"));
+  }
 
   Serial2.setTimeout(5000);
   
-initLittleFS();
-
-loadWIFIConfig();
-
-  int timeout_counter = 0;
-  while (WiFi.status() != WL_CONNECTED && timeout_counter < 20) { 
-    delay(500);
-    Serial.print(F("."));
-    timeout_counter++;
-  }
-  Serial.println();
-
-  // STROMSPAREN ÜBER DEFINE STEUERN
-  #ifdef ENABLE_LOW_POWER
-    if (WiFi.status() == WL_CONNECTED) {
-      esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
-      Serial.println(F("[POWER] WLAN-Stromsparmodus (Light Sleep) AKTIVIERT."));
-    }
-  #else
-    esp_wifi_set_ps(WIFI_PS_NONE); // Erzwinge volle Leistung
-    Serial.println(F("[POWER] Stromsparmodus DEAKTIVIERT (Volle Leistung)."));
-  #endif
+  initLittleFS();
+  loadWIFIConfig();
 
   // IR-receiver starten
   pinMode(IR_RECEIVE_PIN, INPUT_PULLUP); 
@@ -1143,15 +968,9 @@ loadWIFIConfig();
   }
 
   setupServerRoutes();
-
   initWebSocket();
 
-  // 1. Die index.html aus dem LittleFS-Verzeichnis ausliefern
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/config/wifi_config.html", String(), false);
-  });
-
-  // 2. Aktuelle Config-Werte als JSON an die Webseite senden
+  // Aktuelle Config-Werte als JSON an die Webseite senden
   server.on("/get-config", HTTP_GET, [](AsyncWebServerRequest *request){
     JsonDocument doc;
     doc["ssid"] = wifi_ssid;
@@ -1159,59 +978,8 @@ loadWIFIConfig();
   
     String jsonString;
     serializeJson(doc, jsonString);
-    request->send(200, "application/json", jsonString);
+    request->send(200, F("application/json"), jsonString); // F-Makro ergänzt
   });
-
-      // 3. POST-ROUTE FÜR /api/save-data (Mit Schutzwall gegen leere Geister-Requests)
-    server.on("/api/save-data", HTTP_POST, [](AsyncWebServerRequest *request) {
-      // Antwort erfolgt im Body-Handler unten
-    }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-  
-      static String jsonBuffer = "";
-
-      if (index == 0) {
-        jsonBuffer = "";
-      }
-
-      for (size_t i = 0; i < len; i++) {
-        jsonBuffer += (char)data[i];
-      }
-
-      if (index + len == total) {
-        // SCHUTZWALL: Wenn der Buffer leer, nur "[]" ist oder weniger als 15 Zeichen hat, 
-        // ignorieren wir den Schreibvorgang komplett! Das blockiert den Geister-Request.
-        if (jsonBuffer.length() < 15 || jsonBuffer == "[]" || jsonBuffer == "[\n]") {
-          Serial.println("WARNUNG: Leerer oder ungültiger Geister-POST blockiert! Datei wird NICHT überschrieben.");
-          request->send(200, "application/json", "{\"status\":\"ignored\",\"message\":\"Leere Daten ignoriert\"}");
-          jsonBuffer = "";
-          return;
-        }
-
-        // Wenn die Daten valide sind, wird wie gewohnt geschrieben:
-        File portFile = LittleFS.open(PortConfigPath, "w");
-        if (portFile) {
-          portFile.print(jsonBuffer);
-          portFile.close();
-          Serial.println(F("Port-Konfiguration erfolgreich im LittleFS gespeichert."));
-          Serial.print(F("Gespeicherter Inhalt: "));
-          Serial.println(jsonBuffer); 
-          
-          loadPortConfig(); 
-
-          if (portExists("B285")) {
-            htmlPath = "/receiver.html.gz";
-          } else {
-            htmlPath = "/amplifier.html.gz";
-          }
-        } else {
-          Serial.println(F("Fehler: PortConfigPath konnte nicht zum Schreiben geöffnet werden!"));
-        }
-        
-        request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"JSON gespeichert\"}");
-        jsonBuffer = "";
-      }
-    });
-
 
   Serial.print(F("HTTP server started"));
   server.begin();
@@ -1219,8 +987,7 @@ loadWIFIConfig();
   Serial.print(F("Revox-Remote ist bereit"));
   Serial.println();
 
-  btStop();
-
+  btStop(); // Schaltet Bluetooth ab, um Strom zu sparen – sehr gut!
 }
 
 void loop() {

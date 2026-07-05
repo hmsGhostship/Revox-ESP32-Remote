@@ -84,6 +84,10 @@ unsigned long lastActivity = 0;
 
 bool b203ReadyToSend = true; // Steuert den XON/XOFF Fluss
 
+
+unsigned long lastButtonRepeatTime = 0;
+bool isFirstButtonPress = true; // Globaler Merker für alle Funktionen
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
@@ -274,113 +278,217 @@ void loadCommandConfig() {
 }
 
 void processButtonPath() {
-    static bool isFirstButtonPress = true; 
-    static unsigned long lastButtonRepeatTime = 0; 
+  if (buttonHold == 1) {
+      
+      // SPERRWALL: Wenn es NICHT der erste Druck ist, drosseln wir die Schleife auf 200ms!
+      // Das verhindert das unkontrollierte Puls-Dreschen im Millisekundentakt.
+      if (!isFirstButtonPress && (millis() - lastButtonRepeatTime < 200)) {
+          return; // Verlassen, solange die Drosselzeit läuft
+      }
 
-    if (buttonHold == 1) {
-        Serial.println(F("\n--- [DEBUG] Button-Pfad aktiv ---"));
-        Serial.print(F("[DEBUG] Gesuchter buttonName: '"));
-        Serial.print(buttonName);
-        Serial.println("'");
+      Serial.println(F("\n--- [DEBUG] Button-Pfad aktiv ---"));
+      Serial.print(F("[DEBUG] Gesuchter buttonName: '"));
+      Serial.print(buttonName);
+      Serial.println(F("'"));
 
-        int a = 0;
-        bool buttonFound = false;
+      int a = 0;
+      bool buttonFound = false;
 
-        while (configArray[a].btnID[0] != '\0' && strcmp(configArray[a].btnID, "none") != 0 && a < maxCommandCapacity) {
-            
-            if (strcmp(buttonName, configArray[a].btnID) == 0) {
-                buttonFound = true;
-                Serial.print(F("[DEBUG] TREFFER! Index: ")); Serial.println(a);
+      // KORRIGIERT: btnID[0] prüft, ob der Eintrag gültig ist, maxCommandCapacity schützt vor Abstürzen
+      while (configArray[a].btnID[0] != '\0' && strcmp(configArray[a].btnID, "none") != 0 && a < maxCommandCapacity) {
+          
+          if (strcmp(buttonName, configArray[a].btnID) == 0) {
+              buttonFound = true;
+              Serial.print(F("[DEBUG] TREFFER! Index: ")); Serial.println(a);
+              
+              // Zeitstempel für die 200ms Drosselung setzen
+              lastButtonRepeatTime = millis();
 
-                for (int i = 0; i < portTableSize; i++) {
-                    String currentOut = portArray[i].out;
-                    String currentDescr = portArray[i].descr;
-                    
-                    bool deviceMatch = (strcmp(configArray[a].device, currentDescr.c_str()) == 0) || 
-                                       (strstr(configArray[a].device, currentDescr.c_str()) != NULL);
+              for (int i = 0; i < portTableSize; i++) {
+                  String currentOut = portArray[i].out;
+                  String currentDescr = portArray[i].descr;
+                  
+                  bool deviceMatch = (strcmp(configArray[a].device, currentDescr.c_str()) == 0) || 
+                                     (strstr(configArray[a].device, currentDescr.c_str()) != NULL);
 
-                    if (deviceMatch && currentOut != "no") {
-                        
-                        if (strcmp(configArray[a].btnID, "b203reset") == 0) {
-                            if (configArray[a].command != 0x40) {
-                                sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                            }
-                            if (configArray[a].repeat == 0) { buttonHold = 0; }
-                        }
-                        else if (configArray[a].cmdFlag > 0) {
-                            if (b203ReadyToSend) { 
-                                Serial2.print(currentOut);
-                                Serial2.print(configArray[a].serCmd);
-                                Serial2.print("\r");
-                            }
-                            if (configArray[a].repeat == 0) { buttonHold = 0; }
-                        } 
-                        else if (configArray[a].cmdFlag == 0) {
-                            if (configArray[a].command != 0x40) { 
-                                
-                                if (configArray[a].isBibus == 1) {
-                                    if (b203ReadyToSend) { 
-                                        char sendBuffer[64]; 
-                                        const char* bibusPtr = configArray[a].bibusCmd;
-                                        if (strncmp(bibusPtr, "0x", 2) == 0 || strncmp(bibusPtr, "0X", 2) == 0) { bibusPtr += 2; }
-                                        char bibusFormatiert[6]; 
-                                        int len = strlen(bibusPtr);
-                                        if (len >= 5) { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr + (len - 5)); } 
-                                        else { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%05X", (unsigned int)strtol(bibusPtr, NULL, 16)); }
-                                        snprintf(sendBuffer, sizeof(sendBuffer), "B%s\r", bibusFormatiert);
-                                        Serial2.print(sendBuffer);
-                                    }
-                                } else {
-                                    // NATIVER REVOX PFAD UNTERSCHEIDUNG
-                                    if (isFirstButtonPress) {
-                                        sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                                        Serial.print(F("[BUTTON-FIRST] Native Frame: Addr 0x"));
-                                        Serial.println(configArray[a].address, HEX);
-                                        
-                                        lastButtonRepeatTime = millis();
-                                        if (configArray[a].repeat == 1) {
-                                            isFirstButtonPress = false; 
-                                        }
-                                    } else {
-                                        // 150ms Sperrzeit für gedrosselten Repeat
-                                        if (millis() - lastButtonRepeatTime >= 150) {
-                                            lastButtonRepeatTime = millis();
-
-                                            if (configArray[a].addressRep != 0) {
-                                                sendRevoxFrame(configArray[a].addressRep, configArray[a].command, 1);
-                                                Serial.print(F("[BUTTON-REPEAT] Frame mit addressRep: 0x"));
-                                                Serial.println(configArray[a].addressRep, HEX);
-                                            } else {
-                                                sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                                                Serial.print(F("[BUTTON-REPEAT] Kein addressRep, sende Standard: 0x"));
-                                                Serial.println(configArray[a].address, HEX);
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                if (configArray[a].repeat == 0) {
-                                  buttonHold = 0;
-                                }
-                            }
-                        }
-                    }
-                }
-                break; 
-            }
-            ++a;
-        }
-        
-        if (!buttonFound) { buttonHold = 0; }
-        Serial.println(F("--- [DEBUG] Button-Pfad beendet ---\n"));
-    } 
-    else {
-        isFirstButtonPress = true;
-        lastButtonRepeatTime = 0;
-    }
+                  if (deviceMatch && currentOut != "no") {
+                      
+                      if (strcmp(configArray[a].btnID, "b203reset") == 0) {
+                          if (configArray[a].command != 0x40) {
+                              sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                          }
+                          if (configArray[a].repeat == 0) { buttonHold = 0; }
+                      }
+                      else if (configArray[a].cmdFlag > 0) {
+                          if (b203ReadyToSend) { 
+                              Serial2.print(currentOut);
+                              Serial2.print(configArray[a].serCmd);
+                              Serial2.print("\r");
+                          }
+                          if (configArray[a].repeat == 0) { buttonHold = 0; }
+                      } 
+                      // NATIVE LOGIK (cmdFlag == 0)
+                      else if (configArray[a].cmdFlag == 0) {
+                          if (configArray[a].command != 0x40) { 
+                              
+                              if (configArray[a].isBibus == 1) {
+                                  if (b203ReadyToSend) { 
+                                      char sendBuffer[64]; 
+                                      const char* bibusPtr = configArray[a].bibusCmd;
+                                      if (strncmp(bibusPtr, "0x", 2) == 0 || strncmp(bibusPtr, "0X", 2) == 0) { bibusPtr += 2; }
+                                      char bibusFormatiert[6]; 
+                                      int len = strlen(bibusPtr);
+                                      if (len >= 5) { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr + (len - 5)); } 
+                                      else { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%05X", (unsigned int)strtol(bibusPtr, NULL, 16)); }
+                                      snprintf(sendBuffer, sizeof(sendBuffer), "B%s\r", bibusFormatiert);
+                                      Serial2.print(sendBuffer);
+                                  }
+                              } else {
+                                  // ==========================================
+                                  // NATIVE REVOX SENDUNG (FIRST vs. REPEAT)
+                                  // ==========================================
+                                  if (isFirstButtonPress) {
+                                      // 1. Durchlauf: Zuerst die Standard-Adresse senden (Das originale sendRevoxFrame!)
+                                      sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                                      
+                                      // Nach dem Senden sperren wir den Erst-Durchlauf für die nächsten Runden
+                                      isFirstButtonPress = false; 
+                                  } else {
+                                      // Ab dem 2. Durchlauf (Gedrückt halten): Prüfen auf addressRep
+                                      if (configArray[a].addressRep != 0) {
+                                          sendRevoxFrame(configArray[a].addressRep, configArray[a].command, 1);
+                                          Serial.print(F("     [BUTTON-REPEAT] Frame mit addressRep: 0x"));
+                                          Serial.println(configArray[a].addressRep, HEX);
+                                      } else {
+                                          sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                                          Serial.print(F("     [BUTTON-REPEAT] Kein addressRep, sende Standard: 0x"));
+                                          Serial.println(configArray[a].address, HEX);
+                                      }
+                                  }
+                              }
+                              
+                              if (configArray[a].repeat == 0) {
+                                buttonHold = 0;
+                              }
+                          }
+                      }
+                  }
+              }
+              break; 
+          }
+          ++a;
+      }
+      
+      if (!buttonFound) { buttonHold = 0; }
+      Serial.println(F("--- [DEBUG] Button-Pfad beendet ---\n"));
+  }
 }
 
 void processDirectCommands() {
+    // Buttons wurden komplett entfernt – hier landen nur noch Slider und Setup!
+    if (pendingWsCommand.length() > 0 && (millis() - wsWakeupTime >= 50)) {
+        
+        if (!b203ReadyToSend) {
+            Serial.println(F("[LOOP] Direkt-Befehl wartet, da B203 im XOFF-Status ist!"));
+            return; 
+        }
+
+        String msg = pendingWsCommand;
+        pendingWsCommand = ""; 
+        lastActivity = millis();
+
+        if (msg.startsWith("speakers")) {
+            char b285Speaker[8] = {0}; msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b285Speaker); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("volSlider")) {
+            char b285Volume[8] = {0}; msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b285Volume); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("setup")) {
+            char setupBytes[12] = {0}; msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
+            Serial2.print(setupBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("getsettings")) {
+            char settingsBytes[8] = {0}; msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
+            Serial2.print(settingsBytes); Serial2.print("\r");
+            if (strcmp(settingsBytes, "0X") == 0) { getFlag = 1; }
+        }
+        else if (msg.startsWith("tape1")) {
+            char b215settingsBytes[6] = {0}; msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b215settingsBytes); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("cdplayer")) {
+            char b226settingsBytes[6] = {0}; msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b226settingsBytes); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("phono")) {
+            char b291settingsBytes[6] = {0}; msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b291settingsBytes); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("receiver")) {
+            char b285settingsBytes[6] = {0}; msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
+            for (int i = 0; i < portTableSize; i++) {
+                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial2.print(portArray[i].out); Serial2.print(b285settingsBytes); Serial2.print("\r");
+                }
+            }
+        }
+        else if (msg.startsWith("testEvent")) {
+            char testEventBytes[10] = {0}; msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
+            Serial2.print(testEventBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("setDate")) {
+            char setDateBytes[16] = {0}; msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
+            Serial2.print(setDateBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("setTime")) {
+            char setTimeBytes[16] = {0}; msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
+            Serial2.print(setTimeBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("setEvent")) {
+            char setEventBytes[40] = {0}; msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
+            Serial2.print(setEventBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("callEvent")) {
+            char callEventBytes[10] = {0}; msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
+            Serial2.print(callEventBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("delEvent")) {
+            char delEventBytes[10] = {0}; msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
+            Serial2.print(delEventBytes); Serial2.print("\r");
+        }
+        else if (msg.startsWith("toggle")) {
+            String subToggle = msg.substring(6);
+            if (subToggle.startsWith("true")) { Serial2.print("0R0\r"); } 
+            else if (subToggle.startsWith("false")) { Serial2.print("0R1\r"); }
+        }
+    }
+}
+
+
+
+/*void processDirectCommands() {
     // Führt Direktbefehle erst nach 50ms Schutzzeit und bei XON (Ready) aus
     if (pendingWsCommand.length() > 0 && (millis() - wsWakeupTime >= 50)) {
         
@@ -597,7 +705,77 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       Serial.println(pendingWsCommand);
     }
   }
+}*/
+
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+    
+    lastActivity = millis(); // Sofort Schlaf verhindern
+    String msg((char*)data, len);
+    
+    if (msg.startsWith("button")) {
+      String subMsg = msg.substring(6);
+      
+      if (subMsg.startsWith("Push")) {
+        memset(buttonName, 0, sizeof(buttonName));
+        subMsg.substring(4).toCharArray(buttonName, sizeof(buttonName));
+        
+        buttonHold = 1;
+        isFirstButtonPress = true;
+        lastButtonRepeatTime = millis();
+        wsWakeupTime = millis();
+
+        Serial.print(F("[WS-API] Push empfangen fuer: "));
+        Serial.println(buttonName);
+
+        // ==========================================================
+        // SOFORTIGES SENDEN DIREKT BEIM EINTREFFEN DES NETZWERK-PAKETS
+        // ==========================================================
+        int a = 0;
+        while (configArray[a].btnID[0] != '\0' && strcmp(configArray[a].btnID, "none") != 0 && a < maxCommandCapacity) {
+          if (strcmp(buttonName, configArray[a].btnID) == 0) {
+              
+              for (int i = 0; i < portTableSize; i++) {
+                  String currentOut = portArray[i].out;
+                  String currentDescr = portArray[i].descr;
+                  bool deviceMatch = (strcmp(configArray[a].device, currentDescr.c_str()) == 0) || 
+                                     (strstr(configArray[a].device, currentDescr.c_str()) != NULL);
+
+                  if (deviceMatch && currentOut != "no") {
+                      if (configArray[a].cmdFlag == 0 && configArray[a].isBibus == 0) {
+                          if (configArray[a].command != 0x40) {
+                              // Da hier noInterrupts() drin ist, sendet der ESP32 völlig ungestört!
+                              sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
+                              Serial.print(F("     [WS-DIRECT] Gesendet: Addr 0x"));
+                              Serial.println(configArray[a].address, HEX);
+                          }
+                      }
+                  }
+              }
+              break; 
+          }
+          ++a;
+        }
+        // Nach dem ersten Sofort-Senden sperren wir den Erst-Druck für eventuelles Halten
+        isFirstButtonPress = false; 
+      } 
+      else if (subMsg.startsWith("Release")) {
+        buttonHold = 0;
+        isFirstButtonPress = true;
+        lastActivity = millis();
+        Serial.println(F("[WS-API] Release empfangen."));
+        delay(100); 
+      }
+    }
+    // Alle anderen Befehle (Slider/Setup) wie gehabt an pendingWsCommand übergeben
+    else {
+      pendingWsCommand = msg;
+      wsWakeupTime = millis();
+    }
+  }
 }
+
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
       void *arg, uint8_t *data, size_t len) {
@@ -883,14 +1061,10 @@ void loadWIFIConfig() {
     Serial.print(F("Erfolgreich verbunden! IP: "));
     Serial.println(WiFi.localIP());
 
-    // Nur im echten Heim-WLAN aktivieren wir das automatische Stromsparen (Light Sleep)
-    #ifdef ENABLE_LOW_POWER
-      esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
-      Serial.println(F("[POWER] WLAN-Stromsparmodus (Light Sleep) AKTIVIERT."));
-    #else
-      esp_wifi_set_ps(WIFI_PS_NONE);
-      Serial.println(F("[POWER] Stromsparmodus DEAKTIVIERT (Volle Leistung)."));
-    #endif
+    // JETZT WIEDER STROMSPAREND: Light Sleep für das WLAN reaktivieren
+    WiFi.setSleep(true); 
+    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
+    Serial.println(F("[POWER] WLAN-Stromsparmodus (Light Sleep) REAKTIVIERT."));
   }
 }
 

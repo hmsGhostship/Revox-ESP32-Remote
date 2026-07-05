@@ -1,4 +1,4 @@
-//@ts-check
+
 // @ts-ignore
 let ws;
 const gateway = `ws://${window.location.hostname}/ws`;
@@ -7,6 +7,10 @@ let portconfigData = [];
 /** @type {Object[]} */
  // Globale Variable, um alle restlichen Daten im Hintergrund zu behalten
 let configData = [];
+
+// Zwei globale Sperren ganz oben in Ihrer script.js hinzufügen (falls noch nicht da)
+let isTouchProcessing = false;
+let globalTouchTimeout = null;
 
 const HIDE_AMP_TUN_WITHOUT_RECEIVER = true; 
 
@@ -536,62 +540,105 @@ function setEventb203() {
 }
 
 function getButton() {
-const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
+  const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
+  
   buttons.forEach(btn => {
     btn.classList.add('js-bound');
     
-    // --- 1. BLOCK: DRÜCKEN ---
-    btn.addEventListener('mousedown', (event) => {
-      const Id = event.currentTarget.id;
-      const Name = event.currentTarget.name;
+    // --- HILFSFUNKTION: DRÜCKEN (PUSH) ---
+    const handlePush = (element) => {
+      if (isTouchProcessing) return; 
+      isTouchProcessing = true;
+
+      // NEU: Dem Button sofort die visuelle CSS-Klasse geben
+      element.classList.add('is-pressed');
+
+      const Id = element.id; 
 
       if (ws.readyState === WebSocket.OPEN) {
-        console.log(Name + 'Push' + Id);
-        ws.send(Name + 'Push' + Id);
+        console.log("Sende: buttonPush" + Id);
+        ws.send("buttonPush" + Id);
       }
-    });
+    };
 
-    // --- 2. BLOCK: LOSLASSEN ---
-    btn.addEventListener('mouseup', (event) => {
-      const Id = event.currentTarget.id;
-      const Name = event.currentTarget.name;
+    // --- HILFSFUNKTION: LOSLASSEN (RELEASE) MIT SICHERUNG ---
+    const handleRelease = (element) => {
+      if (!isTouchProcessing) return;
 
-      // Wir holen uns das Ziel SOFORT als Text-String
-      //const linkElement = event.currentTarget.closest('a');
-      // NEU: Erkennt, ob der Button SELBST der Link ist ODER in einem Link liegt
-      const linkElement = event.currentTarget.closest('a') || event.currentTarget;
+      // NEU: Die visuelle CSS-Klasse sofort wieder entfernen
+      element.classList.remove('is-pressed');
+
+      const Id = element.id;
+      // Erkennt, ob der Button selbst der Link ist oder in einem Link liegt
+      const linkElement = element.closest('a') || element;
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
-            
 
       if (ws.readyState === WebSocket.OPEN) {
-        console.log(Name + 'Release' + Id);
-        ws.send(Name + 'Release' + Id);
+        console.log("Sende: buttonRelease" + Id);
+        ws.send("buttonRelease" + Id);
         
-        // NUR WENN EINE TARGET-URL EXISTIERT (Ein Link geklickt wurde)
+        // ==========================================================
+        // DIE NETZWERK-SICHERUNG:
+        // Wenn der Button eine Ziel-URL besitzt (Seitenwechsel für ReVox-Gerät),
+        // verbieten wir dem Browser das sofortige Schließen des WebSockets!
+        // ==========================================================
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
-          const checkBuffer = setInterval(() => {
-            if (ws.bufferedAmount === 0) {
-              clearInterval(checkBuffer);
-              ws.close(1000, "Normal Closure"); 
-              sicherLeiten(targetUrl); // Nutzt die neue, sichere Funktion
-            }
-          }, 5);
           
+          // Wir warten 150ms. In dieser Zeit bleibt die Netzwerkverbindung absolut stabil,
+          // der ESP32 hat Zeit zum Senden, und das Signal wird NICHT durch Lade-Interrupts zerschossen.
           setTimeout(() => {
-            clearInterval(checkBuffer);
-            ws.close();
-            sicherLeiten(targetUrl);
-          }, 150);
+              try {
+                  // Erst JETZT, nach 150ms, schließen wir den WebSocket geordnet...
+                  ws.close(1000, "Normal Closure"); 
+              } catch(e) {}
+              
+              // ... und leiten den Browser erst jetzt sicher auf die neue HTML-Seite weiter!
+              sicherLeiten(targetUrl);
+              isTouchProcessing = false;
+          }, 150); // 150ms Gedenksekunde für die ReVox-Hardware
+          
         } else {
-          // Normaler Button ohne Link: Wir tun nichts weiter, Verbindung BLEIBT OFFEN!
-          console.log("Normaler Funktions-Button erkannt. WebSocket bleibt geöffnet.");
+          // Normaler Funktions-Button ohne Seitenwechsel: Verbindung bleibt offen
+          isTouchProcessing = false;
         }
-        
       } else {
-        // Falls der Socket schon zu war, aber eine URL existiert, leiten wir weiter
+        // Falls der Socket unerwartet schon zu war, aber eine URL existiert
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
           sicherLeiten(targetUrl);
         }
+        isTouchProcessing = false;
+      }
+    };
+
+    // ==========================================================
+    // LISTENERS FÜR MAUS UND TOUCH ZUWEISEN (PROTOKOLL-SICHER)
+    // ==========================================================
+
+    // 1. SMARTPHONE / TOUCHSCREEN-STEUERUNG
+    btn.addEventListener('touchstart', (event) => {
+      // Verhindert die künstliche Maus-Simulation des Handys UND das sofortige Laden des hrefs
+      event.preventDefault(); 
+      handlePush(event.currentTarget);
+    }, { passive: false });
+
+    btn.addEventListener('touchend', (event) => {
+      event.preventDefault(); // Stoppt das unkontrollierte, sofortige Navigieren des Browsers beim Loslassen
+      handleRelease(event.currentTarget);
+    }, { passive: false });
+
+
+    // 2. DESKTOP-PC / MAUS-STEUERUNG (FALLBACK)
+    btn.addEventListener('mousedown', (event) => {
+      if (event.button === 0) { // Nur linke Maustaste
+        event.preventDefault(); // WICHTIG: Verhindert unkontrolliertes Browser-Standardverhalten beim Klicken
+        handlePush(event.currentTarget);
+      }
+    });
+
+    btn.addEventListener('mouseup', (event) => {
+      if (event.button === 0) {
+        event.preventDefault(); // Blockiert den sofortigen Seitenwechsel am PC, damit das Release noch übertragen wird
+        handleRelease(event.currentTarget);
       }
     });
   });

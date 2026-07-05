@@ -1019,3 +1019,147 @@ p {
 .system-group-container input[type="range"].slide::-moz-range-thumb:hover {
     background: #10e01a;
 }
+
+/* ==========================================================================
+   MOBILGERÄTE-ANPASSUNGEN (Smartphones & Tablets)
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+  
+  /* 1. Die breiten WLAN-Felder (400px) auf Smartphones schmaler machen, damit sie nicht rechts rausfliegen */
+  .wifi-form input[type="text"],
+  .wifi-submit-btn {
+    width: 90% !important;      /* Nutzt flexibel 90% des Smartphone-Bildschirms */
+    max-width: 320px;           /* Wird auf kleinen Handys maximal 320px breit */
+    font-size: 22px !important; /* Leicht verkleinerte Schrift für Mobilgeräte */
+  }
+  
+  /* 2. Den Lautstärke-Slider auf Smartphones kompakter darstellen */
+  .system-group-container input[type="range"].slide {
+    width: 85% !important;
+  }
+  .system-group-container label.slide-label {
+    font-size: 22px !important;
+  }
+
+  /* 3. Die Geräteauswahl-Buttons (Tape, CD...) für Touch-Bedienung optimieren */
+  .button-group-container-dev .button {
+    padding: 25px 10px !important; /* Weniger wuchtige Höhe auf dem Handy */
+    font-size: 20px !important;    /* Leicht kleinere Schrift */
+    min-width: 45% !important;     /* Lässt immer exakt 2 Buttons sauber nebeneinander stehen */
+    flex-grow: 1;
+  }
+
+  /* 4. Die großen ON/OFF Power-Buttons zentriert und griffig halten */
+  .button-pwr-container-dev p {
+    width: 95% !important;         /* Nutzt fast die volle Handy-Breite */
+  }
+  .button-pwr-container-dev .power_btn {
+    padding: 30px 10px !important; /* Angenehmere Höhe für den Daumen */
+    font-size: 22px !important;
+  }
+
+  /* 5. Tabellen auf dem Handy scrollbar machen, falls sie zu breit werden */
+  #Config table, #PortConfig table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;              /* Erlaubt seitliches Wischen, falls die Tabelle den Bildschirm sprengt */
+    white-space: nowrap;
+  }
+  /* 6. Die Tuning/Misc-Buttons (8 Stück) für Mobiltelefone optimieren */
+  .button-group-container-misc {
+    display: grid !important;       /* Aktiviert das Raster */
+    grid-template-columns: 1fr 1fr; /* Exakt 2 gleich breite Buttons pro Reihe */
+    gap: 12px !important;           /* Gleichmäßiger Abstand zwischen den Knöpfen */
+    padding: 15px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    float: none !important;
+  }
+
+  /* Blendet die störende Block-Wirkung der <p>-Tags für das Raster aus */
+  .button-group-container-misc p {
+    display: contents !important;   /* Lässt die Buttons direkt ins Grid fließen */
+  }
+
+  /* Macht die Knöpfe breit, griffig und symmetrisch */
+  .button-group-container-misc .misc_button {
+    width: 100% !important;         /* Nutzt die komplette Rasterspalte */
+    max-width: none !important;
+    min-width: 0 !important;        /* Hebt alte Breitenbeschränkungen auf */
+    float: none !important;         /* Entfernt das Links-Floaten */
+    padding: 30px 10px !important;  /* Perfekte Daumen-Höhe, analog zur Geräteauswahl */
+    font-size: 22px !important;     /* Kräftige, gut lesbare Schrift */
+    text-align: center !important;
+    box-sizing: border-box;
+    display: block !important;
+    margin: 0 !important;           /* Abstände werden sauber über gap geregelt */
+  }
+/* 7. Die System-Buttons (Play, Stop, Tape-Steuerung) für Mobiltelefone optimieren */
+  .system-group-container {
+    display: flex !important;       /* Wechsel zu Flexbox statt Grid */
+    flex-wrap: wrap !important;     /* Erlaubt Zeilenumbrüche */
+    justify-content: center !important; /* Zentriert die Buttons in der Reihe */
+    gap: 10px !important;           /* Schmalerer Abstand für mehr Platz */
+    padding: 10px !important;       
+    width: 100% !important;
+    box-sizing: border-box;
+    float: none !important;
+  }
+
+  /* Blendet die harte Zeilenumbruch-Wirkung der <p>-Tags aus */
+  .system-group-container p {
+    display: contents !important;   
+  }
+
+  /* Zwingt exakt 2 Buttons in eine Zeile, ohne dass sie untereinander rutschen */
+  .system-group-container .button {
+    /* 46% Breite sorgt dafür, dass zwei Stück + Gap perfekt nebeneinander passen */
+    width: 46% !important;         
+    max-width: 46% !important;
+    min-width: 120px !important;    /* Leicht verringert, damit es auf jedem Handy passt */
+    float: none !important;         
+    padding: 25px 5px !important;   /* Etwas kompakteres Padding für Mobilgeräte */
+    font-size: 20px !important;     /* Schrift minimal verkleinert, damit "Pause + Rec" reinpasst */
+    text-align: center !important;
+    box-sizing: border-box;
+    display: block !important;
+    margin: 0 !important;           
+  }
+
+  /* Der Lautstärke-Slider behält seine volle Breite unter den Buttons */
+  .system-group-container label.slide-label,
+  .system-group-container input[type="range"].slide {
+    width: 90% !important;          
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+  }
+}
+
+/* ==========================================================
+   VISUELLES FEEDBACK BEIM DRÜCKEN (TOUCH & PC)
+   ========================================================== */
+
+/* 1. Normaler Funktions-Button (wird dunkler/anthrazit beim Drücken) */
+.button.is-pressed {
+    background-color: #333333 !important;
+    color: #ffffff !important;
+    transform: scale(0.96);
+    transition: transform 0.05s ease;
+}
+
+/* 2. Misc-Button (wird schwarz beim Drücken) */
+.misc_button.is-pressed {
+    background-color: #111111 !important;
+    color: #ffffff !important;
+    transform: scale(0.96);
+    transition: transform 0.05s ease;
+}
+
+/* 3. Power-Button (wird dunkelrot beim Drücken) */
+.power_btn.is-pressed {
+    background-color: #990000 !important;
+    color: #ffffff !important;
+    transform: scale(0.96);
+    transition: transform 0.05s ease;
+}

@@ -269,14 +269,19 @@ function setB285Speakers() {
 }
 
 function setB285Volume() {
-  document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
-    const Id = event.target.id;
+  let lastValue = ""; // Speichert den zuletzt gesendeten Wert
+  // 'input' feuert kontinuierlich während des Ziehens
+  document.getElementById('volumeSlider')?.addEventListener('input', (event) => {
     const Value = event.target.value;
     const Name = event.target.name;
+    // Nur senden, wenn sich die Zahl wirklich geändert hat (schont den WebSocket)
+    if (Value !== lastValue) {
+      lastValue = Value; // Aktualisieren
       if (ws.readyState === WebSocket.OPEN) {
         console.log(Name + "V" + Value);
-        ws.send(Name + "V" +Value);
+        ws.send(Name + "V" + Value);
       }
+    }
   });
 }
 

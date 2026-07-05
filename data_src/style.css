@@ -1,239 +1,335 @@
-/***
-  H.J.Haefner
-  My first HTML/CSS Project
-  Complete project details at  
-***/
+/* ==========================================================================
+   TEIL 1: BASIS-STILE & CONTAINER
+   ========================================================================== */
+body {   
+  padding-left:15px;   
+  padding-right:20px;   
+  font-family: Geneva,'Lucida Sans','Lucida Grande',sans-serif;   
+  font-size: 50px;   
+  line-height: 60px; /* FEHLERBEHEBUNG: Erhöht von 30px auf 60px, damit 50px große Schrift nicht überlappt */   
+  color: #575757;   
+  background-color: #fff; 
+}  
 
-body {
-  padding-left:15px;
-  padding-right:20px;
-  font-family: Geneva,'Lucida Sans','Lucida Grande',sans-serif;
-  font-size: 50px;
-  line-height: 30px;
-  color: #575757;
-  background-color: #fff;
-}
+h3 {   
+  text-align:center;   
+  font-size: 40px;   
+  line-height: 1.2;   
+  padding: 5px; 
+}  
 
-h3 {
-  text-align:center;
-  font-size: 40px;
-  line-height: 1.2;
-  padding: 5px;
-}
+h4 {   
+  text-align:center;   
+  font-size: 15px;   
+  line-height: 1.2;   
+  padding: 5px; 
+}  
 
-h4 {
-  text-align:center;
-  font-size: 15px;
-  line-height: 1.2;
-  padding: 5px;
-}
+label {   
+  text-align-last:center;   
+  padding: 5px;   
+  display: block;   
+  font-size: 15px;   
+  color:#000000; 
+}  
 
-label {
-  text-align-last:center;
-  /*vertical-align: middle;*/
-  padding: 5px;
-  display: block;
-  font-size: 15px; /* Oder px, em etc. */
-  color:#000000
-}
-
-/* Der Rahmen um die gesamte Gruppe */
-.button-group-container-dev {
-    border: 2px solid #0a0a0a;
-    padding: 5px 28px;
-    /*padding: 0px;*/
-    padding-left: 35px;
-    padding-right: 0px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: inline-block; /* Passt sich der Breite der Buttons an */
-    background-color: rgb(142, 142, 142);
-}
-
-/* Der Titel über den Buttons */
-.button-group-title-dev {
-    font-weight: bold;
-    font-size: 20px; /* Schriftgröße des Titels */
-    margin-bottom: 5px;
-    text-align: center;
-    display: block;
-    color: #333;
-    font-family: sans-serif;
-}
-
-/* Styling der Buttons */
-.button-group-container-dev button {
-    padding: 40px 15px;
-    cursor: pointer;
-    background-color: rgb(208, 208, 208);
-    color: rgb(0, 0, 0);
-    border: 3px solid #000000;
-    margin-right: auto; /* Abstand zwischen Buttons */
-}
-
-.button-group-container-dev button:last-child {
-    margin-right: 0; /* Kein Abstand beim letzten Button */
-}
+/* Der Rahmen um die gesamte Gruppe - JETZT PERFEKT ZENTRIERT */ 
+.button-group-container-dev {     
+  border: 2px solid #0a0a0a;     
+  /* padding-left/right angeglichen für absolute Symmetrie: */
+  padding: 15px 20px !important;     
+  border-radius: 8px;     
+  box-sizing: border-box;     
   
+  /* Wechsel zu Flexbox zentriert die Buttons automatisch im Rahmen: */
+  display: flex !important; 
+  flex-wrap: wrap;
+  justify-content: center;  /* Zentriert die Buttons horizontal */
+  align-items: center;
+  gap: 10px;                /* Erzeugt exakt gleiche Abstände ZWISCHEN den Buttons */
+  
+  background-color: rgb(142, 142, 142); 
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;   /* Nutzt die volle Breite des Tabs */
+}  
 
-.button-group-container-dev button:hover {
-    background-color: #5e5e5e;
+/* Der Titel über den Buttons */ 
+.button-group-title-dev {     
+  font-weight: bold;     
+  font-size: 20px; 
+  margin-bottom: 15px !important;     
+  text-align: center;     
+  display: block;     
+  width: 100% !important;   /* Zwingt den Titel in eine eigene Zeile über die Buttons */
+  color: #333;     
+  font-family: sans-serif; 
+}  
+
+/* Styling der Buttons innerhalb der Container */ 
+.button-group-container-dev button,
+.button-group-container-dev a.button {     
+  padding: 40px 15px;     
+  cursor: pointer;     
+  background-color: rgb(208, 208, 208);     
+  color: rgb(0, 0, 0);     
+  border: 3px solid #000000;     
+  text-decoration: underline !important;
+  
+  /* Störende Floats und asymmetrische Margins entfernt: */
+  float: none !important;
+  margin: 0 !important; 
+  
+  /* Gibt den Knöpfen eine harmonische Mindestbreite im Grid: */
+  min-width: 130px;
+  text-align: center;
+  box-sizing: border-box;
+}  
+
+/* Das alte margin-right: 0 für das letzte Element wird durch Flexbox-Gap überflüssig */
+.button-group-container-dev button:last-child,
+.button-group-container-dev a.button:last-child {     
+  margin: 0 !important; 
+}     
+
+.button-group-container-dev button:hover,
+.button-group-container-dev a.button:hover {     
+  background-color: #5e5e5e; 
+  color: #fff;
 }
 
-.button-pwr-container-dev {
-    border: 2px solid #0a0a0a;
-    /*padding: 0px;*/
-    padding-left: 55px;
-    padding-right: 0px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: inline-block; /* Passt sich der Breite der Buttons an */
-    background-color: rgb(142, 142, 142);
+/* Der Power-Container - JETZT PERFEKT SYMMETRISCH */
+.button-pwr-container-dev {     
+  border: 2px solid #0a0a0a;     
+  /* padding-left und right auf denselben Wert gesetzt, damit es symmetrisch ist: */
+  padding: 15px 20px !important;     
+  border-radius: 8px;     
+  box-sizing: border-box;     
+  
+  display: block !important; /* Erlaubt das Zentrieren auf der Seite */
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;    /* Nutzt die volle Breite des Tabs */
+  background-color: rgb(142, 142, 142); 
+  text-align: center;        /* Zentriert die Elemente im Kasten */
+  margin-top: 25px !important;
+  margin-bottom: 25px !important;
+}  
+
+/* Die Absätze (<p>) werden auf 90% Breite gesetzt und im Kasten zentriert */
+.button-pwr-container-dev p {
+  display: block !important;
+  width: 90% !important;     /* Entspricht deinem span12 */
+  max-width: 1200px;
+  margin: 15px auto !important; /* ZENTRIERT: Teilt die restlichen 10% perfekt in 5% links und rechts auf */
+  padding: 0;
 }
 
-.button-pwr-container-dev button:hover {
-    background-color: #1e25ff;
+/* Die ON/OFF Buttons füllen den zentrierten Absatz perfekt aus */
+.button-pwr-container-dev .power_btn {
+  float: none !important;    /* Hebt das alte Links-Floaten auf */
+  display: block !important;
+  width: 100% !important;    /* Füllt das <p>-Tag komplett aus */
+  margin: 0 !important;
+  box-sizing: border-box;
 }
 
-/* Styling der Buttons */
-.button-group-container-misc button {
-    padding: 40px 15px;
-    cursor: pointer;
-    background-color: rgb(118, 111, 111);
-    color: rgb(250, 250, 250);
-    border: 3px solid #000000;
-    margin-right: auto; /* Abstand zwischen Buttons */
+/* Dein blauer Hover-Effekt bleibt erhalten */
+.button-pwr-container-dev button:hover {     
+  background-color: #1e25ff; 
 }
 
-.button-group-container-misc {
-    border: 2px solid #0a0a0a;
-    padding: 5px 28px;
-    padding-left: 35px;
-    padding-right: 0px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: inline-block; /* Passt sich der Breite der Buttons an */
-    background-color: rgb(142, 142, 142);
+.button-group-container-misc {     
+  border: 2px solid #0a0a0a;     
+  padding: 5px 28px;     
+  padding-left: 35px;     
+  padding-right: 0px;     
+  border-radius: 8px;     
+  box-sizing: border-box;     
+  display: inline-block; 
+  background-color: rgb(142, 142, 142); 
+}  
+
+.button-group-container-misc button {     
+  padding: 40px 15px;     
+  cursor: pointer;     
+  background-color: rgb(118, 111, 111);     
+  color: rgb(250, 250, 250);     
+  border: 3px solid #000000;     
+  margin-right: auto; 
+}  
+
+.button-group-container-misc button:hover {     
+  background-color: #c7c7c7; 
+  color: #000;
+}  
+
+.select-group-container {     
+  border: 2px solid #0a0a0a;     
+  padding: 25px;      
+  padding-left: 35px;     
+  padding-right: 0px;     
+  border-radius: 8px;     
+  box-sizing: border-box;     
+  display: inline-block;     
+  text-align-last:center;     
+  background-color: rgb(142, 142, 142); 
+}  
+
+.select-group-container select {     
+  margin-right: auto;     
+  text-align-last:center;     
+  padding: 10px;     
+  border-radius: 4px;     
+  border: 1px solid #ccc;     
+  width: 80%;     
+  font-size: 25px; 
+}  
+
+.select-group-title-dev {     
+  font-weight: bold;     
+  font-size: 30px; 
+  margin-bottom: 5px;     
+  text-align: center;     
+  display: inline-block;     
+  color: #fbfbfb;     
+  font-family: sans-serif; 
+}  
+
+.timer-group-container {     
+  align-items: center;     
+  justify-content: center;     
+  border: 2px solid #0a0a0a;     
+  padding: 25px;     
+  padding-left: 35px;     
+  padding-right: 0px;     
+  border-radius: 8px;     
+  box-sizing: border-box;     
+  display: inline-block;     
+  text-align-last:center;     
+  background-color: rgb(142, 142, 142); 
 }
 
-.button-group-container-misc button:hover {
-    background-color: #c7c7c7;
+/* ==========================================================================
+   TEIL 2 & TIMER: CONTAINER-KORREKTUREN, SPANS & STRUKTUREN
+   ========================================================================== */
+
+/* KORREKTUR FÜR DIE REVOX-BUTTONS: Hebt die Blockierung durch <p>-Tags im HTML auf */
+.button-group-container-dev p,
+.button-pwr-container-dev p,
+.button-group-container-misc p,
+.timer-group-container p {
+  margin: 0;
+  display: inline;
 }
 
-.select-group-container {
-    border: 2px solid #0a0a0a;
-    padding: 25px;
-
-    padding-left: 35px;
-    padding-right: 0px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: inline-block;
-    text-align-last:center;
-    background-color: rgb(142, 142, 142);
-}
-
-.select-group-container select {
-    margin-right: auto;
-    text-align-last:center;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    width: 80%;
-    font-size: 25px;
-}
-
-.select-group-title-dev {
-    font-weight: bold;
-    font-size: 30px; /* Schriftgröße des Titels */
-    margin-bottom: 5px;
-    text-align: center;
-    display: inline-block;
-    color: #fbfbfb;
-    font-family: sans-serif;
-}
-
+/* Der Hauptcontainer nutzt 100% Breite und zentriert seinen Inhalt */
 .timer-group-container {
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #0a0a0a;
-    padding: 5px;
-    padding: 25px;
-    padding-left: 35px;
-    padding-right: 0px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: inline-block;
-    text-align-last:center;
-    background-color: rgb(142, 142, 142);
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;   /* Nutzt die volle Breite des Tabs */
+  text-align: center;       /* Zentriert alle inneren Elemente */
+  padding: 10px 0;
 }
 
-.timer-group-container select {
-    margin-right: auto;
-    text-align-last:center;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    width: 285px;
-    font-size: 25px;
+/* Einheitliche Labels und Legenden */
+.timer-group-container label,
+.timer-group-container legend {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 25px;         /* Vergrößert, passend zu deinen Buttons */
+  color: #fbfbfb; 
+  font-family: sans-serif;
 }
 
-.timer-group-container checkbox-group {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-right: auto;
-    text-align-last:center;
-    padding: 0px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    width: 285px;
-    font-size: 20px;
+/* Alle Auswahllisten, Texteingaben und Zeitfelder absolut identisch breit und zentriert */
+.timer-group-container select,
+.timer-group-container input.b203_event {
+  display: block;
+  margin: 0 auto 10px auto !important; 
+  text-align: center;
+  text-align-last: center;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 285px;             /* Deine exakte Wunschbreite */
+  font-size: 25px;
+  box-sizing: border-box;   /* Garantiert, dass Padding das Feld nicht breiter macht */
+}
+
+/* Die Wochentag- und Ausgang-Checkbox-Gruppen */
+.timer-group-container .checkbox-group { 
+  display: flex;
+  flex-wrap: wrap;          /* Erlaubt flexiblen Umbruch der Tage */
+  justify-content: center;  /* Zentriert die Checkboxen in der Box */
+  align-items: center;
+  gap: 12px;                /* Abstand zwischen den einzelnen Checkboxen */
+  margin: 0 auto 10px auto !important; 
+  padding: 15px;            /* Mehr Innenabstand, damit nichts anstößt */
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 285px;             /* Exakt dieselbe Breite wie die Selects/Inputs */
+  box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.1); 
+}
+
+/* Einzelne Checkbox-Labels innerhalb der Boxen */
+.timer-group-container .checkbox-group label {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  width: auto !important;
+  margin: 0 !important;
+  font-size: 20px;
+  font-weight: normal;
+  white-space: nowrap;
+  color: #fbfbfb;
+}
+
+/* Hinweistext für die CD/Tuner-Wahl kompakt zentrieren */
+.timer-group-container .hinweistext {
+  text-align: left;
+  display: inline-block;
+  font-size: 18px;
+  color: #ccc;
+  margin: 5px auto 10px auto;
+  line-height: 1.4;
+  font-family: sans-serif;
+}
+.timer-group-container .form-group .container {
+  text-align: center;
+}
+
+/* Buttons zentrieren und die Floats deines Frameworks überschreiben */
+.timer-group-container .set_event_button {
+  float: none !important;      /* Verhindert das Links-Kleben */
+  display: inline-block;       /* Erlaubt das Nebeneinanderstehen basierend auf span7 */
+  margin: 6px 4px !important;  /* Nutzt das Margin deiner restlichen Buttons */
+  box-sizing: border-box;
 }
 
 .timer-group-title-dev {
-    font-weight: bold;
-    font-size: 30px; /* Schriftgröße des Titels */
-    margin-bottom: 5px;
-    text-align: center;
-    display: inline-block;
-    color: #fbfbfb;
-    font-family: sans-serif;
+  font-weight: bold;
+  font-size: 30px; 
+  margin-bottom: 5px;
+  text-align: center;
+  display: inline-block;
+  color: #fbfbfb;
+  font-family: sans-serif;
 }
 
-.span1 {
- /*width:126px;*/
- width: 23%
-}
-
-.span2 {
- width:100%;
-}
-
-.span3 {
- /*width:126px;*/
- width: 18%
-}
-
-.span4 {
- width:24.0%;
-}
-
-.span6 {
-  width:47%;
-}
-
-.span7 {
-  width:29%;
-}
-
-.span8 {
-  width:80%;
-}
-
-.span12 {
- width:90%;
-}
+/* Prozentuale Breiten-Klassen */
+.span1 { width: 23%; }
+.span2 { width: 100%; }
+.span3 { width: 18%; }
+.span4 { width: 24.0%; }
+.span6 { width: 47%; }
+.span7 { width: 29%; }
+.span8 { width: 80%; }
+.span12 { width: 90%; }
 
 .button {
   border:2px solid #333;
@@ -251,7 +347,6 @@ label {
   border-radius: 8px;
   background-color: #eee;
 }
-
 
 .text {
   border:4px solid #333;
@@ -329,44 +424,33 @@ label {
   font-weight:bold;
   color: #fafafa;
   border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  float: left;
 }
 
-a {
-  color: #333;
-}
-
-.pwr_color {
-  background-color: #e01010;
-}
-
-.load_color{
-  background-color: #10e01a;
-}
-
-.channel_btn {
- background-color: rgb(142, 142, 142);
-}
+/* ==========================================================================
+   TEIL 3: SCHALTER, TABS & FORMULAR-INPUTS
+   ========================================================================== */
+a { color: #333; }
+.pwr_color { background-color: #e01010; }
+.load_color{ background-color: #10e01a; }
+.channel_btn { background-color: rgb(142, 142, 142); }
 
 .switch {
   position: relative;
-  top: 0px;
-  left: 42%;
-  display: flex;
-  width: 100px;
-  height: 37px;
+  margin: 15px auto !important; /* Zentriert den Schalter perfekt in der Mitte */
+  float: none !important;       /* Hebt eventuelle Links-Floats auf */
+  width: 100px;                 /* Gewünschte Breite */
+  height: 47px;                 
 }
 
-.switch input {
-  display: none;
-}
+.switch input { display: none; }
 
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-color: #ca2222;
   -webkit-transition: .4s;
   transition: .4s;
@@ -375,234 +459,178 @@ a {
 .slider:before {
   position: absolute;
   content: "";
-  height: 43px;
-  width: 43px;
-  left: 12px;
-  bottom: 2px;
+  height: 43px; width: 43px; left: 12px; bottom: 2px;
   background-color: white;
   -webkit-transition: .4s;
   transition: .4s;
 }
 
-input:checked + .slider {
-  background-color: #2ab934;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
-}
-
+input:checked + .slider { background-color: #2ab934; }
+input:focus + .slider { box-shadow: 0 0 1px #2196F3; }
 input:checked + .slider:before {
   -webkit-transform: translateX(40px);
   -ms-transform: translateX(40px);
   transform: translateX(40px);
 }
 
-input:checked + .slider .on {
-  display: block;
-}
+input:checked + .slider .on { display: block; }
+input:checked + .slider .off { display: none; }
 
-input:checked + .slider .off {
-  display: none;
-}
-
-
-
-.on {
-  display: none;
-}
-
-.on,
-.off {
+.on { display: none; }
+.on, .off {
   color: white;
   position: absolute;
   transform: translate(-50%, -50%);
-  top: 25%;
-  left: 25%;
+  top: 25%; left: 25%;
   font-size: 20px;
   font-family: Verdana, sans-serif;
 }
+.on { top: 22px; }
+.off { left: auto; right: -5px; top: 20px; }
 
-.on {
-  top: 22px;
-}
+.slider.round { border-radius: 10px; }
+.slider.round:before { border-radius: 50%; }
 
-.off {
-  left: auto;
-  right: -5px;
-  top: 20px;
-}
-
-
-/* Rounded sliders */
-
-.slider.round {
-  border-radius: 10px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-
-/* Style the tab */
 .tab {
-    display: flex;          /* Aktiviert das flexible Layout */
-    flex-wrap: wrap;        /* WICHTIG: Erlaubt automatischen Zeilenumbruch, falls der Bildschirm zu schmal ist */
-    background-color: #f1f1f1;
-    border: 1px solid #ccc;
+  display: flex;          
+  flex-wrap: wrap;        
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
 }
 
-/* Style the buttons that are used to open the tab content */
 .tab button {
   font-size: 20px;
   font-weight: bold;
   background-color: inherit;
-  float: left;
   border: none;
   outline: none;
   cursor: pointer;
   padding: 14px 16px;
   transition: 0.3s;
-}
-
-/* Style the tab */
-.tab {
-    display: flex;          /* Aktiviert das flexible Layout */
-    flex-wrap: wrap;        /* Erlaubt automatischen Zeilenumbruch */
-    background-color: #f1f1f1;
-    border: 1px solid #ccc;
-}
-
-/* Style the buttons that are used to open the tab content */
-.tab button {
-  font-size: 20px;
-  font-weight: bold;
-  background-color: inherit;
-  /* float: left; <-- ENTFERNT, da es Flexbox zerstört */
-  border: none;
-  outline: none;
-  cursor: pointer;
-  padding: 14px 16px;
-  transition: 0.3s;
-  flex-grow: 1;            /* Macht alle Buttons gleichmäßig breit */
+  flex-grow: 1;            
   text-align: center;
 }
 
-/* Change background color of buttons on hover */
-.tab button:hover {
-  background-color: #ddd;
-}
+.tab button:hover { background-color: #ddd; }
+.tab button.active { background-color: #ccc; }
 
-/* Create an active/current tablink class */
-.tab button.active {
-  background-color: #ccc;
-}
-
-/* Style the tab content */
 .tabcontent {
-  display: none;           /* Standardmäßig alle ausblenden */
+  display: none;           
   padding: 6px 12px;
   border: 1px solid #ccc;
   border-top: none;
-  animation: fadeEffect 1s; /* Fading effect takes 1 second */
+  animation: fadeEffect 1s; 
+  clear: both; /* Verhindert das Hineinfließen von alten Floats */
 }
 
-/* Go from zero to full opacity */
-@keyframes fadeEffect {
-  from {opacity: 0;}
-  to {opacity: 1;}
-}
+@keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
 
 input[type=text], textarea {
   font-size: 20px;
   font-weight: bold;
-  width: 50%;                /* Breite an den Container anpassen */
-  padding: 10px;              /* Innenabstand für mehr Platz */
-  margin: 0px 0;              /* Außenabstand (Abstand zueinander) */
+  width: 50%;                
+  padding: 10px;              
+  margin: 0px 0;              
   display: inline-block;
-  border: 1px solid #ccc;     /* Heller Rahmen */
-  border-radius: 4px;         /* Abgerundete Ecken */
-  box-sizing: border-box;     /* Wichtig: Padding einberechnen */
-  font-family: inherit;       /* Schriftart vom Body übernehmen */
+  border: 1px solid #ccc;     
+  border-radius: 4px;         
+  box-sizing: border-box;     
+  font-family: inherit;       
 }
 
-input[type="time"] {
-    padding: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    border: 2px solid #ccc;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    color: #333;
-    outline: none;
+input[type="time"], input[type="date"] {
+  padding: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  color: #333;
+  outline: none;
 }
 
 /* Styling bei Fokus */
-input[type="time"]:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0,123,255,0.5);
+input[type="time"]:focus, input[type="date"]:focus { 
+  border-color: #007bff; 
+  box-shadow: 0 0 5px rgba(0,123,255,0.5); 
 }
 
 /* Styling für ungültige Eingaben (außerhalb min/max) */
-input[type="time"]:invalid {
-    border-color: red;
+input[type="time"]:invalid, input[type="date"]:invalid { 
+  border-color: red; 
 }
 
-input[type="date"] {
-    padding: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    border: 2px solid #ccc;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    color: #333;
-    outline: none;
+select:disabled, input:disabled {
+  color: black; 
+  background-color: white; 
+  opacity: 1; 
+  cursor: not-allowed; 
 }
 
-input[type="date"]:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0,123,255,0.5);
+/* ==========================================================================
+   TIMER-TAB: WOCHENTAGE & AUSGÄNGE FIX
+   ========================================================================== */
+
+/* Spricht gezielt die beiden Boxen im Timer-Tab an */
+#weekday.checkbox-group,
+#output.checkbox-group {
+  display: flex !important;    /* Aktiviert die Flexbox-Ausrichtung */
+  flex-direction: row !important; /* Erzwingt die Anordnung in einer Zeile */
+  flex-wrap: nowrap !important;   /* Verbietet jeglichen Zeilenumbruch */
+  justify-content: center;
+  align-items: center;
+  gap: 10px;                   /* Kompakter Abstand zwischen den Tagen */
+  border: 4px solid #333; 
+  padding: 10px 15px;    
+  border-radius: 8px;    
+  margin: 15px auto !important; /* Zentriert die Boxen mittig im grauen Container */
+  background-color: #fff; 
+  box-sizing: border-box;
+  width: 560px !important;     /* REINE FEHLERBEREINUNG: Feste Breite erzwungen, damit der Rahmen groß genug ist */
+  max-width: 100%;
 }
 
-/* Styling für ungültige Eingaben (außerhalb min/max) */
-input[type="date"]:invalid {
-    border-color: red;
+/* Verkleinert die Schrift im weißen Kasten radikal gegen die vererbten 50px */
+#weekday.checkbox-group label,
+#output.checkbox-group label { 
+  cursor: pointer; 
+  font-size: 20px !important;  /* ERZWINGT eine kleine, passende Schriftgröße */
+  color: #000 !important;      
+  white-space: nowrap !important;   
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+  font-family: sans-serif;
 }
 
-select:disabled {
-    /* Verhindert das Standard-Grau */
-    color: black; /* Oder eine andere Farbe */
-    background-color: white; /* Oder eine andere Farbe */
-    opacity: 1; /* Überschreibt die Blässe bei manchen Browsern */
-    cursor: not-allowed; /* Zeigt, dass es nicht klickbar ist */
+/* Verkleinert und zentriert die Checkbox-Häkchen selbst */
+#weekday.checkbox-group input[type='checkbox'],
+#output.checkbox-group input[type='checkbox'] { 
+  vertical-align: middle; 
+  margin: 0;
+  width: 18px !important;      /* Passende Größe für das Häkchen-Feld */
+  height: 18px !important;
+  cursor: pointer;
 }
 
-input:disabled {
-    /* Verhindert das Standard-Grau */
-    color: black; /* Oder eine andere Farbe */
-    background-color: white; /* Oder eine andere Farbe */
-    opacity: 1; /* Überschreibt die Blässe bei manchen Browsern */
-    cursor: not-allowed; /* Zeigt, dass es nicht klickbar ist */
+/* Spezifische Zentrierung für die Legenden (Wochentag / Ausgang) */
+legend { 
+  font-size: 24px !important;  /* Überschaubare Größe für die Überschriften */
+  font-weight: bold; 
+  color: #fbfbfb; 
+  text-align: center;    
+  display: block;        
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 5px;
 }
 
-.checkbox-group {
-        display: flex;
-        justify-content: center;
-        gap: 15px; /* Abstand horizontal */
-        flex-wrap: wrap; /* Zeilenumbruch bei kleinen Bildschirmen */
-        border: 4px solid #333; /* Rahmen: Breite, Stil, Farbe */
-        padding: 10px;         /* Innenabstand */
-        border-radius: 8px;    /* Abgerundete Ecken */
-
-}
-
-.checkbox-group label {
-    cursor: pointer;
-}
-
+/* ==========================================================================
+   RESTLICHE FORMULAR-ELEMENTE & SLIDER
+   ========================================================================== */
 .hinweistext {
-  max-width: 300px; /* Breite begrenzen, damit Text umbricht */
+  max-width: 300px; 
   font-size: 14px;
   font-weight: bold;
   text-align: left;
@@ -611,28 +639,9 @@ input:disabled {
   line-height: 1.4;
 }
 
-.form-group {
-  margin-bottom: 20px;
-  font-family: sans-serif;
-}
-
-.container {
-    display: flex; /* Flexbox aktivieren */
-    align-items: center; /* Vertikal zentrieren */
-    gap: 0px; /* Abstand zwischen Button und Text */
-}
-
-.label-top {
-  display: block; /* Zwingt das Label in eine eigene Zeile */
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-input[type='checkbox'] {
-    vertical-align: middle;
-    margin-top: -2px; /* Oder '0', je nach Bedarf anpassen */
-    margin-right: 0px; /* Abstand zwischen Checkbox und Label */
-}
+.form-group { margin-bottom: 20px; font-family: sans-serif; }
+.container { display: flex; align-items: center; gap: 0px; }
+.label-top { display: block; font-weight: bold; margin-bottom: 5px; }
 
 .slide {
   -webkit-appearance: none;
@@ -646,119 +655,367 @@ input[type='checkbox'] {
   transition: opacity .2s;
 }
 
-.slide::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 25px;
-  height: 25px;
+.slide::-webkit-slider-thumb { 
+  -webkit-appearance: none; 
+  appearance: none; 
+  width: 25px; 
+  height: 25px; 
   border-radius: 50%; 
-  background: #04AA6D;
-  cursor: pointer;
+  background: #04AA6D; 
+  cursor: pointer; 
 }
 
-.slide::-moz-range-thumb {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #04AA6D;
-  cursor: pointer;
+.slide::-moz-range-thumb { 
+  width: 25px; 
+  height: 25px; 
+  border-radius: 50%; 
+  background: #04AA6D; 
+  cursor: pointer; 
 }
 
-.slide-label {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
+.slide-label { 
+  font-size: 18px; 
+  font-weight: bold; 
+  color: #333; 
 }
 
-legend {
-  font-size: 1.2rem; /* Passen Sie den Wert nach Bedarf an */
-  font-weight: bold; /* Optional: Text fett machen */
-}
-
+/* ==========================================================================
+   TEIL 5: TABELLEN-STILE & SPEZIFIKATIONEN
+   ========================================================================== */
 table {
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
-  }
+  clear: both;
+}
 
-th, td {
-  border: 1px solid #ddd;
-  font-size: 15px;
-  padding: 8px;
+th, td { 
+  border: 1px solid #ddd; 
+  font-size: 15px; 
+  padding: 8px; 
+  text-align: center; 
+}
+
+th { 
+  background-color: #f2f2f2; 
+  color: #000; 
+}
+
+.portselect {
+  position: relative;
+  width: 180px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  background: #292929;
   text-align: center;
-  }
-
-th {
-  background-color: #f2f2f2;
-  }
-
-.portselect{
-    position: relative;
-    width: 180px;
-    height: 40px;
-    border-radius: 10px;
-    border: none;
-    color: #fff;
-    background: #292929;
-    text-align: center;
-    padding: 0 15px;
-    font-size: 20px;
-    cursor: pointer;
+  padding: 0 15px;
+  font-size: 20px;
+  cursor: pointer;
 }
 
-.portselect::after{
-    content: '';
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
+.portselect::after {
+  content: ''; 
+  position: absolute; 
+  right: 20px; top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 6px; height: 6px; 
+  border-right: 2px solid #fff; 
+  border-bottom: 2px solid #fff;
 }
 
-.portselect:hover{
-    background: #222222;
+.portselect:hover { 
+  background: #222222; 
 }
 
-.portselect.active{
-    background: #222222;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
-/* Ändert die Breite aller Textfelder mit dieser Klasse */
-input.portselect[type="text"] {
-  width: 200px; /* Hier gewünschte Breite in Pixeln oder Prozent (z.B. 100%) eintragen */
+.portselect.active { 
+  background: #222222; 
+  border-bottom-left-radius: 0; 
+  border-bottom-right-radius: 0; 
 }
 
-tbody td {
-  text-align: center;
-  vertical-align: middle; /* Zentriert die Elemente zusätzlich vertikal */
+input.portselect[type="text"] { 
+  width: 200px; 
 }
 
-#PortConfig table th {
-  text-align: center;
-  vertical-align: middle; /* Richtet den Text auch vertikal mittig aus */
+tbody td { 
+  text-align: center; 
+  vertical-align: middle; 
 }
 
-/* Macht die Eingabefelder in der Konfigurationstabelle breiter und lesbarer */
+#PortConfig table th { 
+  text-align: center; 
+  vertical-align: middle; 
+}
+
 .table-input-field {
-    display: block;             /* Macht das Eingabefeld zu einem Block-Element */
-    width: 100% !important;     /* Überschreibt alle versteckten Framework-Standardbreiten */
-    max-width: 100% !important; /* Verhindert jegliche Deckelung der Breite */
-    text-align: center;         /* Zentriert den geschriebenen Text in der Box */
-    padding: 6px 8px;           /* Angenehmer Innenabstand für den Text */
-    font-family: monospace;     /* Übersichtliche Festbreitenschrift */
-    box-sizing: border-box;     /* Verhindert, dass das Feld durch Padding aus der Spalte ragt */
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  display: block;             
+  width: 100% !important;     
+  max-width: 100% !important; 
+  text-align: center;         
+  padding: 6px 8px;           
+  font-family: monospace;     
+  box-sizing: border-box;     
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-/* Optional: Gibt der gesamten Spalte im Tabellenkopf etwas mehr Raum */
-#Config th:nth-child(2) {
-    width: 25%;                 /* Reserviert 25% der Tabellenbreite für die IR-Codes */
+#Config th:nth-child(2) { width: 25%; }
+#Config th:nth-child(5) { width: 20%; }
+
+/* Zentriert Inputs, Select-Boxen und Labels */
+label, 
+input.b203_event, 
+select, 
+.wochentag_box,   /* Tausche dies ggf. gegen deine echte Klasse/ID aus */
+.ziel_box {       /* Tausche dies ggf. gegen deine echte Klasse/ID aus */
+    display: block;
+    width: 220px;        /* Dieselbe feste Breite für einen einheitlichen Look */
+    margin: 0 auto 12px auto; /* Zentriert horizontal und gibt 12px Abstand nach unten */
+    box-sizing: border-box;
 }
-#Config th:nth-child(5) {
-    width: 20%;                 /* Reserviert 20% für die BiBus-Kommandos */
+
+/* Zentriert den Text in den Labels */
+label {
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+/* Zentriert die Absätze, in denen deine Buttons liegen */
+p {
+    text-align: center;
+    clear: both;
+    margin-bottom: 10px;
+}
+
+/* Erzeugt den Rand oben und unten für den gesamten Power-Container */
+.button-pwr-container-dev {
+  display: block;
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;
+  margin-top: 25px !important;    /* Rand nach oben zum vorherigen Element */
+  margin-bottom: 25px !important; /* Rand nach unten zum nächsten Element */
+  text-align: center;
+}
+
+/* Hebt das "display: inline" der Absätze NUR für diesen Container wieder auf */
+.button-pwr-container-dev p {
+  display: block !important;      /* Macht aus den <p> wieder echte Zeilenumbrüche */
+  margin: 0;
+  padding: 0;
+}
+
+/* Zentriert die ON/OFF-Buttons und sorgt für Abstand untereinander */
+.button-pwr-container-dev .power_btn {
+  float: none !important;         /* Entfernt das linksbündige Floaten */
+  display: block !important;      /* Setzt die Buttons untereinander */
+  margin: 15px auto !important;   /* 15px Abstand zwischen den Buttons und perfekt zentriert */
+  box-sizing: border-box;
+}
+
+/* Styling für die neuen Speicher-Button-Container unter den Tabellen */
+.button-save-container {
+  display: block;
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;
+  margin-top: 30px !important;    /* Deutlicher Abstand nach unten zur Tabelle */
+  margin-bottom: 20px !important;
+  text-align: center;             /* Zentriert den Button im Container */
+}
+
+.button-save-container .set_button {
+  float: none !important;         /* Hebt das Standard-Float deines Frameworks auf */
+  display: inline-block !important; /* Lässt den Button kompakt in der Mitte stehen */
+  margin: 0 auto !important;
+}
+
+/* Kompakter Tabellenkopf für die Konfiguration */
+#Config table thead th, 
+#PortConfig table thead th {
+    padding: 8px 4px !important;    /* Verringert den Abstand oben/unten drastisch */
+    line-height: 1.2 !important;    /* Rückt zweizeiligen Text enger zusammen */
+    font-size: 16px;                 /* Passt die Schriftgröße an, falls sie zu wuchtig war */
+    vertical-align: middle;          /* Zentriert den Text sauber in der verkleinerten Höhe */
+    text-align: center;
+}
+
+/* Container nutzt die volle Breite deines Layouts */
+.wifi-container {
+    float: none !important;
+    clear: both !important;
+    width: 100% !important;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Überschrift enger an das Formular rücken */
+.wifi-container h4 {
+    margin-bottom: 20px;
+    font-size: 26px;
+    color: #fbfbfb;
+}
+
+/* Kompakte Labels für das WLAN-Formular */
+.wifi-form label {
+    display: block !important;
+    text-align: center;
+    margin-top: 15px !important;
+    margin-bottom: 6px !important;
+    font-size: 22px;
+    font-weight: bold;
+    color: #fbfbfb;
+    white-space: nowrap;           /* Zwingt den Text absolut in eine einzige Zeile */
+}
+
+/* Breitere Eingabefelder für SSID und Passwort */
+.wifi-form input[type="text"] {
+    display: block;
+    margin: 0 auto 15px auto !important; 
+    padding: 10px;
+    width: 400px;                  /* Erhöht von 285px auf 400px für mehr Platz */
+    font-size: 25px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+/* Den Absende-Button an die neue Breite anpassen */
+.wifi-submit-btn {
+    display: block;
+    float: none !important;
+    margin: 25px auto 0 auto !important;
+    padding: 20px 20px;
+    font-size: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 2px solid #333;
+    background-color: #eee;
+    color: #000;
+    width: 400px;                  /* Bündig mit den breiteren Eingabefeldern */
+    box-sizing: border-box;
+}
+
+/* Verhindert den ungewollten Zeilenumbruch im Hinweistext */
+.timer-group-container .hinweistext {
+  display: block !important;       /* Nutzt die volle Breite des Containers */
+  width: 100% !important;
+  text-align: center;              /* Zentriert den gesamten Block */
+  white-space: nowrap;             /* Verbietet dem Browser das Umbrechen der Zeilen */
+  margin: 10px auto 5px auto !important; /* Knapper Abstand nach unten (5px) */
+  font-size: 18px;
+  color: #ccc;
+  line-height: 1.3;
+}
+
+/* Verringert den Abstand über dem Eingabefeld für die Ergänzung */
+.timer-group-container #sourceadd {
+  margin-top: 0 !important;        /* Zieht das Feld nah an den Hinweistext heran */
+}
+
+/* Zwingt die Überschrift in eine einzige Zeile */
+.timer-group-container .label-top {
+  display: block !important;
+  width: 100% !important;
+  white-space: nowrap !important; /* Verhindert den Zeilenumbruch komplett */
+  text-align: center !important;  /* Hält den Text exakt in der Mitte */
+  margin-bottom: 8px !important;  /* Angenehmer Abstand zum nachfolgenden Text */
+}
+
+/* EIGENES DESIGN FÜR DIE SYSTEM-BUTTONS (Exit, Time, Event...) */
+.system-group-container {
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;   /* Nutzt die volle Breite des Tabs */
+  text-align: center;       /* Zentriert den Inhalt */
+  padding: 10px 0;
+  box-sizing: border-box;
+}
+
+/* Hebt die Blockierung durch <p> auf und lässt je zwei Buttons nebeneinander fließen */
+.system-group-container p {
+  display: inline !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* Holt das ursprüngliche Button-Design zurück, richtet es aber mittig aus */
+.system-group-container .button {
+  float: none !important;        /* Verhindert das harte Links-Kleben */
+  display: inline-block !important; /* Erlaubt das Nebeneinanderstehen basierend auf span6 */
+  box-sizing: border-box;
+  margin: 6px 4px !important;    /* Gleichmäßiger Abstand um jeden Button */
+}
+
+/* Sorgt dafür, dass die span6-Breite (47%) perfekt ausgemittelt in der Reihe steht */
+.system-group-container .button.span6 {
+  width: 45% !important;         /* Etwas reduziert von 47%, damit 2 Buttons + Margin perfekt in eine Zeile passen */
+  max-width: 500px;
+}
+
+/* Zentriert den Slider-Bereich im Container und setzt die Schrift auf Dunkel */
+.system-group-container label.slide-label {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    text-align: center !important;
+    font-size: 25px !important;
+    font-weight: bold !important;
+    
+    /* HIER GEÄNDERT: Von Weiß auf ein kräftiges Dunkelgrau/Schwarz umgestellt */
+    color: #222222 !important;       
+    
+    font-family: sans-serif;
+    margin-top: 30px !important;     /* Abstand nach oben zu den Buttons */
+    margin-bottom: 12px !important;    /* Abstand nach unten zur Schiene */
+}
+
+/* Grund-Styling des Sliders */
+.system-group-container input[type="range"].slide {
+    -webkit-appearance: none; /* Deaktiviert das Standard-Browser-Design */
+    appearance: none;
+    display: block;
+    width: 90% !important;      /* Bündig mit den span6/span12 Buttons */
+    max-width: 1000px;
+    height: 12px;               /* Dicke der Schiene */
+    background: #444;           /* Dunkelgrauer Hintergrund */
+    border-radius: 6px;
+    margin: 15px auto 25px auto !important; /* Perfekt zentriert */
+    outline: none;
+    border: 2px solid #000;
+}
+
+/* Der runde Knopf für Chrome, Safari, Edge, Opera */
+.system-group-container input[type="range"].slide::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 36px;                /* Großer, griffiger Knopf */
+    height: 36px;
+    border-radius: 50%;
+    background: #1e25ff;        /* Passend zu deinem blauen Button-Hover! */
+    border: 3px solid #000;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+/* Der runde Knopf für Firefox */
+.system-group-container input[type="range"].slide::-moz-range-thumb {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #1e25ff;
+    border: 3px solid #000;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+/* Hover-Effekt für den Knopf */
+.system-group-container input[type="range"].slide::-webkit-slider-thumb:hover {
+    background: #10e01a;        /* Wird beim Anfassen grün (wie deine load_color) */
+}
+.system-group-container input[type="range"].slide::-moz-range-thumb:hover {
+    background: #10e01a;
 }

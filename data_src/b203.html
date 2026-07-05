@@ -36,65 +36,70 @@
 
 		<!-- WIFI Config -->
 		<div id="WIFIConfig" class="tabcontent">
-			<div class='select-group-container span2'>
-			<h4>ESP32 WLAN Konfiguration</h4>
-  				<form action="/save" method="POST">
-    			<label>SSID (WLAN-Name):</label><br>
-    			<input type="text" id="ssid" name="ssid"><br><br>
-	    		<label>Passwort:</label><br>
-    			<input type="text" id="password" name="password"><br><br>
-        		<button type="submit">Speichern & Neustart</button>
-  				</form>
-			</div>
+    		<div class='select-group-container span2 wifi-container'>
+        		<h4>ESP32 WLAN Konfiguration</h4>
+        		<form action="/save" method="POST" class="wifi-form">
+            		<label for="ssid">SSID (WLAN-Name):</label>
+            		<input type="text" id="ssid" name="ssid">
+            
+            		<label for="password">Passwort:</label>
+            		<input type="text" id="password" name="password">
+            
+            		<button type="submit" class="wifi-submit-btn">Speichern & Neustart</button>
+        		</form>
+    		</div>
 		</div>
 
         <!-- Command Config -->
 		<div id="Config" class="tabcontent">
-    	<table>
-    	<thead>
-        	<tr>
-            	<th style="width: 15%;">Button ID</th>
-            	<th style="width: 35%;">IR-Reception Code<br>(Hex/Dez)</th>
-            	<th style="width: 15%;">Flag<br>(Serial)</th>
-            	<th style="width: 15%;">BiBus<br>Active</th> 
-            	<th style="width: 20%;">BiBus Command<br>(Direct hex)</th> 
-        	</tr>
-    	</thead>
-    	<tbody id="configTable">
-        	<!-- Wird dynamisch durch JS befüllt -->
-    	</tbody>
-		</table>
-    	<div class='button-pwr-container-dev span2'>
-        	<button type="button" name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
-    	</div>
+    		<table>
+        		<thead>
+            		<tr>
+            		    <th style="width: 15%;">Button ID</th>
+            		    <th style="width: 35%;">IR-Reception Code<br>(Hex/Dez)</th>
+            		    <th style="width: 15%;">Flag<br>(Serial)</th>
+            		    <th style="width: 15%;">BiBus<br>Active</th> 
+            		    <th style="width: 20%;">BiBus Command<br>(Direct hex)</th> 
+            		</tr>
+        		</thead>
+        		<tbody id="configTable">
+            		<!-- Wird dynamisch durch JS befüllt -->
+        		</tbody>
+    		</table> <!-- DIESES SCHLIESSENDE TAG FEHLTE! -->
+
+		    <!-- Eigene Klasse "button-save-container" statt "button-pwr-container" -->
+    		<div class='button-save-container span2'>
+        		<button type="button" name='setConf' id='b203setconf' class='set_button span12' onclick="saveConfig()">Einstellungen Speichern</button>
+    		</div>
 		</div>
 
 		<!-- Port Config -->
 		<div id="PortConfig" class="tabcontent">
-
-		<h4>Revox B203<br>Port Konfiguration</h4>
-		<div class='select-group-container span2'>
-		<label for="change">Auswahl: Verst&auml;rker / Receiver</label>
-		<select id="change" name="select" onchange="switchConfiguration(this.value)">
-  			<!-- Wird dynamisch durch JavaScript befüllt -->
-		</select>
-		</div>
-  		<table>
-    		<thead>
-      		<tr>
-				<th>Ger&auml;t</th>
-        		<th>Description</th>
-        		<th>Port (Select)</th>
-        		<th>Feedback</th>
-      		</tr>
-    		</thead>
-    		<tbody id="table-body"></tbody>
-  		</table>
-  		<br>
-  		<div class='button-pwr-container-dev span2'>
-  		<button type="button" name='setPortConf' id='b203setport' class='set_button span12' onclick="saveData()">Einstellungen Speichern</button>
-  		</div>
-					
+		    <h4>Revox B203<br>Port Konfiguration</h4>
+		    <div class='select-group-container span2'>
+        		<label for="change">Auswahl: Verst&auml;rker / Receiver</label>
+        		<select id="change" name="select" onchange="switchConfiguration(this.value)">
+            		<!-- Wird dynamisch durch JavaScript befüllt -->
+        		</select>
+    		</div>
+    
+    		<table>
+        		<thead>
+            		<tr>
+            		    <th>Ger&auml;t</th>
+            		    <th>Description</th>
+            		    <th>Port (Select)</th>
+            		    <th>Feedback</th>
+            		</tr>
+        		</thead>
+        		<tbody id="table-body"></tbody>
+    		</table>
+    		<br>
+    
+		    <!-- Eigene Klasse "button-save-container" statt "button-pwr-container" -->
+    		<div class='button-save-container span2'>
+    		    <button type="button" name='setPortConf' id='b203setport' class='set_button span12' onclick="saveData()">Einstellungen Speichern</button>
+    		</div>
 		</div>
 
 		<!-- Control Tab -->
@@ -104,7 +109,7 @@
 			<p><button type="button" name='button' id='b203poweroff' class='power_btn span12 pwr_color'>OFF</button></p>
 		</div>
 
-		<div class='button-group-container-dev span2'>
+		<div class='system-group-container span2'>
 			<p><button type="button" name='button' id='b203exit' class='button span6'>Exit</button></p>
 			<p><button type="button" name='button' id='b203time' class='button span6'>Time</button></p>
 			<p><button type="button" name='button' id='b203event' class='button span6'>Event</button></p>
@@ -246,12 +251,13 @@
 			<div class="checkbox-group" id="output">
   			<label><input type="checkbox" name="out" value="outTape1">Tape 1</label>
 			<label><input type="checkbox" name="out" value="outTape2">Tape 2</label>
-			<label><input type="checkbox" name="out" value="outLSA">Lautsprecher A</label>
-			<label><input type="checkbox" name="out" value="outLSB">Lautsprecher B</label>
+			<label><input type="checkbox" name="out" value="outLSA">LS A</label>
+			<label><input type="checkbox" name="out" value="outLSB">LS B</label>
 			</div>
-
+			
 			<label for="eventstarttime">Startzeit:</label>
 			<input class="b203_event" type="time" id="eventstarttime" name="select" step="1" value="12:00:00" required>
+
 			<label for="eventstoptime">Stopzeit:</label>
 			<input class="b203_event" type="time" id="eventstoptime" name="select" step="1" value="12:00:00" required>
 

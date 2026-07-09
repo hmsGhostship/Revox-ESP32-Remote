@@ -43,13 +43,12 @@
 #define ENABLE_LOW_POWER 
 
 JsonDocument configDoc;
-bool State = 0;
 bool buttonHold = 0;
 bool getFlag = 0;
 unsigned long previousMillis = 0;
 const long interval = 130;
 char buttonName[18];
-int irid =0;
+int irid = 0;
 String b203Buffer = ""; // Sammelt die einzelnen Zeichen
 String b203data = "";   // Hält die letzte fertige Zeile für den WebSocket bereit
 String pendingWsCommand = "";     // Speichert den verzögerten Befehl
@@ -59,15 +58,15 @@ const int PIN_CTS = 26;
 const int PIN_RTS = 27;
 const int OE_FXMA108 = 0;
 bool Set_OE_FXMA108 = true;
-const char* WificonfigPath = "/wifi_config.json";
-const char* PortConfigPath = "/portconfig.json";
-const char* ConfigPath = "/config.json";
-const char* ssid_ap = "REVOXSETUP";
-const char* password_ap = "esp32revox";
+const char WificonfigPath[] = "/wifi_config.json";
+const char PortConfigPath[] = "/portconfig.json";
+const char ConfigPath[] = "/config.json";
+const char ssid_ap[] = "REVOXSETUP";
+const char password_ap[] = "esp32revox";
 String wifi_ssid = "";
 String wifi_pass = "";
-const char* hostName = "revoxb203"; // Ihr Wunsch-Hostname
-const char* htmlPath;
+const char hostName[] = "revoxb203"; // Ihr Wunsch-Hostname
+String htmlPath = "/amplifier.html";
 
 const int maxPortEntries = 20;               // Maximale RAM-Kapazität des Arrays
 portcnf portArray[maxPortEntries];           // Das feste Speicher-Array im RAM
@@ -486,227 +485,6 @@ void processDirectCommands() {
     }
 }
 
-
-
-/*void processDirectCommands() {
-    // Führt Direktbefehle erst nach 50ms Schutzzeit und bei XON (Ready) aus
-    if (pendingWsCommand.length() > 0 && (millis() - wsWakeupTime >= 50)) {
-        
-        if (!b203ReadyToSend) {
-            Serial.println(F("[LOOP] Direkt-Befehl wartet, da B203 im XOFF-Status ist!"));
-            return; // Funktion sofort verlassen, im nächsten Loop-Durchlauf erneut prüfen
-        }
-
-        Serial.println(F(u8"[LOOP] Takt nach Wakeup stabilisiert. Fuehre Direkt-Befehl aus..."));
-        
-        String msg = pendingWsCommand;
-        pendingWsCommand = ""; // Sofort leeren, damit es nur einmal ausgeführt wird
-        lastActivity = millis(); // Wachbleiben triggern
-        
-        if (msg.startsWith("speakers")) {
-            char b285Speaker[8] = {0}; // Puffer leicht vergrößert für mehr Sicherheit
-            msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b285Speaker);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b285Speaker);
-                }
-            }
-        }
-        else if (msg.startsWith("volSlider")) {
-            char b285Volume[8] = {0}; // Puffer leicht vergrößert
-            msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b285Volume);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b285Volume);
-                }
-            }
-        }
-        else if (msg.startsWith("setup")) {
-            char setupBytes[12] = {0};
-            msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
-            Serial2.print(setupBytes);
-            Serial2.print("\r");
-            Serial.println(setupBytes);
-        }
-        else if (msg.startsWith("getsettings")) {
-            char settingsBytes[8] = {0};
-            msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
-            Serial2.print(settingsBytes);
-            Serial2.print("\r");
-            Serial.println(settingsBytes);
-            if (strcmp(settingsBytes, "0X") == 0) {
-                getFlag = 1;
-            }
-        }
-        else if (msg.startsWith("tape1")) {
-            char b215settingsBytes[6] = {0};
-            msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b215settingsBytes);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b215settingsBytes);
-                    if (strcmp(b215settingsBytes, "X") == 0) {
-                        getFlag = 1;
-                    }
-                }
-            }
-        }
-        else if (msg.startsWith("cdplayer")) {
-            char b226settingsBytes[6] = {0};
-            msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b226settingsBytes);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b226settingsBytes);
-                    if (strcmp(b226settingsBytes, "X") == 0) {
-                        getFlag = 1;
-                    }
-                }
-            }
-        }
-        else if (msg.startsWith("phono")) {
-            char b291settingsBytes[6] = {0};
-            msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b291settingsBytes);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b291settingsBytes);
-                    if (strcmp(b291settingsBytes, "X") == 0) {
-                        getFlag = 1;
-                    }
-                }
-            }
-        }
-        else if (msg.startsWith("receiver")) {
-            char b285settingsBytes[6] = {0};
-            msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
-            
-            for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out);
-                    Serial2.print(b285settingsBytes);
-                    Serial2.print("\r");
-                    Serial.print(portArray[i].out);
-                    Serial.println(b285settingsBytes);
-                    if (strcmp(b285settingsBytes, "X") == 0) {
-                        getFlag = 1;
-                    }
-                }
-            }
-        }
-        else if (msg.startsWith("testEvent")) {
-            char testEventBytes[10] = {0};
-            msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
-            Serial2.print(testEventBytes);
-            Serial2.print("\r");
-            Serial.println(testEventBytes);
-        }
-        else if (msg.startsWith("setDate")) {
-            char setDateBytes[16] = {0};
-            msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
-            Serial2.print(setDateBytes);
-            Serial2.print("\r");
-            Serial.println(setDateBytes);
-        }
-        else if (msg.startsWith("setTime")) {
-            char setTimeBytes[16] = {0};
-            msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
-            Serial2.print(setTimeBytes);
-            Serial2.print("\r");
-            Serial.println(setTimeBytes);
-        }
-        else if (msg.startsWith("setEvent")) {
-            char setEventBytes[40] = {0};
-            msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
-            Serial2.print(setEventBytes);
-            Serial2.print("\r");
-            Serial.println(setEventBytes);
-        }
-        else if (msg.startsWith("callEvent")) {
-            char callEventBytes[10] = {0};
-            msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
-            Serial2.print(callEventBytes);
-            Serial2.print("\r");
-            Serial.println(callEventBytes);
-        }
-        else if (msg.startsWith("delEvent")) {
-            char delEventBytes[10] = {0};
-            msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
-            Serial2.print(delEventBytes);
-            Serial2.print("\r");
-            Serial.println(delEventBytes);
-        }
-        else if (msg.startsWith("toggle")) {
-            String subToggle = msg.substring(6);
-            if (subToggle.startsWith("true")) {
-                Serial2.print("0R0");
-                Serial2.print("\r");
-                Serial.println(F("0R0")); // F-Makro ergänzt
-            } else if (subToggle.startsWith("false")) {
-                Serial2.print("0R1");
-                Serial2.print("\r");
-                Serial.println(F("0R1")); // F-Makro ergänzt
-            }
-        }
-    }
-}
-
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
-  AwsFrameInfo *info = (AwsFrameInfo*)arg;
-  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-    
-    Serial.println(F("[WLAN-AKTIVITAET] WebSocket-Befehl empfangen, CPU wacht auf..."));
-    lastActivity = millis(); // Sofort Schlaf verhindern
-    
-    // KORRIGIERT: Absolut speichersicheres Einlesen
-    String msg((char*)data, len);
-    
-    // Wenn es ein Echtzeit-Button-Pfad ist (Push/Release), direkt hier schalten
-    if (msg.startsWith("button")) {
-      String subMsg = msg.substring(6);
-      if (subMsg.startsWith("Push")) {
-        memset(buttonName, 0, sizeof(buttonName));
-        subMsg.substring(4).toCharArray(buttonName, sizeof(buttonName));
-        buttonHold = 1;
-        wsWakeupTime = millis(); // Zeitstempel für Takt-Stabilisierung im buttonHold-Pfad
-      } else if (subMsg.startsWith("Release")) {
-        buttonHold = 0;
-        lastActivity = millis();
-      }
-    }
-    // ALLES ANDERE (speakers, volSlider, tape1, setup, etc.) geht an die Hauptschleife!
-    // Dadurch greift automatisch Ihre 50ms Schutzzeit und die XON/XOFF Flow-Control.
-    else {
-      pendingWsCommand = msg;
-      wsWakeupTime = millis(); // Zeitstempel für die loop() sichern
-      Serial.print(F("[WS-API] Befehl an Hauptschleife uebergeben: "));
-      Serial.println(pendingWsCommand);
-    }
-  }
-}*/
-
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
@@ -949,6 +727,7 @@ void setupServerRoutes(){
     });
 
     // 4. STATISCHE DATEIEN
+
     server.serveStatic("/css/", LittleFS, "/css/");
     server.serveStatic("/js/", LittleFS, "/js/");
     server.serveStatic("/style.css", LittleFS, "/style.css");
@@ -956,6 +735,7 @@ void setupServerRoutes(){
     server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico");
 
     // Fallback für dynamische JSONs und HTML-Seiten
+
     server.onNotFound([](AsyncWebServerRequest *request) {
       String url = request->url();
 
@@ -1165,9 +945,11 @@ void setup() {
 }
 
 void loop() {
+
   // ==========================================   
   // 0. SYSTEM-STATUS & NETZWERK
   // ==========================================   
+
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) {
       Serial.println(F("[WLAN-WAKEUP]"));
   }
@@ -1182,6 +964,7 @@ void loop() {
   // ==========================================   
   // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
   // ==========================================   
+
   while (Serial2.available() > 0) {
       char inChar = (char)Serial2.read();
 
@@ -1218,12 +1001,14 @@ void loop() {
   // ==========================================
   // 2. + 3. AUSGELAGERTE FUNKTIONS-AUFRUFE
   // ==========================================
+
   processDirectCommands();  // Verarbeitet Web-Direktbefehle (Ehemals Teil 2)
   processButtonPath();     // Verarbeitet Web- & manuelle Buttons (Ehemals Teil 3)
 
   // ==========================================
   // 4. INFRAROT-PFAD (Bleibt hier, da kurz und kompakt)
   // ==========================================
+
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis; 
@@ -1271,6 +1056,7 @@ void loop() {
   // ==========================================
   // 5. DYNAMISCHES SCHLAF-FENSTER
   // ==========================================
+
   if (buttonHold > 0 || Serial2.available() > 0 || b203Buffer.length() > 0) {
       lastActivity = millis(); 
   }

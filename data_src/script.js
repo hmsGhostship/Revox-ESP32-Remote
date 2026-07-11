@@ -610,7 +610,7 @@ function getButton() {
 
       element.classList.add('is-pressed');
 
-      // NEU: Prüft zuerst, ob eine virtuelle data-id hinterlegt ist, sonst nimm die normale ID
+      // Prüft zuerst, ob eine virtuelle data-id hinterlegt ist, sonst nimm die normale ID
       const Id = element.getAttribute('data-id') || element.id; 
 
       if (ws.readyState === WebSocket.OPEN) {
@@ -625,7 +625,7 @@ function getButton() {
 
       element.classList.remove('is-pressed');
 
-      // NEU: Auch hier die data-id bevorzugen, um die ReVox-Hardware korrekt anzusprechen
+      // Auch hier die data-id bevorzugen, um die ReVox-Hardware korrekt anzusprechen
       const Id = element.getAttribute('data-id') || element.id;
       
       const linkElement = element.closest('a') || element;
@@ -684,36 +684,35 @@ function getButton() {
     });
   });
 
-  // ====================================================================
-  // REPARIERT & ENTPRELLT: LOGIK FÜR ALLE EINSTELLUNGS- & TIMER-BUTTONS (.set_button)
+ // ====================================================================
+  // LOGIK FÜR ALLE EINSTELLUNGS-, CONFIG- & TIMER-BUTTONS (.set_button)
   // ====================================================================
   const setButtons = document.querySelectorAll('.set_button:not(.js-bound), .set_event_button:not(.js-bound)');
   
   setButtons.forEach(btn => {
     btn.classList.add('js-bound');
 
-    // Eine lokale Sperre NUR für diesen einen Button, um Doppelklicks abzufangen
     let buttonLocked = false;
 
     const handleSetButtonClick = (element) => {
-      // Wenn der Button gerade arbeitet, blockieren (verhindert Geister-Klicks)
       if (buttonLocked) return;
       buttonLocked = true;
 
       element.classList.add('is-pressed');
       
-      // PRÜFUNG: Hat der Button bereits ein direktes onclick-Attribut im HTML? (z.B. saveData())
+      // 1. PRÜFUNG: Hat der Button bereits ein direktes onclick-Attribut im HTML?
+      // Das gilt für 'b203setport' (saveData) UND 'b203setconf' (saveConfig)!
       const inlineOnClick = element.getAttribute('onclick');
       
       if (inlineOnClick) {
-        console.log(`[Einstellung] Inline-onclick erkannt. Führe aus: ${inlineOnClick}`);
-        // Führt den Code aus dem HTML-Attribut im Kontext dieses Elements aus
-        new Function(inlineOnClick).call(element);
-      } else {
-        // Regulärer Pfad über das Namens-Mapping, falls kein onclick existiert
+        console.log(`[Einstellung] Inline-onclick im HTML erkannt. Überlasse Ausführung dem Browser: ${inlineOnClick}`);
+        // Wir machen hier ABSICHTLICH nichts weiter, da der Browser das im HTML hinterlegte
+        // onclick="saveConfig()" gleich völlig automatisch und sauber ein einzelnes Mal ausführt!
+      } 
+      // 2. REGULÄRER PFAD: Über das Namens-Mapping für Knöpfe OHNE onclick im HTML (z.B. Timer, Uhrzeit)
+      else {
         const functionName = element.getAttribute('name');
         
-        // KORRIGIERTES Namens-Mapping: Passt jetzt exakt zu den 'name'-Attributen im HTML!
         const nameMapping = {
           'setup': 'setb203',
           'getsettings': 'getb203',
@@ -728,14 +727,12 @@ function getButton() {
 
         let targetFunction = nameMapping[functionName] || functionName;
 
-        // Toleranz für Groß-/Kleinschreibung (z.B. calleventb203)
         if (typeof window[targetFunction] !== 'function') {
           if (typeof window[targetFunction.toLowerCase()] === 'function') {
             targetFunction = targetFunction.toLowerCase();
           }
         }
 
-        // Funktion ausführen
         if (typeof window[targetFunction] === 'function') {
           console.log(`[Einstellung] Button ausgeführt: ${targetFunction}()`);
           window[targetFunction](); 
@@ -744,33 +741,27 @@ function getButton() {
         }
       }
 
-      // WICHTIG: Nach 150ms die Sperre aufheben und visuelles Feedback entfernen
       setTimeout(() => {
         element.classList.remove('is-pressed');
-        buttonLocked = false; // Gibt den Knopf für den NÄCHSTEN Druck wieder frei!
+        buttonLocked = false; 
       }, 150);
     };
 
-    // Nutze 'mousedown' für PCs und 'touchstart' für Handys, um Konflikte zu vermeiden
     btn.addEventListener('touchstart', (event) => {
-      event.preventDefault(); // Verhindert, dass danach noch ein "click"-Event feuert!
+      // WICHTIG: Bei Buttons mit nativem HTML-onclick dürfen wir preventDefault() NICHT nutzen,
+      // da Smartphones sonst das eigentliche "onclick" im HTML unterdrücken würden!
+      if (!btn.getAttribute('onclick')) {
+        event.preventDefault(); 
+      }
       handleSetButtonClick(event.currentTarget);
-    }, { passive: false });
+    }, { passive: true }); // Auf true geändert, damit der Browser flüssig bleibt
 
     btn.addEventListener('mousedown', (event) => {
-      if (event.button === 0) { // Nur linke Maustaste
-        event.preventDefault();
+      if (event.button === 0) { 
         handleSetButtonClick(event.currentTarget);
       }
     });
-
-    // Ignoriere das Standard-Klick-Event, da wir es oben bereits abgefangen haben
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    });
   });
-  // ===================================================================
 }
 
 // Komplett neue Funktion – verarbeitet NUR Text, kein HTML-Element!

@@ -19,26 +19,85 @@ const HIDE_AMP_TUN_WITHOUT_RECEIVER = true;
 window.addEventListener('load', onLoad);
 //window.addEventListener('DOMContentLoaded', loadConfig);
 
- function onLoad(event) {
-    initWebSocket();
-    getButton();
-    setIRstate();
-    setb203();
-    getb203();
-    setEventb203();
-    setDateb203();
-    setTimeb203();
-    callEventb203();
-    delEventb203();
-    testEventb203();
-    getb215();
-    getb226();
-    getb291();
+function onLoad() {
+  // ==================================================
+  // 1. GLOBALE INITIALISIERUNG (Muss auf jeder Seite laufen)
+  // ==================================================
+  initWebSocket();
+  getButton();
+  setIRstate();
+  setPorts();
+  setBibus();
+
+  // ==================================================
+  // 2. DYNAMISCHE SEITEN- UND GRUPPENERKENNUNG
+  // ==================================================
+  const path = window.location.pathname;
+  const page = path.split("/").pop().toLowerCase(); // z.B. "cd_recv.html" oder "tape1.html"
+
+  console.log("[Routing] Aktuelle HTML-Seite geladen: " + page);
+
+  // Prüfen, ob wir uns in der B285-Receiver-Gruppe befinden
+  const isReceiverGroup = page.includes("_recv");
+
+  // ==================================================
+  // 3. LOGIK FÜR DIE RECEIVER-GRUPPE (B285 aktiv)
+  // ==================================================
+  if (isReceiverGroup) {
+    console.log("[Routing] Receiver-Gruppe erkannt. Starte B285 Basis-Abfragen.");
+    
+    // Diese Abfragen gehören zum B285 und laufen auf JEDER _recv.html Seite beim Start
     getb285();
     setB285Speakers();
     setB285Volume();
-    setPorts();
+
+    // Jetzt die gerätespezifischen Unterfunktionen innerhalb der Receiver-Welt aufrufen
+    if (page.startsWith("cd_recv")) {
+      console.log("[Routing] Lade spezifische CD-Daten für B285.");
+      getb226();
+    } 
+    else if (page.startsWith("tape1_recv")) {
+      console.log("[Routing] Lade spezifische Tape-Daten für B285.");
+      getb215();
+    } 
+    else if (page.startsWith("phone_recv") || page.startsWith("phono_recv")) {
+      console.log("[Routing] Lade spezifische Phono-Daten für B285.");
+      getb291();
+    }
+  } 
+  
+  // ==================================================
+  // 4. LOGIK FÜR DIE VERSTÄRKER+TUNER-GRUPPE (B251 / B261 aktiv)
+  // ==================================================
+  else {
+    console.log("[Routing] Verstärker/Tuner-Gruppe erkannt.");
+
+    if (page === "cd.html") {
+      console.log("[Routing] Lade spezifische CD-Daten für B251/B261.");
+      getb226();
+    } 
+    else if (page === "tape1.html") {
+      console.log("[Routing] Lade spezifische Tape-Daten für B251/B261.");
+      getb215();
+    } 
+    else if (page === "phone.html" || page === "phono.html") {
+      console.log("[Routing] Lade spezifische Phono-Daten für B251/B261.");
+      getb291();
+    }
+    // Falls es eine b203.html (oder index.html ohne _recv) gibt, wo das Setup liegt:
+    else if (page === "b203.html" || page === "index.html" || page === "") {
+      console.log("[Routing] Lade Setup-Daten für B203.");
+      setb203();
+      getb203();
+      setEventb203();
+      setDateb203();
+      setTimeb203();
+      callEventb203();
+      delEventb203();
+      testEventb203();
+    }
   }
+}
 
 function setBibus() {
   // Event-Listener für gegenseitige Beeinflussung der Checkboxen
@@ -624,6 +683,94 @@ function getButton() {
       event.stopPropagation();
     });
   });
+
+  // ====================================================================
+  // REPARIERT & ENTPRELLT: LOGIK FÜR ALLE EINSTELLUNGS- & TIMER-BUTTONS (.set_button)
+  // ====================================================================
+  const setButtons = document.querySelectorAll('.set_button:not(.js-bound), .set_event_button:not(.js-bound)');
+  
+  setButtons.forEach(btn => {
+    btn.classList.add('js-bound');
+
+    // Eine lokale Sperre NUR für diesen einen Button, um Doppelklicks abzufangen
+    let buttonLocked = false;
+
+    const handleSetButtonClick = (element) => {
+      // Wenn der Button gerade arbeitet, blockieren (verhindert Geister-Klicks)
+      if (buttonLocked) return;
+      buttonLocked = true;
+
+      element.classList.add('is-pressed');
+      
+      // PRÜFUNG: Hat der Button bereits ein direktes onclick-Attribut im HTML? (z.B. saveData())
+      const inlineOnClick = element.getAttribute('onclick');
+      
+      if (inlineOnClick) {
+        console.log(`[Einstellung] Inline-onclick erkannt. Führe aus: ${inlineOnClick}`);
+        // Führt den Code aus dem HTML-Attribut im Kontext dieses Elements aus
+        new Function(inlineOnClick).call(element);
+      } else {
+        // Regulärer Pfad über das Namens-Mapping, falls kein onclick existiert
+        const functionName = element.getAttribute('name');
+        
+        // KORRIGIERTES Namens-Mapping: Passt jetzt exakt zu den 'name'-Attributen im HTML!
+        const nameMapping = {
+          'setup': 'setb203',
+          'getsettings': 'getb203',
+          'getb285settings': 'getb285',
+          'setDate': 'setDateb203',
+          'setTime': 'setTimeb203',
+          'setEvent': 'setEventb203',
+          'call': 'callEventb203',      
+          'delete': 'delEventb203',     
+          'testEvent': 'testEventb203'
+        };
+
+        let targetFunction = nameMapping[functionName] || functionName;
+
+        // Toleranz für Groß-/Kleinschreibung (z.B. calleventb203)
+        if (typeof window[targetFunction] !== 'function') {
+          if (typeof window[targetFunction.toLowerCase()] === 'function') {
+            targetFunction = targetFunction.toLowerCase();
+          }
+        }
+
+        // Funktion ausführen
+        if (typeof window[targetFunction] === 'function') {
+          console.log(`[Einstellung] Button ausgeführt: ${targetFunction}()`);
+          window[targetFunction](); 
+        } else {
+          console.warn(`[Einstellung] Funktion ${targetFunction}() nicht gefunden.`);
+        }
+      }
+
+      // WICHTIG: Nach 150ms die Sperre aufheben und visuelles Feedback entfernen
+      setTimeout(() => {
+        element.classList.remove('is-pressed');
+        buttonLocked = false; // Gibt den Knopf für den NÄCHSTEN Druck wieder frei!
+      }, 150);
+    };
+
+    // Nutze 'mousedown' für PCs und 'touchstart' für Handys, um Konflikte zu vermeiden
+    btn.addEventListener('touchstart', (event) => {
+      event.preventDefault(); // Verhindert, dass danach noch ein "click"-Event feuert!
+      handleSetButtonClick(event.currentTarget);
+    }, { passive: false });
+
+    btn.addEventListener('mousedown', (event) => {
+      if (event.button === 0) { // Nur linke Maustaste
+        event.preventDefault();
+        handleSetButtonClick(event.currentTarget);
+      }
+    });
+
+    // Ignoriere das Standard-Klick-Event, da wir es oben bereits abgefangen haben
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  });
+  // ===================================================================
 }
 
 // Komplett neue Funktion – verarbeitet NUR Text, kein HTML-Element!

@@ -87,6 +87,9 @@ bool b203ReadyToSend = true; // Steuert den XON/XOFF Fluss
 unsigned long lastButtonRepeatTime = 0;
 bool isFirstButtonPress = true; // Globaler Merker für alle Funktionen
 
+bool blockSerialSending = false;
+unsigned long serialBlockStartTime = 0;
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
@@ -679,21 +682,28 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       
-      // NUR senden, wenn es sich um brandneue, valide Daten handelt.
-      // Durch das Leeren beim Disconnect ist dieser Puffer beim echten Seitenwechsel nun garantiert leer!
+      // Neue Seite ist da -> Sperre wieder aufheben!
+      blockSerialSending = false;
+      
+      // Beim Neu-Verbinden einer Seite werfen wir alte Geisterdaten 
+      // aus der vorherigen Session konsequent weg, anstatt sie an den neuen Client zu schicken!
       if (b203data.length() > 0) {
-          client->text(b203data);
-          b203data = ""; 
+          Serial.print(F("[WS-CLEANUP] Altes Datenpaket beim Connect verworfen: "));
+          Serial.println(b203data);
+          b203data = ""; // Puffer löschen, OHNE an den Client zu senden!
       }
       break;
       
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
       
-      // KORREKTUR: Radikaler Kahlschlag beim Verlassen der Seite / Tab-Wechsel!
-      b203Buffer = ""; // Löscht den seriellen Empfangspuffer (Zukunftssperre)
-      b203data = "";   // Löscht den globalen Datenspeicher (Vergangenheitssperre)
-      Serial.println(F("[B203-CLEANUP] Sämtliche Datenpuffer wegen Disconnect gelöscht."));
+      // Sperre für serielle Daten SOFORT aktivieren!
+      blockSerialSending = true;
+      serialBlockStartTime = millis();
+      
+      b203Buffer = ""; 
+      b203data = "";   
+      Serial.println(F("[B203-CLEANUP] Sämtliche Datenpuffer gelöscht. Senden blockiert."));
       break;
       
     case WS_EVT_DATA:
@@ -1083,7 +1093,7 @@ void loop() {
   }
   
   // ==========================================   
-  // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG (KORRIGIERT FÜR REVOX \r)
+  // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG (MIT SPERRE)
   // ==========================================   
 
   while (Serial2.available() > 0) {
@@ -1100,21 +1110,36 @@ void loop() {
           continue; 
       }
 
-      // KORREKTUR: Reagiert jetzt sofort, wenn die Zeile mit \r ODER \n endet!
+      // Wenn das Zeilenende erreicht ist, verarbeiten wir den Puffer
       if (inChar == '\r' || inChar == '\n') {
           if (b203Buffer.length() > 0) {
               b203data = b203Buffer;
-              b203data.trim(); // Entfernt eventuell verbliebene Steuerzeichen (Whitespaces, \r, \n)
+              b203data.trim();
               b203Buffer = ""; 
-              
-              if (b203data.length() > 0) {
+            
+              // SICHERHEITSHÜRDE: Wenn blockiert, Daten einfach vernichten und ignorieren!
+              if (blockSerialSending) {
+                  Serial.print(F("[B203 -> BLOCK] Daten während Seitenwechsel verworfen: "));
+                  Serial.println(b203data);
+                  b203data = "";
+                
+                  // Sicherheitsnetz: Nach 3 Sekunden die Sperre automatisch lösen, falls der Connect fehlschlägt
+                  if (millis() - serialBlockStartTime > 3000) {
+                      blockSerialSending = false;
+                  }
+                  continue; 
+              }
+            
+              // Reguläres Senden, wenn Clients da sind und keine Sperre aktiv ist
+              if (b203data.length() > 0 && ws.count() > 0) {
                   Serial.print(F("[B203 -> WEB] Sende: ")); 
                   Serial.println(b203data);
-                  ws.textAll(b203data); // Schickt die Antwort live an deinen Browser!
+                  ws.textAll(b203data); 
               }
           }
       } 
       else {
+          // KORREKTUR: Normales Zeichen empfangen -> In den Puffer schreiben
           b203Buffer += inChar;
       }
   }

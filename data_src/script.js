@@ -638,7 +638,7 @@ function getButton() {
   const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
   
   buttons.forEach(btn => {
-    // Slider und Selektoren rigoros ignorieren
+    // Slider und Dropdowns komplett ignorieren
     if (btn.tagName === 'INPUT' || btn.tagName === 'SELECT' || btn.classList.contains('slide')) {
       return; 
     }
@@ -660,7 +660,6 @@ function getButton() {
 
     // --- HILFSFUNKTION: LOSLASSEN (RELEASE) ---
     const handleRelease = (element) => {
-      if (!isTouchProcessing) return;
       element.classList.remove('is-pressed');
       const Id = element.getAttribute('data-id') || element.id;
       const linkElement = element.closest('a') || element;
@@ -711,9 +710,10 @@ function getButton() {
       }
     });
 
+    // KORREKTUR: preventDefault() entfernt! Nur stopPropagation() bleibt, 
+    // um ein doppeltes Auslösen des Klicks auf dem Button selbst zu verhindern.
     btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      // KORREKTUR: stopPropagation() ENTFERNT, damit Nachbar-Elemente (wie der Slider) nicht blockiert werden!
+      event.stopPropagation();
     });
   });
 

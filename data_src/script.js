@@ -272,7 +272,7 @@ function onClose(event) {
   setTimeout(initWebSocket, 2000);
 }
 
-function onMessage(event) {
+/*function onMessage(event) {
   console.log("WebSocket empfangen:", event.data);
   
   const rawString = event.data;
@@ -299,6 +299,43 @@ function onMessage(event) {
     getB291Settings(rawString);
   } 
   // REVOX B203 Bedingung: Reagiert dynamisch, wenn die erste Stelle eine 5 oder eine 9 ist
+  else if (firstDigit === 5 || firstDigit === 9) { 
+    console.log(`B203 erkannt mit ID ${idNum} (Klasse ${firstDigit}x), rufe getB203Settings auf...`);
+    getB203Settings(rawString); 
+  }
+}*/
+
+function onMessage(event) {
+  console.log("WebSocket empfangen:", event.data);
+  
+  const rawString = event.data;
+  if (!rawString || typeof rawString !== 'string') return;
+
+  // Extrahiert zwei Zeichen ab Index 1 (z.B. aus "1031141" wird "03")
+  const Identifier = rawString.slice(1, 3);
+  const idNum = Number(Identifier);
+  
+  // Ermittelt die allererste Ziffer der ID (z.B. bei ID 52 -> Klasse 5)
+  const firstDigit = Math.floor(idNum / 10);
+
+  // 1. Zuordnung von ReVox-Geräte-IDs zu ihren Verarbeitungsfunktionen
+  const deviceActions = {
+    3: getB285Settings, // ID 3  = B285 Receiver
+    4: getB215Settings, // ID 4  = B215 Tape
+    6: getB226Settings, // ID 6  = B226 CD-Player
+    8: getB291Settings  // ID 8  = B291 Plattenspieler
+    // Hier kannst du später einfach neue Geräte eintragen, z.B.:
+    // 1: getPR99Settings,
+    // 2: getA725Settings
+    // 5: getB225_2Settings
+    // 7: getA725_2Settings
+  };
+
+  // 2. Prüfen, ob für die ID eine direkte Geräte-Funktion existiert
+  if (deviceActions[idNum]) {
+    deviceActions[idNum](rawString);
+  } 
+  // 3. REVOX B203 Spezial-Bedingung (Klasse 5x oder 9x)
   else if (firstDigit === 5 || firstDigit === 9) { 
     console.log(`B203 erkannt mit ID ${idNum} (Klasse ${firstDigit}x), rufe getB203Settings auf...`);
     getB203Settings(rawString); 
@@ -601,16 +638,18 @@ function getButton() {
   const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
   
   buttons.forEach(btn => {
+    // Slider und Selektoren rigoros ignorieren
+    if (btn.tagName === 'INPUT' || btn.tagName === 'SELECT' || btn.classList.contains('slide')) {
+      return; 
+    }
+
     btn.classList.add('js-bound');
     
     // --- HILFSFUNKTION: DRÜCKEN (PUSH) ---
     const handlePush = (element) => {
       if (isTouchProcessing) return; 
       isTouchProcessing = true;
-
       element.classList.add('is-pressed');
-
-      // Prüft zuerst, ob eine virtuelle data-id hinterlegt ist, sonst nimm die normale ID
       const Id = element.getAttribute('data-id') || element.id; 
 
       if (ws.readyState === WebSocket.OPEN) {
@@ -619,15 +658,11 @@ function getButton() {
       }
     };
 
-    // --- HILFSFUNKTION: LOSLASSEN (RELEASE) MIT SICHERUNG ---
+    // --- HILFSFUNKTION: LOSLASSEN (RELEASE) ---
     const handleRelease = (element) => {
       if (!isTouchProcessing) return;
-
       element.classList.remove('is-pressed');
-
-      // Auch hier die data-id bevorzugen, um die ReVox-Hardware korrekt anzusprechen
       const Id = element.getAttribute('data-id') || element.id;
-      
       const linkElement = element.closest('a') || element;
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
 
@@ -651,9 +686,7 @@ function getButton() {
       }
     };
 
-    // ==========================================================
-    // LISTENERS FÜR MAUS UND TOUCH ZUWEISEN (PROTOKOLL-SICHER)
-    // ==========================================================
+    // LISTENERS FÜR MAUS UND TOUCH ZUWEISEN
     btn.addEventListener('touchstart', (event) => {
       event.preventDefault(); 
       handlePush(event.currentTarget);
@@ -680,37 +713,29 @@ function getButton() {
 
     btn.addEventListener('click', (event) => {
       event.preventDefault();
-      event.stopPropagation();
+      // KORREKTUR: stopPropagation() ENTFERNT, damit Nachbar-Elemente (wie der Slider) nicht blockiert werden!
     });
   });
 
- // ====================================================================
+  // ====================================================================
   // LOGIK FÜR ALLE EINSTELLUNGS-, CONFIG- & TIMER-BUTTONS (.set_button)
   // ====================================================================
   const setButtons = document.querySelectorAll('.set_button:not(.js-bound), .set_event_button:not(.js-bound)');
   
   setButtons.forEach(btn => {
     btn.classList.add('js-bound');
-
     let buttonLocked = false;
 
     const handleSetButtonClick = (element) => {
       if (buttonLocked) return;
       buttonLocked = true;
-
       element.classList.add('is-pressed');
       
-      // 1. PRÜFUNG: Hat der Button bereits ein direktes onclick-Attribut im HTML?
-      // Das gilt für 'b203setport' (saveData) UND 'b203setconf' (saveConfig)!
       const inlineOnClick = element.getAttribute('onclick');
       
       if (inlineOnClick) {
-        console.log(`[Einstellung] Inline-onclick im HTML erkannt. Überlasse Ausführung dem Browser: ${inlineOnClick}`);
-        // Wir machen hier ABSICHTLICH nichts weiter, da der Browser das im HTML hinterlegte
-        // onclick="saveConfig()" gleich völlig automatisch und sauber ein einzelnes Mal ausführt!
-      } 
-      // 2. REGULÄRER PFAD: Über das Namens-Mapping für Knöpfe OHNE onclick im HTML (z.B. Timer, Uhrzeit)
-      else {
+        console.log(`[Einstellung] Inline-onclick im HTML erkannt: ${inlineOnClick}`);
+      } else {
         const functionName = element.getAttribute('name');
         
         const nameMapping = {
@@ -748,13 +773,11 @@ function getButton() {
     };
 
     btn.addEventListener('touchstart', (event) => {
-      // WICHTIG: Bei Buttons mit nativem HTML-onclick dürfen wir preventDefault() NICHT nutzen,
-      // da Smartphones sonst das eigentliche "onclick" im HTML unterdrücken würden!
       if (!btn.getAttribute('onclick')) {
         event.preventDefault(); 
       }
       handleSetButtonClick(event.currentTarget);
-    }, { passive: true }); // Auf true geändert, damit der Browser flüssig bleibt
+    }, { passive: true });
 
     btn.addEventListener('mousedown', (event) => {
       if (event.button === 0) { 

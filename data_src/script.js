@@ -19,13 +19,26 @@ const HIDE_AMP_TUN_WITHOUT_RECEIVER = true;
 window.addEventListener('load', onLoad);
 //window.addEventListener('DOMContentLoaded', loadConfig);
 
-function onLoad() {
-  initWebSocket(); // Startet die Verbindung zum ESP
-  getButton();     // Lädt globale Buttons
-  setIRstate();    // Globale IR-Einstellung
-  setPorts();      // Globale Ports
-  setBibus();      // Globaler Bus
-}
+ function onLoad(event) {
+    initWebSocket();
+    getButton();
+    setIRstate();
+    setb203();
+    getb203();
+    setEventb203();
+    setDateb203();
+    setTimeb203();
+    callEventb203();
+    delEventb203();
+    testEventb203();
+    getb215();
+    getb226();
+    getb291();
+    getb285();
+    setB285Speakers();
+    setB285Volume();
+    setPorts();
+  }
 
 function setBibus() {
   // Event-Listener für gegenseitige Beeinflussung der Checkboxen

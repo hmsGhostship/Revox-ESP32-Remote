@@ -279,28 +279,31 @@ void loadCommandConfig() {
 void processButtonPath() {
   if (buttonHold == 1) {
       
-      // SPERRWALL: Wenn es NICHT der erste Druck ist, drosseln wir die Schleife auf 200ms!
-      // Das verhindert das unkontrollierte Puls-Dreschen im Millisekundentakt.
-      if (!isFirstButtonPress && (millis() - lastButtonRepeatTime < 200)) {
-          return; // Verlassen, solange die Drosselzeit läuft
+      // SPERRWALL MIT DETAIL-LOGGING
+      if (isFirstButtonPress) {
+          if (millis() - lastButtonRepeatTime < 350) {
+              return; // Schranke ist noch zu, Schleife abbrechen
+          }
+      } 
+      else {
+          if (millis() - lastButtonRepeatTime < 200) {
+              return; 
+          }
       }
 
-      Serial.println(F("\n--- [DEBUG] Button-Pfad aktiv ---"));
-      Serial.print(F("[DEBUG] Gesuchter buttonName: '"));
-      Serial.print(buttonName);
-      Serial.println(F("'"));
+      // DETAILED LOG: Wird nur gedruckt, wenn die Funktion die 350ms/200ms-Drossel passiert
+      Serial.println(F("\n--------------------------------------------------"));
+      Serial.print(F("[LOOP-LOG] processButtonPath() triggert fuer Taste: '")); Serial.print(buttonName); Serial.println(F("'"));
+      Serial.print(F("[LOOP-LOG] Modus: ")); Serial.println(isFirstButtonPress ? F("ERST-DURCHLAUF (First Press Bremse)") : F("WIEDERHOLUNG (Button Hold)"));
 
       int a = 0;
       bool buttonFound = false;
 
-      // KORRIGIERT: btnID[0] prüft, ob der Eintrag gültig ist, maxCommandCapacity schützt vor Abstürzen
+      // KORRIGIERT: Mit [0] fuer die sichere Array-Inhaltspruefung
       while (configArray[a].btnID[0] != '\0' && strcmp(configArray[a].btnID, "none") != 0 && a < maxCommandCapacity) {
           
           if (strcmp(buttonName, configArray[a].btnID) == 0) {
               buttonFound = true;
-              Serial.print(F("[DEBUG] TREFFER! Index: ")); Serial.println(a);
-              
-              // Zeitstempel für die 200ms Drosselung setzen
               lastButtonRepeatTime = millis();
 
               for (int i = 0; i < portTableSize; i++) {
@@ -313,61 +316,71 @@ void processButtonPath() {
                   if (deviceMatch && currentOut != "no") {
                       
                       if (strcmp(configArray[a].btnID, "b203reset") == 0) {
+                          Serial.println(F("[LOOP-LOG] -> Verarbeite 'b203reset'"));
                           if (configArray[a].command != 0x40) {
                               sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
                           }
-                          if (configArray[a].repeat == 0) { buttonHold = 0; }
+                          if (configArray[a].repeat == 0) { 
+                              buttonHold = 0; 
+                              isFirstButtonPress = true; 
+                          }
                       }
                       else if (configArray[a].cmdFlag > 0) {
+                          Serial.print(F("[LOOP-LOG] -> Sende seriellen String-Befehl via Serial2: ")); Serial.println(configArray[a].serCmd);
                           if (b203ReadyToSend) { 
                               Serial2.print(currentOut);
                               Serial2.print(configArray[a].serCmd);
                               Serial2.print("\r");
+                          } else {
+                              Serial.println(F("[LOOP-LOG] ACHTUNG: Serial2 blockiert durch XOFF!"));
                           }
-                          if (configArray[a].repeat == 0) { buttonHold = 0; }
+                          if (configArray[a].repeat == 0) { 
+                              buttonHold = 0; 
+                              isFirstButtonPress = true; 
+                          }
                       } 
-                      // NATIVE LOGIK (cmdFlag == 0)
                       else if (configArray[a].cmdFlag == 0) {
                           if (configArray[a].command != 0x40) { 
                               
                               if (configArray[a].isBibus == 1) {
                                   if (b203ReadyToSend) { 
+                                      // KORREKTUR: Als Arrays mit Puffergroesse definiert, loest den Compiler-Fehler
                                       char sendBuffer[64]; 
+                                      char bibusFormatiert[16]; 
+                                      
                                       const char* bibusPtr = configArray[a].bibusCmd;
                                       if (strncmp(bibusPtr, "0x", 2) == 0 || strncmp(bibusPtr, "0X", 2) == 0) { bibusPtr += 2; }
-                                      char bibusFormatiert[6]; 
+                                      
                                       int len = strlen(bibusPtr);
                                       if (len >= 5) { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%s", bibusPtr + (len - 5)); } 
                                       else { snprintf(bibusFormatiert, sizeof(bibusFormatiert), "%05X", (unsigned int)strtol(bibusPtr, NULL, 16)); }
+                                      
                                       snprintf(sendBuffer, sizeof(sendBuffer), "B%s\r", bibusFormatiert);
+                                      
+                                      Serial.print(F("[LOOP-LOG] -> Sende BIBUS Befehl: ")); Serial.print(sendBuffer);
                                       Serial2.print(sendBuffer);
                                   }
                               } else {
-                                  // ==========================================
-                                  // NATIVE REVOX SENDUNG (FIRST vs. REPEAT)
-                                  // ==========================================
+                                  // NATIVE REVOX SENDUNG
                                   if (isFirstButtonPress) {
-                                      // 1. Durchlauf: Zuerst die Standard-Adresse senden (Das originale sendRevoxFrame!)
+                                      Serial.print(F("[LOOP-LOG] -> Sende Standard-Frame (First): Addr 0x")); Serial.println(configArray[a].address, HEX);
                                       sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                                      
-                                      // Nach dem Senden sperren wir den Erst-Durchlauf für die nächsten Runden
                                       isFirstButtonPress = false; 
                                   } else {
-                                      // Ab dem 2. Durchlauf (Gedrückt halten): Prüfen auf addressRep
                                       if (configArray[a].addressRep != 0) {
+                                          Serial.print(F("[LOOP-LOG] -> Sende REPEAT-Frame (addressRep): Addr 0x")); Serial.println(configArray[a].addressRep, HEX);
                                           sendRevoxFrame(configArray[a].addressRep, configArray[a].command, 1);
-                                          Serial.print(F("     [BUTTON-REPEAT] Frame mit addressRep: 0x"));
-                                          Serial.println(configArray[a].addressRep, HEX);
                                       } else {
+                                          Serial.print(F("[LOOP-LOG] -> Sende REPEAT-Frame (Standard): Addr 0x")); Serial.println(configArray[a].address, HEX);
                                           sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                                          Serial.print(F("     [BUTTON-REPEAT] Kein addressRep, sende Standard: 0x"));
-                                          Serial.println(configArray[a].address, HEX);
                                       }
                                   }
                               }
                               
                               if (configArray[a].repeat == 0) {
-                                buttonHold = 0;
+                                  Serial.println(F("[LOOP-LOG] Info: Taste unterstuezt kein Halten (repeat=0). Beende Befehl."));
+                                  buttonHold = 0;
+                                  isFirstButtonPress = true; 
                               }
                           }
                       }
@@ -378,8 +391,12 @@ void processButtonPath() {
           ++a;
       }
       
-      if (!buttonFound) { buttonHold = 0; }
-      Serial.println(F("--- [DEBUG] Button-Pfad beendet ---\n"));
+      if (!buttonFound) { 
+          Serial.print(F("[LOOP-LOG] FEHLER: ID '")); Serial.print(buttonName); Serial.println(F("' wurde im Loop-Schleifendurchlauf verpasst!"));
+          buttonHold = 0; 
+          isFirstButtonPress = true; 
+      }
+      Serial.println(F("--------------------------------------------------\n"));
   }
 }
 
@@ -388,7 +405,7 @@ void processDirectCommands() {
     if (pendingWsCommand.length() > 0 && (millis() - wsWakeupTime >= 50)) {
         
         if (!b203ReadyToSend) {
-            Serial.println(F("[LOOP] Direkt-Befehl wartet, da B203 im XOFF-Status ist!"));
+            Serial.println(F("[DIRECT-LOG] Direkt-Befehl wartet, da B203 im XOFF-Status ist!"));
             return; 
         }
 
@@ -396,92 +413,169 @@ void processDirectCommands() {
         pendingWsCommand = ""; 
         lastActivity = millis();
 
+        // DETAILED LOG: Eingangsprüfung für Slider & Setup
+        Serial.println(F("\n=================================================="));
+        Serial.print(F("[DIRECT-LOG] DIREKT-BEFEHL VERARBEITUNG | Inhalt: '")); Serial.print(msg); Serial.println(F("'"));
+        Serial.println(F("--------------------------------------------------"));
+
         if (msg.startsWith("speakers")) {
-            char b285Speaker[8] = {0}; msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
+            // ZURÜCKGESETZT: Ganz normaler String-Puffer ohne Zahlenformatierung
+            char b285Speaker[8] = {0}; 
+            msg.substring(8).toCharArray(b285Speaker, sizeof(b285Speaker));
+
+            Serial.print(F("[DIRECT-LOG] Typ: speakers | Wert: '")); Serial.print(b285Speaker); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(portArray[i].out); Serial.print(b285Speaker); Serial.println(F("\\r'"));
                     Serial2.print(portArray[i].out); Serial2.print(b285Speaker); Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("volSlider")) {
-            char b285Volume[8] = {0}; msg.substring(9).toCharArray(b285Volume, sizeof(b285Volume));
+            char b285Volume[8] = {0}; 
+            // 10 statt 9, um das 'V' aus dem WebSocket-Inhalt abzuschneiden
+            msg.substring(10).toCharArray(b285Volume, sizeof(b285Volume));
+            
+            // Führende Null für die Lautstärke erzwingen (00-99)
+            int volNum = atoi(b285Volume);
+            char b285VolumeFormatiert[4] = {0}; 
+            snprintf(b285VolumeFormatiert, sizeof(b285VolumeFormatiert), "%02d", volNum);
+
+            Serial.print(F("[DIRECT-LOG] Typ: volSlider | Formatiert: '")); Serial.print(b285VolumeFormatiert); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out); Serial2.print(b285Volume); Serial2.print("\r");
+                    
+                    // KORREKTUR: Hier wird das 'V' nun explizit in die Sende-Kette eingefügt!
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); 
+                    Serial.print(portArray[i].out); 
+                    Serial.print(F("V")); // Zeigt das V im Log an
+                    Serial.print(b285VolumeFormatiert); 
+                    Serial.println(F("\\r'"));
+                    
+                    // Der physische Sende-Befehl an den B203
+                    Serial2.print(portArray[i].out); 
+                    Serial2.print('V'); // Schickt das V an den B203
+                    Serial2.print(b285VolumeFormatiert); 
+                    Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("setup")) {
             char setupBytes[12] = {0}; msg.substring(5).toCharArray(setupBytes, sizeof(setupBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: setup | Parameter: '")); Serial.print(setupBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(setupBytes); Serial.println(F("\\r'"));
             Serial2.print(setupBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("getsettings")) {
             char settingsBytes[8] = {0}; msg.substring(11).toCharArray(settingsBytes, sizeof(settingsBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: getsettings | Modus: '")); Serial.print(settingsBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(settingsBytes); Serial.println(F("\\r'"));
             Serial2.print(settingsBytes); Serial2.print("\r");
-            if (strcmp(settingsBytes, "0X") == 0) { getFlag = 1; }
+            if (strcmp(settingsBytes, "0X") == 0) { 
+                getFlag = 1; 
+                Serial.println(F("[DIRECT-LOG] Info: getFlag wurde auf 1 gesetzt."));
+            }
         }
         else if (msg.startsWith("tape1")) {
             char b215settingsBytes[6] = {0}; msg.substring(5).toCharArray(b215settingsBytes, sizeof(b215settingsBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: tape1 | Befehlsbytes: '")); Serial.print(b215settingsBytes); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("tape1", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(portArray[i].out); Serial.print(b215settingsBytes); Serial.println(F("\\r'"));
                     Serial2.print(portArray[i].out); Serial2.print(b215settingsBytes); Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("cdplayer")) {
             char b226settingsBytes[6] = {0}; msg.substring(8).toCharArray(b226settingsBytes, sizeof(b226settingsBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: cdplayer | Befehlsbytes: '")); Serial.print(b226settingsBytes); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("cdplayer", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(portArray[i].out); Serial.print(b226settingsBytes); Serial.println(F("\\r'"));
                     Serial2.print(portArray[i].out); Serial2.print(b226settingsBytes); Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("phono")) {
             char b291settingsBytes[6] = {0}; msg.substring(5).toCharArray(b291settingsBytes, sizeof(b291settingsBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: phono | Befehlsbytes: '")); Serial.print(b291settingsBytes); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("phono", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(portArray[i].out); Serial.print(b291settingsBytes); Serial.println(F("\\r'"));
                     Serial2.print(portArray[i].out); Serial2.print(b291settingsBytes); Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("receiver")) {
-            char b285settingsBytes[6] = {0}; msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
+            char b285settingsBytes[6] = {0};
+            msg.substring(8).toCharArray(b285settingsBytes, sizeof(b285settingsBytes));
+
+            Serial.print(F("[DIRECT-LOG] Typ: receiver | Befehlsbytes: '"));
+            Serial.print(b285settingsBytes);
+            Serial.println(F("'"));
+
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial2.print(portArray[i].out); Serial2.print(b285settingsBytes); Serial2.print("\r");
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '"));
+                    Serial.print(portArray[i].out); Serial.print(b285settingsBytes);
+                    Serial.println(F("\\r'"));
+                    Serial2.print(portArray[i].out); Serial2.print(b285settingsBytes);
+                    Serial2.print("\r");
                 }
             }
         }
         else if (msg.startsWith("testEvent")) {
             char testEventBytes[10] = {0}; msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: testEvent | Bytes: '")); Serial.print(testEventBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(testEventBytes); Serial.println(F("\\r'"));
             Serial2.print(testEventBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("setDate")) {
             char setDateBytes[16] = {0}; msg.substring(7).toCharArray(setDateBytes, sizeof(setDateBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: setDate | Datum: '")); Serial.print(setDateBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(setDateBytes); Serial.println(F("\\r'"));
             Serial2.print(setDateBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("setTime")) {
             char setTimeBytes[16] = {0}; msg.substring(7).toCharArray(setTimeBytes, sizeof(setTimeBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: setTime | Uhrzeit: '")); Serial.print(setTimeBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(setTimeBytes); Serial.println(F("\\r'"));
             Serial2.print(setTimeBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("setEvent")) {
             char setEventBytes[40] = {0}; msg.substring(8).toCharArray(setEventBytes, sizeof(setEventBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: setEvent | Timer-String: '")); Serial.print(setEventBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(setEventBytes); Serial.println(F("\\r'"));
             Serial2.print(setEventBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("callEvent")) {
             char callEventBytes[10] = {0}; msg.substring(9).toCharArray(callEventBytes, sizeof(callEventBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: callEvent | Event-ID: '")); Serial.print(callEventBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(callEventBytes); Serial.println(F("\\r'"));
             Serial2.print(callEventBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("delEvent")) {
             char delEventBytes[10] = {0}; msg.substring(8).toCharArray(delEventBytes, sizeof(delEventBytes));
+            Serial.print(F("[DIRECT-LOG] Typ: delEvent | Event-ID: '")); Serial.print(delEventBytes); Serial.println(F("'"));
+            Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(delEventBytes); Serial.println(F("\\r'"));
             Serial2.print(delEventBytes); Serial2.print("\r");
         }
         else if (msg.startsWith("toggle")) {
             String subToggle = msg.substring(6);
-            if (subToggle.startsWith("true")) { Serial2.print("0R0\r"); } 
-            else if (subToggle.startsWith("false")) { Serial2.print("0R1\r"); }
+            Serial.print(F("[DIRECT-LOG] Typ: toggle | Status: '")); Serial.print(subToggle); Serial.println(F("'"));
+            if (subToggle.startsWith("true")) { 
+                Serial.println(F("[DIRECT-LOG] -> Sende via Serial2: '0R0\\r'"));
+                Serial2.print("0R0\r"); 
+            } 
+            else if (subToggle.startsWith("false")) { 
+                Serial.println(F("[DIRECT-LOG] -> Sende via Serial2: '0R1\\r'"));
+                Serial2.print("0R1\r"); 
+            }
         }
+        else {
+            Serial.println(F("[DIRECT-LOG] ACHTUNG: Befehl wurde von keiner if-Bedingung erkannt!"));
+        }
+        Serial.println(F("=================================================="));
     }
 }
 
@@ -489,7 +583,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     
-    lastActivity = millis(); // Sofort Schlaf verhindern
+    lastActivity = millis(); 
     String msg((char*)data, len);
     
     if (msg.startsWith("button")) {
@@ -497,22 +591,33 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       
       if (subMsg.startsWith("Push")) {
         memset(buttonName, 0, sizeof(buttonName));
-        subMsg.substring(4).toCharArray(buttonName, sizeof(buttonName));
+        
+        String nameStr = subMsg.substring(4);
+        strncpy(buttonName, nameStr.c_str(), sizeof(buttonName) - 1);
         
         buttonHold = 1;
-        isFirstButtonPress = true;
-        lastButtonRepeatTime = millis();
+        isFirstButtonPress = true; 
+        lastButtonRepeatTime = millis(); 
         wsWakeupTime = millis();
 
-        Serial.print(F("[WS-API] Push empfangen fuer: "));
-        Serial.println(buttonName);
+        // DETAILED LOG: Eingangsprüfung
+        Serial.println(F("\n=================================================="));
+        Serial.print(F("[WS-LOG] NETZWERK-PUSH EMPFANGEN fuer ID: '")); Serial.print(buttonName); Serial.println(F("'"));
+        Serial.print(F("[WS-LOG] Status: buttonHold = ")); Serial.print(buttonHold);
+        Serial.print(F(" | isFirstButtonPress = ")); Serial.println(isFirstButtonPress);
+        Serial.println(F("=================================================="));
 
-        // ==========================================================
-        // SOFORTIGES SENDEN DIREKT BEIM EINTREFFEN DES NETZWERK-PAKETS
-        // ==========================================================
         int a = 0;
+        bool matchFound = false;
+        
         while (configArray[a].btnID[0] != '\0' && strcmp(configArray[a].btnID, "none") != 0 && a < maxCommandCapacity) {
           if (strcmp(buttonName, configArray[a].btnID) == 0) {
+              matchFound = true;
+              
+              // DETAILED LOG: Treffer in der Konfigurationstabelle
+              Serial.print(F("[WS-LOG] -> TREFFER in configArray an Index [")); Serial.print(a); Serial.println(F("]"));
+              Serial.print(F("[WS-LOG]    Zugeordnetes Geraet: '")); Serial.print(configArray[a].device);
+              Serial.print(F("' | ReVox-Kommando: 0x")); Serial.println(configArray[a].command, HEX);
               
               for (int i = 0; i < portTableSize; i++) {
                   String currentOut = portArray[i].out;
@@ -523,11 +628,20 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
                   if (deviceMatch && currentOut != "no") {
                       if (configArray[a].cmdFlag == 0 && configArray[a].isBibus == 0) {
                           if (configArray[a].command != 0x40) {
-                              // Da hier noInterrupts() drin ist, sendet der ESP32 völlig ungestört!
+                              
+                              // DETAILED LOG: Direkt vor dem physischen Senden
+                              Serial.print(F("[WS-LOG]    Sende DIREKT-FRAME: Addr 0x")); Serial.print(configArray[a].address, HEX);
+                              Serial.print(F(", Cmd 0x")); Serial.println(configArray[a].command, HEX);
+                              
                               sendRevoxFrame(configArray[a].address, configArray[a].command, 1);
-                              Serial.print(F("     [WS-DIRECT] Gesendet: Addr 0x"));
-                              Serial.println(configArray[a].address, HEX);
+                              
+                              Serial.println(F("[WS-LOG]    DIREKT-FRAME erfolgreich abgesetzt."));
+                          } else {
+                              Serial.println(F("[WS-LOG]    Uebersprungen: Befehl hat Blockier-Command 0x40"));
                           }
+                      } else {
+                          Serial.print(F("[WS-LOG]    Kein Direkt-Send: cmdFlag=")); Serial.print(configArray[a].cmdFlag);
+                          Serial.print(F(" | isBibus=")); Serial.println(configArray[a].isBibus);
                       }
                   }
               }
@@ -535,18 +649,23 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
           }
           ++a;
         }
-        // Nach dem ersten Sofort-Senden sperren wir den Erst-Druck für eventuelles Halten
-        isFirstButtonPress = false; 
+        
+        if (!matchFound) {
+            Serial.print(F("[WS-LOG] ACHTUNG: Die empfangene ID '")); Serial.print(buttonName);
+            Serial.println(F("' existiert NICHT im configArray! Bitte HTML-ID pruefen."));
+        }
       } 
       else if (subMsg.startsWith("Release")) {
         buttonHold = 0;
-        isFirstButtonPress = true;
+        isFirstButtonPress = true; 
         lastActivity = millis();
-        Serial.println(F("[WS-API] Release empfangen."));
-        delay(100); 
+        
+        Serial.println(F("\n=================================================="));
+        Serial.print(F("[WS-LOG] NETZWERK-RELEASE EMPFANGEN fuer ID: '")); Serial.print(buttonName); Serial.println(F("'"));
+        Serial.println(F("[WS-LOG] Status zurückgesetzt: buttonHold = 0 | isFirstButtonPress = true"));
+        Serial.println(F("=================================================="));
       }
     }
-    // Alle anderen Befehle (Slider/Setup) wie gehabt an pendingWsCommand übergeben
     else {
       pendingWsCommand = msg;
       wsWakeupTime = millis();
@@ -554,25 +673,27 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
   }
 }
 
-
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
       void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       
-      // Prüfen, ob noch eine ungelesene Nachricht für das neu verbundene Gerät bereitsteht
+      // NUR senden, wenn es sich um brandneue, valide Daten handelt.
+      // Durch das Leeren beim Disconnect ist dieser Puffer beim echten Seitenwechsel nun garantiert leer!
       if (b203data.length() > 0) {
-          // KORRIGIERT: Nur an den neuen Client senden, nicht an alle (textAll)
           client->text(b203data);
-          
-          // KORRIGIERT: Speicher absolut sauber und sicher leeren
           b203data = ""; 
       }
       break;
       
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      
+      // KORREKTUR: Radikaler Kahlschlag beim Verlassen der Seite / Tab-Wechsel!
+      b203Buffer = ""; // Löscht den seriellen Empfangspuffer (Zukunftssperre)
+      b203data = "";   // Löscht den globalen Datenspeicher (Vergangenheitssperre)
+      Serial.println(F("[B203-CLEANUP] Sämtliche Datenpuffer wegen Disconnect gelöscht."));
       break;
       
     case WS_EVT_DATA:
@@ -962,7 +1083,7 @@ void loop() {
   }
   
   // ==========================================   
-  // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
+  // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG (KORRIGIERT FÜR REVOX \r)
   // ==========================================   
 
   while (Serial2.available() > 0) {
@@ -979,17 +1100,17 @@ void loop() {
           continue; 
       }
 
-      if (inChar == '\n') {
+      // KORREKTUR: Reagiert jetzt sofort, wenn die Zeile mit \r ODER \n endet!
+      if (inChar == '\r' || inChar == '\n') {
           if (b203Buffer.length() > 0) {
-              if (b203Buffer.endsWith("\r")) {
-                  b203Buffer.remove(b203Buffer.length() - 1);
-              }
               b203data = b203Buffer;
+              b203data.trim(); // Entfernt eventuell verbliebene Steuerzeichen (Whitespaces, \r, \n)
               b203Buffer = ""; 
               
               if (b203data.length() > 0) {
+                  Serial.print(F("[B203 -> WEB] Sende: ")); 
                   Serial.println(b203data);
-                  ws.textAll(b203data);
+                  ws.textAll(b203data); // Schickt die Antwort live an deinen Browser!
               }
           }
       } 
@@ -1006,7 +1127,7 @@ void loop() {
   processButtonPath();     // Verarbeitet Web- & manuelle Buttons (Ehemals Teil 3)
 
   // ==========================================
-  // 4. INFRAROT-PFAD (Bleibt hier, da kurz und kompakt)
+  // 4. INFRAROT-PFAD (ERWEITERTES LOGGING)
   // ==========================================
 
   unsigned long currentMillis = millis();
@@ -1016,38 +1137,77 @@ void loop() {
       if (IrReceiver.decode()) {
           uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command;
 
+          // DETAILED IR-LOG: Basis-Daten beim Empfang
+          Serial.println(F("\n=================================================="));
+          Serial.println(F("[IR-LOG] INFRAROT-SIGNAL ERKANNT!"));
+          Serial.print(F("[IR-LOG] Protokoll: ")); Serial.println(IrReceiver.getProtocolString());
+          Serial.print(F("[IR-LOG] Adresse: 0x")); Serial.print(IrReceiver.decodedIRData.address, HEX);
+          Serial.print(F(" | Kommando: 0x")); Serial.println(IrReceiver.decodedIRData.command, HEX);
+          Serial.print(F("[IR-LOG] Kombinierter Code (combined): 0x")); Serial.println(combined, HEX);
+          
           if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-              Serial.println(F("Received noise or an unknown protocol"));
+              Serial.println(F("[IR-LOG] Signal ungenau oder unbekanntes Protokoll (Noise)"));
               IrReceiver.resume(); 
+              Serial.println(F("=================================================="));
           } else {
+              Serial.print(F("[IR-LOG] Kurzinfo: "));
               IrReceiver.printIRResultShort(&Serial);   
               Serial.println();
           }
 
           if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+              Serial.println(F("[IR-LOG] Typ: WIEDERHOLUNG (Taste gedrueckt gehalten)"));
+              
               if ((configArray[irid].repeat == 1) && (irid > 0) && (configArray[irid].command != 0x40)) {
                   if (configArray[irid].addressRep != 0) {
+                      Serial.print(F("[IR-LOG] -> Sende REPEAT-Frame mit addressRep: 0x")); Serial.println(configArray[irid].addressRep, HEX);
                       sendRevoxFrame(configArray[irid].addressRep, configArray[irid].command, 1);
                   } else {
+                      Serial.print(F("[IR-LOG] -> Sende REPEAT-Frame mit Standard-Addr: 0x")); Serial.println(configArray[irid].address, HEX);
                       sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1);
                   }
+              } else {
+                  Serial.println(F("[IR-LOG] -> Keine Sende-Aktion (repeat=0 oder blockiert)"));
               }
+              Serial.println(F("=================================================="));
           } 
           else {
+              Serial.println(F("[IR-LOG] Typ: ERST-DRUCK (Neues Signal)"));
               irid = 0;
               lastActivity = millis();
+              bool irMatchFound = false;
               
+              // KORRIGIERT: Beibehaltung von [0] fuer sichere String-Pruefung
               while (configArray[irid].btnID[0] != '\0' && strcmp(configArray[irid].btnID, "none") != 0 && irid < maxCommandCapacity) {
+                  
                   if ((combined == configArray[irid].irRecvCode) && (combined != 0)) {
+                      irMatchFound = true;
+                      
+                      Serial.print(F("[IR-LOG] -> TREFFER in Konfiguration bei Index [")); Serial.print(irid); Serial.println(F("]"));
+                      Serial.print(F("[IR-LOG]    ID: '")); Serial.print(configArray[irid].btnID);
+                      Serial.print(F("' | Geraet: '")); Serial.print(configArray[irid].device); Serial.println(F("'"));
+                      
                       if ((configArray[irid].address < 0x11) && (configArray[irid].cmdFlag == 0)) {
                           if (configArray[irid].command != 0x40) {
+                              Serial.print(F("[IR-LOG]    Sende ReVox-Frame: Addr 0x")); Serial.print(configArray[irid].address, HEX);
+                              Serial.print(F(", Cmd 0x")); Serial.println(configArray[irid].command, HEX);
+                              
                               sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1);
+                          } else {
+                              Serial.println(F("[IR-LOG]    Uebersprungen: Befehl hat Blockier-Command 0x40"));
                           }
+                      } else {
+                          Serial.println(F("[IR-LOG]    Keine native ReVox-Sendung (cmdFlag > 0 oder Addr >= 0x11)"));
                       }
                       break; 
                   }
                   ++irid;
               }
+              
+              if (!irMatchFound) {
+                  Serial.println(F("[IR-LOG] Info: Dieser IR-Code ist in der configArray-Tabelle nicht hinterlegt."));
+              }
+              Serial.println(F("=================================================="));
           }
           IrReceiver.resume(); 
       }

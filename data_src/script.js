@@ -20,26 +20,12 @@ window.addEventListener('load', onLoad);
 //window.addEventListener('DOMContentLoaded', loadConfig);
 
 function onLoad() {
-  initWebSocket();
-  getButton();
-  setIRstate();
-  setb203();
-  getb203();
-  setEventb203();
-  setDateb203();
-  setTimeb203();
-  callEventb203();
-  delEventb203();
-  testEventb203();
-  getb215();
-  getb226();
-  getb291();
-  getb285();
-  setB285Speakers();
-  setB285Volume();
-  setPorts();
-  setBibus();
-  }
+  initWebSocket(); // Startet die Verbindung zum ESP
+  getButton();     // Lädt globale Buttons
+  setIRstate();    // Globale IR-Einstellung
+  setPorts();      // Globale Ports
+  setBibus();      // Globaler Bus
+}
 
 function setBibus() {
   // Event-Listener für gegenseitige Beeinflussung der Checkboxen
@@ -261,7 +247,7 @@ function setIRstate() {
 
 function setB285Speakers() {
 
-  document.getElementById('speakers')?.addEventListener('change', (event) => {
+  document.getElementById('setspeakers')?.addEventListener('change', (event) => {
     const Id = event.target.id;
     const Value = event.target.value;
     const Name = event.target.name;
@@ -275,7 +261,7 @@ function setB285Speakers() {
 function setB285Volume() {
   let lastValue = ""; // Speichert den zuletzt gesendeten Wert
   // 'input' feuert kontinuierlich während des Ziehens
-  document.getElementById('volumeSlider')?.addEventListener('input', (event) => {
+  document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
     const Value = event.target.value;
     const Name = event.target.name;
     // Nur senden, wenn sich die Zahl wirklich geändert hat (schont den WebSocket)
@@ -550,10 +536,10 @@ function getButton() {
       if (isTouchProcessing) return; 
       isTouchProcessing = true;
 
-      // NEU: Dem Button sofort die visuelle CSS-Klasse geben
       element.classList.add('is-pressed');
 
-      const Id = element.id; 
+      // NEU: Prüft zuerst, ob eine virtuelle data-id hinterlegt ist, sonst nimm die normale ID
+      const Id = element.getAttribute('data-id') || element.id; 
 
       if (ws.readyState === WebSocket.OPEN) {
         console.log("Sende: buttonPush" + Id);
@@ -565,11 +551,11 @@ function getButton() {
     const handleRelease = (element) => {
       if (!isTouchProcessing) return;
 
-      // NEU: Die visuelle CSS-Klasse sofort wieder entfernen
       element.classList.remove('is-pressed');
 
-      const Id = element.id;
-      // Erkennt, ob der Button selbst der Link ist oder in einem Link liegt
+      // NEU: Auch hier die data-id bevorzugen, um die ReVox-Hardware korrekt anzusprechen
+      const Id = element.getAttribute('data-id') || element.id;
+      
       const linkElement = element.closest('a') || element;
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
 
@@ -577,32 +563,15 @@ function getButton() {
         console.log("Sende: buttonRelease" + Id);
         ws.send("buttonRelease" + Id);
         
-        // ==========================================================
-        // DIE NETZWERK-SICHERUNG:
-        // Wenn der Button eine Ziel-URL besitzt (Seitenwechsel für ReVox-Gerät),
-        // verbieten wir dem Browser das sofortige Schließen des WebSockets!
-        // ==========================================================
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
-          
-          // Wir warten 150ms. In dieser Zeit bleibt die Netzwerkverbindung absolut stabil,
-          // der ESP32 hat Zeit zum Senden, und das Signal wird NICHT durch Lade-Interrupts zerschossen.
           setTimeout(() => {
-              try {
-                  // Erst JETZT, nach 150ms, schließen wir den WebSocket geordnet...
-                  ws.close(1000, "Normal Closure"); 
-              } catch(e) {}
-              
-              // ... und leiten den Browser erst jetzt sicher auf die neue HTML-Seite weiter!
               sicherLeiten(targetUrl);
               isTouchProcessing = false;
-          }, 150); // 150ms Gedenksekunde für die ReVox-Hardware
-          
+          }, 150);
         } else {
-          // Normaler Funktions-Button ohne Seitenwechsel: Verbindung bleibt offen
           isTouchProcessing = false;
         }
       } else {
-        // Falls der Socket unerwartet schon zu war, aber eine URL existiert
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
           sicherLeiten(targetUrl);
         }
@@ -613,33 +582,33 @@ function getButton() {
     // ==========================================================
     // LISTENERS FÜR MAUS UND TOUCH ZUWEISEN (PROTOKOLL-SICHER)
     // ==========================================================
-
-    // 1. SMARTPHONE / TOUCHSCREEN-STEUERUNG
     btn.addEventListener('touchstart', (event) => {
-      // Verhindert die künstliche Maus-Simulation des Handys UND das sofortige Laden des hrefs
       event.preventDefault(); 
       handlePush(event.currentTarget);
     }, { passive: false });
 
     btn.addEventListener('touchend', (event) => {
-      event.preventDefault(); // Stoppt das unkontrollierte, sofortige Navigieren des Browsers beim Loslassen
+      event.preventDefault(); 
       handleRelease(event.currentTarget);
     }, { passive: false });
 
-
-    // 2. DESKTOP-PC / MAUS-STEUERUNG (FALLBACK)
     btn.addEventListener('mousedown', (event) => {
-      if (event.button === 0) { // Nur linke Maustaste
-        event.preventDefault(); // WICHTIG: Verhindert unkontrolliertes Browser-Standardverhalten beim Klicken
+      if (event.button === 0) { 
+        event.preventDefault(); 
         handlePush(event.currentTarget);
       }
     });
 
     btn.addEventListener('mouseup', (event) => {
       if (event.button === 0) {
-        event.preventDefault(); // Blockiert den sofortigen Seitenwechsel am PC, damit das Release noch übertragen wird
+        event.preventDefault(); 
         handleRelease(event.currentTarget);
       }
+    });
+
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
     });
   });
 }
@@ -658,53 +627,46 @@ function executeNavigation(element) {
   }
 }
 
-  function openB203(evt, TabName) {
-    // Declare all variables
-    var i, tabcontent, tablinks, tabname;
-
-    // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-      tabcontent[i].style.display = "none";
-    }
-
-    // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(TabName).style.display = "block";
-    evt.currentTarget.className += " active";
-
-    tabname = document.getElementById(TabName).id;
-    if (tabname == "B226Statustab"){
-      console.log(tabname);
-      getb226tabevent();
-    } else if (tabname == "B203Setuptab") {
-      console.log(tabname);
-      getb203tabevent();
-    } else if (tabname == "WIFIConfig") {
-      console.log(tabname);
-      getWIFIConfig();
-    } else if (tabname == "B215Statustab") {
-      console.log(tabname);
-      getb215tabevent();
-    } else if (tabname == "B285Statustab") {
-      console.log(tabname);
-      getb285tabevent();
-    } else if (tabname == "B291Statustab") {
-      console.log(tabname);
-      getb291tabevent();
-    } else if (tabname == "PortConfig") {
-      console.log(tabname);
-      loadData();
-    } else if (tabname == "Config") {
-      console.log(tabname);
-      loadConfig();
-    }
+function openB203(evt, TabName) {
+  // 1. Alle Tab-Inhalte ausblenden
+  const tabcontent = document.getElementsByClassName("tabcontent");
+  for (let i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
   }
+
+  // 2. "active"-Klasse von allen Tab-Links entfernen
+  const tablinks = document.getElementsByClassName("tablinks");
+  for (let i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // 3. Aktuellen Tab anzeigen und Button aktivieren
+  const currentTab = document.getElementById(TabName);
+  if (!currentTab) return; // Sicherheits-Check, falls TabName nicht existiert
+
+  currentTab.style.display = "block";
+  evt.currentTarget.className += " active";
+
+  // 4. Zuordnung von Tab-IDs zu den entsprechenden Funktionen (Lookup-Table)
+  const tabActions = {
+    "B226Statustab": getb226tabevent,
+    "B203Setuptab": getb203tabevent,
+    "WIFIConfig": getWIFIConfig,
+    "B215Statustab": getb215tabevent,
+    "B285Statustab": getb285tabevent,
+    "B291Statustab": getb291tabevent,
+    "PortConfig": loadData,
+    "Config": loadConfig
+  };
+
+  const tabname = currentTab.id;
+  
+  // 5. Funktion dynamisch ausführen, falls sie im Objekt existiert
+  if (tabActions[tabname]) {
+    console.log(tabname);
+    tabActions[tabname](); // Führt die gemappte Funktion aus
+  }
+}
 
   function swapPairs(str) {
     if (str.length < 6) return "String zu kurz";
@@ -808,42 +770,58 @@ function getB226Settings(incomingData) {
 }
 
  function getB285Settings(incomingData) {
-  // Holt die Daten direkt aus dem sicheren Parameter (oder Fallback auf event.data)
-  const rawString = incomingData || event.data;
-  console.log("Verarbeite B285 Daten:", rawString);
-
-  // Nutzdaten ab Index 3 abschneiden (überspringt Port und ID '03')
-  const rawdata = rawString.slice(3);
+  if (!incomingData || typeof incomingData !== 'string') return;
   
-  // 1. Signalquelle (z.B. Tuner, CD, Tape)
+  console.log("Verarbeite B285 Daten:", incomingData);
+
+  // Wir schneiden die ersten 3 Zeichen (Kanal + Geräteidentifier, z.B. "103") ab
+  const rawdata = incomingData.slice(3);
+  
+  // 1. Signalquelle (C) -> 1 Zeichen an Index 0
   const b285source = rawdata.charAt(0);
   const sourceElem = document.getElementById("b285source");
   if (sourceElem) sourceElem.value = b285source;
   
-  // 2. Lautsprecher-Status (A / B / A+B)
-  const getspeakers = rawdata.charAt(1);
-  const speakersElem = document.getElementById("getspeakers");
-  if (speakersElem) speakersElem.value = getspeakers;
+  // 2. Lautsprecher (D) -> 1 Zeichen an Index 1
+  const speakersVal = rawdata.charAt(1);
+  console.log("[Echtzeit-Log] Extrahierter Lautsprecher-Wert:", speakersVal);
+
+  // Aktualisiert das Status-Dropdown mit der ID "speakers"
+  const speakersElem = document.getElementById("speakers");
+  if (speakersElem) {
+      speakersElem.value = speakersVal;
+  }
   
-  // 3. Lautstärke (Volume - 2 Zeichen)
+  // 3. Lautstärke (EE) -> 2 Zeichen ab Index 2
   const volume = rawdata.slice(2, 4);
   const volElem = document.getElementById("volume");
   if (volElem) volElem.value = volume;
   
-  // 4. Tuner Stationsplatz (2 Zeichen)
-  const tunerstation = rawdata.slice(4, 6);
+  // Slider im Control-Tab synchronisieren
+  const sliderElem = document.getElementById("volumeSlider");
+  if (sliderElem) sliderElem.value = parseInt(volume, 10) || 0;
+  
+  // --- DYNAMISCHER TUNER-BLOCK ---
+  // Laut deiner Definition ist Wert "5" = Tuner FM und "6" = Tuner AM
   const stationElem = document.getElementById("tunerstation");
-  if (stationElem) stationElem.value = tunerstation;
-  
-  // 5. Stations-ID / Name (4 Zeichen)
-  const stationid = rawdata.slice(6, 10);
   const stationIdElem = document.getElementById("stationid");
-  if (stationIdElem) stationIdElem.value = stationid;
-  
-  // 6. Frequenz (5 Zeichen)
-  const frequency = rawdata.slice(10, 15);
   const freqElem = document.getElementById("frequency");
-  if (freqElem) freqElem.value = frequency;
+
+  if (b285source === "5" || b285source === "6") {
+    // Wenn die Quelle Tuner ist, lesen wir die restlichen Zeichen ab Index 4 aus
+    const tunerstation = rawdata.slice(4, 6);   // FF (2 Zeichen)
+    const stationid = rawdata.slice(6, 10);     // GGGG (4 Zeichen)
+    const frequency = rawdata.slice(10, 15);    // HHHHH (5 Zeichen)
+
+    if (stationElem) stationElem.value = tunerstation;
+    if (stationIdElem) stationIdElem.value = stationid;
+    if (freqElem) freqElem.value = frequency;
+  } else {
+    // Falls keine Tuner-Quelle aktiv ist, leeren wir die Status-Tunerfelder
+    if (stationElem) stationElem.value = "--";
+    if (stationIdElem) stationIdElem.value = "------";
+    if (freqElem) freqElem.value = "------";
+  }
 }
 
   function getB291Settings() {

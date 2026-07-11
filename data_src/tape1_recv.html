@@ -17,14 +17,14 @@
     	</header>
 
 		<div class='button-group-container-dev span2'>
-        	<span class='button-group-title-dev'>Ger&auml;teauswahl</span>
-			<a href='receiver.html' id='receiver' name='page' class='button span1'>Receiver</a>
-			<a href='tape2_recv.html' id='amptape2' name='button' class='button span1'>Tape2</a>
-			<a href='phono_recv.html' id='ampphono' name='button'class='button span1'>Phono</a>
-			<a href='cd_recv.html' id='ampcd' name='button' class='button span1'>CD</a>
-			<a href='b203_recv.html' id='b203' name='page' class='button span1'>B203<</a>
+    		<span class='button-group-title-dev'>Ger&auml;teauswahl</span>
+    		<!-- Eindeutige IDs für den Browser, data-id liefert die exakten ReVox-WebSocket-Befehle -->
+    		<a href='receiver.html'  id='nav_receiver' data-id='receiver' name='page'   class='button span1'>Receiver</a>
+    		<a href='tape2_recv.html' id='nav_amptape2' data-id='amptape2' name='button' class='button span1'>Tape2</a>
+    		<a href='phono_recv.html' id='nav_ampphono' data-id='ampphono' name='button' class='button span1'>Phono</a>
+    		<a href='cd_recv.html'    id='nav_ampcd'    data-id='ampcd'    name='button' class='button span1'>CD</a>
+    		<a href='b203_recv.html'  id='nav_b203'      data-id='b203'      name='page'   class='button span1'>B203</a>
 		</div>
-
 
 		<div class="tab">
 			<button type="button" class="tablinks active" onclick="openB203(event, 'B215tab')">Control</button>

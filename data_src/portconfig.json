@@ -8,7 +8,7 @@
   {
     "name": "B285",
     "descr": "receiver",
-    "out": "no",
+    "out": "1",
     "feedback": true
   },
   {

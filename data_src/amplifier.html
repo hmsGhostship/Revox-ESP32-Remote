@@ -1,49 +1,53 @@
 <!DOCTYPE html>
 <html lang='de'>
-	<head>
-    	<meta charset="UTF-8">
-    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Revox Amp Remote</title>
-		<link rel='stylesheet' href='style.css'>
-		<script src='script.js'></script>
-		<link rel="icon" type="image/x-icon" href="/favicon.ico">
-	</head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revox Amp Remote</title>
+    <link rel='stylesheet' href='style.css'>
+    <script src='script.js'></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
 
-	<body>
-	    <header>
-    	    <h3>Revox Amplifier<br>B251</h3>
-    	</header>
+<body>
+    <header>
+        <h3>Revox Amplifier<br>B251</h3>
+    </header>
 
-        <div class='button-group-container-dev span2'>
+    <!-- Geräteauswahl (IDs mit 'nav_' eindeutig gemacht, data-id für deine JavaScript-Logik) -->
+    <div class='button-group-container-dev span2'>
         <span class='button-group-title-dev'>Ger&auml;teauswahl</span>
-			<a href='tape1.html' id='amptape1' name='button' class='button span1'>Tape1</a>
-			<a href='tape2.html' id='amptape2' name='button' class='button span1'>Tape2</a>
-			<a href='tuner.html' id='amptuner' name='button' class='button span1'>Tuner</a>
-			<a href='phono.html' id='ampphono' name='button' class='button span1'>Phono</a>
-			<a href='cd.html' id='ampcd' name='button' class='button span1'>CD</a>
-			<a href='b203.html' id='b203' name='page' class='button span1'>B203</a>
-		</div>
+        <a href='tape1.html' id='nav_amptape1' data-id='amptape1' name='button' class='button span1'>Tape1</a>
+        <a href='tape2.html' id='nav_amptape2' data-id='amptape2' name='button' class='button span1'>Tape2</a>
+        <a href='tuner.html' id='nav_amptuner' data-id='amptuner' name='button' class='button span1'>Tuner</a>
+        <a href='phono.html' id='nav_ampphono' data-id='ampphono' name='button' class='button span1'>Phono</a>
+        <a href='cd.html'    id='nav_ampcd'    data-id='ampcd'    name='button' class='button span1'>CD</a>
+        <a href='b203.html'  id='b203'                               name='page'   class='button span1'>B203</a>
+    </div>
 
-		<div class='button-pwr-container-dev span2'>
-			<p><button type="button" name='button'id='amppoweron'class='power_btn span12 load_color'>ON</button></p>
-			<p><button type="button" name='button' id='amppoweroff' class='power_btn span12 pwr_color'>OFF</button></p>
-		</div>
+    <!-- Power-Buttons -->
+    <div class='button-pwr-container-dev span2'>
+        <p><button type="button" name='button' id='amppoweron' class='power_btn span12 load_color'>ON</button></p>
+        <p><button type="button" name='button' id='amppoweroff' class='power_btn span12 pwr_color'>OFF</button></p>
+    </div>
     
-		<div class='system-group-container span2'>
-			<p><button type="button" name='button' id='ampaux' class='button span4'>AUX In</button></p>
-			<p><button type="button" name='button' id='amprecmon' class='button span4'>Rec Out=Mon</button></p>
-			<p><button type="button" name='button' id='amptone' class='button span4'>Tone control</button></p>
-			<p><button type="button" name='button' id='amp20db' class='button span4'>-20dB</button></p>
-		</div>
+    <!-- Audio-Einstellungen -->
+    <div class='system-group-container span2'>
+        <p><button type="button" name='button' id='ampaux' class='button span4'>AUX In</button></p>
+        <p><button type="button" name='button' id='amprecmon' class='button span4'>Rec Out=Mon</button></p>
+        <p><button type="button" name='button' id='amptone' class='button span4'>Tone control</button></p>
+        <p><button type="button" name='button' id='amp20db' class='button span4'>-20dB</button></p>
+    </div>
 
-		<div class='system-group-container span2'>
-			<p><button type="button" name='button' id='ampbal_r' class='button span6'>Balance R</button></p>
-			<p><button type="button" name='button' id='ampbal_l' class='button span6'>Balance L</button></p>
-			<p><button type="button" name='button' id='ampvoldn' class='button span6'>Volume -</button></p>
-			<p><button type="button" name='button' id='ampvolup' class='button span6'>Volume +</button></p>
-			<p><button type="button" name='button' id='ampvoldnx' class='button span6'>Volume --</button></p>
-			<p><button type="button" name='button' id='ampvolupx' class='button span6'>Volume ++</button></p>
-		</div>
+    <!-- Balance & Volume -->
+    <div class='system-group-container span2'>
+        <p><button type="button" name='button' id='ampbal_r' class='button span6'>Balance R</button></p>
+        <p><button type="button" name='button' id='ampbal_l' class='button span6'>Balance L</button></p>
+        <p><button type="button" name='button' id='ampvoldn' class='button span6'>Volume -</button></p>
+        <p><button type="button" name='button' id='ampvolup' class='button span6'>Volume +</button></p>
+        <p><button type="button" name='button' id='ampvoldnx' class='button span6'>Volume --</button></p>
+        <p><button type="button" name='button' id='ampvolupx' class='button span6'>Volume ++</button></p>
+    </div>
 
-	</body>
+</body>
 </html>

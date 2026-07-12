@@ -751,6 +751,8 @@ function getButton() {
           'setup': 'setb203',
           'getsettings': 'getb203',
           'getb285settings': 'getb285',
+          'getb226settings': 'getb226',
+          'getb215settings': 'getb215',
           'setDate': 'setDateb203',
           'setTime': 'setTimeb203',
           'setEvent': 'setEventb203',

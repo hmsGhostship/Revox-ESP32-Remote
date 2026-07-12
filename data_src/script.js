@@ -356,7 +356,7 @@ function setIRstate() {
 
 function setB285Speakers() {
 
-  document.getElementById('setspeakers')?.addEventListener('change', (event) => {
+  document.getElementById('speakers')?.addEventListener('change', (event) => {
     const Id = event.target.id;
     const Value = event.target.value;
     const Name = event.target.name;
@@ -638,8 +638,8 @@ function getButton() {
   const buttons = document.querySelectorAll('.button:not(.js-bound), .misc_button:not(.js-bound), .power_btn:not(.js-bound)');
   
   buttons.forEach(btn => {
-    // Slider und Dropdowns komplett ignorieren
-    if (btn.tagName === 'INPUT' || btn.tagName === 'SELECT' || btn.classList.contains('slide')) {
+    // Slider und Selektoren aus der Hardwaretasten-Logik aussortieren
+    if (btn.tagName === 'INPUT' || btn.tagName === 'SELECT' || btn.classList.contains('slide') || btn.id === 'volumeSlider') {
       return; 
     }
 
@@ -685,7 +685,7 @@ function getButton() {
       }
     };
 
-    // LISTENERS FÜR MAUS UND TOUCH ZUWEISEN
+    // LISTENERS FÜR HARDWARE-BUTTONS ZUWEISEN
     btn.addEventListener('touchstart', (event) => {
       event.preventDefault(); 
       handlePush(event.currentTarget);
@@ -710,12 +710,34 @@ function getButton() {
       }
     });
 
-    // KORREKTUR: preventDefault() entfernt! Nur stopPropagation() bleibt, 
-    // um ein doppeltes Auslösen des Klicks auf dem Button selbst zu verhindern.
     btn.addEventListener('click', (event) => {
-      event.stopPropagation();
+      event.preventDefault();
     });
   });
+
+  // ====================================================================
+  // DIREKTE EVENT-BINDUNG FÜR DEN VOLUME-SLIDER (EXAKT FÜR DEINEN ESP32)
+  // ====================================================================
+  const volSlider = document.getElementById('volumeSlider');
+  if (volSlider && !volSlider.classList.contains('js-bound')) {
+    volSlider.classList.add('js-bound');
+
+    // Das 'change'-Event feuert exakt beim Loslassen des Sliders
+    volSlider.addEventListener('change', (event) => {
+      // Erzwingt, dass die Zahl immer 2-stellig ist (z.B. aus 5 wird "05")
+      const currentVolume = String(event.target.value).padStart(2, '0');
+      
+      // Das exakte Format für deinen Server: "volSliderV" (10 Zeichen) + "xx"
+      const espMessage = "volSliderV" + currentVolume;
+
+      console.log("[Slider-Aktion] Sende via WS: " + espMessage);
+
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(espMessage); // Schickt "volSliderV50" an den C++ Code
+      }
+    });
+  }
+  
 
   // ====================================================================
   // LOGIK FÜR ALLE EINSTELLUNGS-, CONFIG- & TIMER-BUTTONS (.set_button)

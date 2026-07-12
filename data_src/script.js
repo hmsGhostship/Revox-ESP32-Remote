@@ -322,29 +322,36 @@ function setIRstate() {
   });
 }
 
-// Wir definieren eine feste, benannte Funktion für den Event-Handler
+// 1. Die verarbeitende Funktion komplett eigenständig machen
 function handleSpeakerChange(event) {
+  // Verhindert, dass andere Skripte oder Tab-Systeme dieses Event blockieren
+  event.stopPropagation(); 
+
   if (event.target && event.target.id === 'speakers') {
     const Value = event.target.value;
     const Name = event.target.name;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-      console.log("[WebSocket] Sende aus Tab: " + Name + Value);
+      console.log("[WebSocket ERFOLG] Sende direkt: " + Name + Value);
       ws.send(Name + Value);
     } else {
-      console.error("[WebSocket] Verbindung im Tab nicht offen!");
+      console.error("[WebSocket FEHLER] Verbindung im Tab nicht offen!");
     }
   }
 }
 
+// 2. Die Initialisierung direkt an das Element binden
 function setB285Speakers() {
-  // WICHTIG: Vor dem Hinzufügen entfernen wir den Listener einmal.
-  // Wenn er noch nicht da war, passiert nichts. 
-  // Wenn er schon da war, verhindern wir so, dass er doppelt existiert!
-  document.body.removeEventListener('change', handleSpeakerChange);
+  const el = document.getElementById('speakers');
+  if (!el) return;
+
+  // Alte Listener entfernen, um Dopplungen im Tab zu vermeiden
+  el.removeEventListener('change', handleSpeakerChange);
+  el.removeEventListener('input', handleSpeakerChange);
   
-  // Jetzt fügen wir ihn exakt EINMAL sauber hinzu
-  document.body.addEventListener('change', handleSpeakerChange);
+  // 'input' reagiert im Tab oft schneller und sicherer vor Blockaden als 'change'
+  el.addEventListener('change', handleSpeakerChange);
+  el.addEventListener('input', handleSpeakerChange);
 }
 
 function setB285Volume() {
@@ -978,7 +985,6 @@ function getB226Settings(incomingData) {
   if (sliderElem) sliderElem.value = parseInt(volume, 10) || 0;
   
   // --- DYNAMISCHER TUNER-BLOCK ---
-  // Laut deiner Definition ist Wert "5" = Tuner FM und "6" = Tuner AM
   const stationElem = document.getElementById("tunerstation");
   const stationIdElem = document.getElementById("stationid");
   const freqElem = document.getElementById("frequency");
@@ -987,17 +993,31 @@ function getB226Settings(incomingData) {
     // Wenn die Quelle Tuner ist, lesen wir die restlichen Zeichen ab Index 4 aus
     const tunerstation = rawdata.slice(4, 6);   // FF (2 Zeichen)
     const stationid = rawdata.slice(6, 10);     // GGGG (4 Zeichen)
-    const frequency = rawdata.slice(10, 15);    // HHHHH (5 Zeichen)
+    const frequency = rawdata.slice(10, 15);    // HHHHH (5 Zeichen) - z.B. "8850" oder "10730"
 
     if (stationElem) stationElem.value = tunerstation;
     if (stationIdElem) stationIdElem.value = stationid;
-    if (freqElem) freqElem.value = frequency;
+    
+    if (freqElem) {
+      // 1. String in echte Zahl umwandeln (z.B. 10730)
+      const freqNum = parseFloat(frequency);
+      
+      if (!isNaN(freqNum)) {
+        // 2. Durch 100 teilen (-> 107.3) und auf 2 Nachkommastellen zwingen (-> "107.30")
+        // 3. Punkt durch Komma ersetzen und " MHz" anhängen
+        const formattedFreq = (freqNum / 100).toFixed(2).replace('.', ',') + " MHz";
+        freqElem.value = formattedFreq;
+      } else {
+        freqElem.value = frequency; // Fallback, falls keine Zahl extrahiert werden konnte
+      }
+    }
   } else {
     // Falls keine Tuner-Quelle aktiv ist, leeren wir die Status-Tunerfelder
     if (stationElem) stationElem.value = "--";
     if (stationIdElem) stationIdElem.value = "------";
     if (freqElem) freqElem.value = "------";
   }
+  setB285Speakers(); 
 }
 
   function getB291Settings() {

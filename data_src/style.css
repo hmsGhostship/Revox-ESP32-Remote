@@ -351,7 +351,7 @@ label {
 .text {
   border:4px solid #333;
   padding-top:30px;
-  padding-bottom:30px;
+  padding-bottom: 30px;
   padding-right: 50px;
   padding-left: 50px;
   font-size: 20px;
@@ -1162,4 +1162,53 @@ p {
     color: #ffffff !important;
     transform: scale(0.96);
     transition: transform 0.05s ease;
+}
+
+/* ==========================================================================
+FINALE ANPASSUNG FÜR DIE VS CODE LIVE-VORSCHAU (COMPACT LAYOUT)
+========================================================================== */
+
+/* 1. Die grauen Container flachdrücken */
+.select-group-container,
+.timer-group-container,
+.button-pwr-container-dev {
+  padding: 4px 10px !important;
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;
+}
+
+/* 2. Knackige Abstände für die Überschriften (Labels) */
+label {
+  display: block !important;
+  margin-top: 14px !important;     /* Abstand zum Element darüber */
+  margin-bottom: 1px !important;   /* Zieht das Label direkt an die Box darunter */
+  padding: 0 !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+}
+
+/* 3. DIE RETTUNG FÜR DIE TEXTFELDER: Extrem spezifischer VS Code Selektor */
+input[type="text"].text,
+.text,
+input.text,
+select.b203set {
+  margin-top: 0 !important;
+  margin-bottom: 6px !important;   /* Abstand nach dem Feld zum nächsten Thema */
+  
+  /* Radikale Reduzierung des Innenabstands (überschreibt die 30px der .text Klasse) */
+  padding-top: 4px !important;     
+  padding-bottom: 4px !important;  
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  
+  font-size: 20px !important;
+  height: auto !important;         /* Hebt starre Höhenbeschränkungen auf */
+  box-sizing: border-box !important;
+}
+
+/* 4. Direkte Kopplung für die Vorschau erzwingen */
+label + input[type="text"].text,
+label + .text,
+label + select {
+  margin-top: 0 !important;
 }

@@ -272,38 +272,6 @@ function onClose(event) {
   setTimeout(initWebSocket, 2000);
 }
 
-/*function onMessage(event) {
-  console.log("WebSocket empfangen:", event.data);
-  
-  const rawString = event.data;
-  if (!rawString || typeof rawString !== 'string') return;
-
-  // Extrahiert zwei Zeichen ab Index 1 (z.B. "52")
-  const Identifier = rawString.slice(1, 3);
-  const idNum = Number(Identifier);
-  
-  // Ermittelt die allererste Ziffer der ID (z.B. bei 52 durch 10 teilen und abrunden = 5)
-  const firstDigit = Math.floor(idNum / 10);
-  
-  // IDs laut Ihrem System
-  let NoId = 0, PR99 = 1, A725 = 2, B285 = 3, B215 = 4, B225_2 = 5, B226 = 6, A725_2 = 7, B291 = 8;
-  
-  // IF-Abfragen für Standardgeräte
-  if (idNum == B285) {
-    getB285Settings(rawString);
-  } else if (idNum == B215) {
-    getB215Settings(rawString);
-  } else if (idNum == B226) { 
-    getB226Settings(rawString); 
-  } else if (idNum == B291) {
-    getB291Settings(rawString);
-  } 
-  // REVOX B203 Bedingung: Reagiert dynamisch, wenn die erste Stelle eine 5 oder eine 9 ist
-  else if (firstDigit === 5 || firstDigit === 9) { 
-    console.log(`B203 erkannt mit ID ${idNum} (Klasse ${firstDigit}x), rufe getB203Settings auf...`);
-    getB203Settings(rawString); 
-  }
-}*/
 
 function onMessage(event) {
   console.log("WebSocket empfangen:", event.data);
@@ -354,17 +322,29 @@ function setIRstate() {
   });
 }
 
-function setB285Speakers() {
-
-  document.getElementById('speakers')?.addEventListener('change', (event) => {
-    const Id = event.target.id;
+// Wir definieren eine feste, benannte Funktion für den Event-Handler
+function handleSpeakerChange(event) {
+  if (event.target && event.target.id === 'speakers') {
     const Value = event.target.value;
     const Name = event.target.name;
-      if (ws.readyState === WebSocket.OPEN) {
-        console.log(Name + Value);
-        ws.send(Name + Value);
-      }
-  });
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("[WebSocket] Sende aus Tab: " + Name + Value);
+      ws.send(Name + Value);
+    } else {
+      console.error("[WebSocket] Verbindung im Tab nicht offen!");
+    }
+  }
+}
+
+function setB285Speakers() {
+  // WICHTIG: Vor dem Hinzufügen entfernen wir den Listener einmal.
+  // Wenn er noch nicht da war, passiert nichts. 
+  // Wenn er schon da war, verhindern wir so, dass er doppelt existiert!
+  document.body.removeEventListener('change', handleSpeakerChange);
+  
+  // Jetzt fügen wir ihn exakt EINMAL sauber hinzu
+  document.body.addEventListener('change', handleSpeakerChange);
 }
 
 function setB285Volume() {

@@ -429,8 +429,15 @@ void processDirectCommands() {
             Serial.print(F("[DIRECT-LOG] Typ: speakers | Wert: '")); Serial.print(b285Speaker); Serial.println(F("'"));
             for (int i = 0; i < portTableSize; i++) {
                 if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '")); Serial.print(portArray[i].out); Serial.print(b285Speaker); Serial.println(F("\\r'"));
-                    Serial2.print(portArray[i].out); Serial2.print(b285Speaker); Serial2.print("\r");
+                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '"));
+                    Serial.print(portArray[i].out);
+                    Serial.print(F("L"));
+                    Serial.print(b285Speaker);
+                    Serial.println(F("\\r'"));
+                    Serial2.print(portArray[i].out);
+                    Serial2.print("L");
+                    Serial2.print(b285Speaker);
+                    Serial2.print("\r");
                 }
             }
         }

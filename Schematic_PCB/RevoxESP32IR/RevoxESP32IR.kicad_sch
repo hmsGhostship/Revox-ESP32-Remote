@@ -4965,9 +4965,9 @@
 		)
 		(uuid "42d3fe12-70ca-4157-a65f-7d1bdc852974")
 	)
-	(text "Wichtig, das SerialLink Kabel muss \nan Port A angeschlossen werden\nund er Jumper JS1 auf der B203\nHauptplatine muss auf Stellung R gesteckt sein."
+	(text "Wichtig, wird das SerialLink Kabel\nan Port A angeschlossen dann muss\nder Jumper JS1 auf der B203\nHauptplatine auf Stellung R gesteckt sein."
 		(exclude_from_sim no)
-		(at 259.588 18.542 0)
+		(at 257.048 22.86 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5006,9 +5006,9 @@
 		)
 		(uuid "e072c511-c37f-4e07-bb33-c674a9816afa")
 	)
-	(text "J1					Revox B203\nJST 6pol.			DIN 6pol.\n1					1 (gnd)\n2					2 (gnd)\n3					3 (SerialLink)\n4					4 (nc)\n5					5 (+5V)\n6					6 (nc)"
+	(text "J1					Revox B203\nJST 6pol.			DIN 6pol.\n1					1 (gnd)\n2					2 (gnd)\n3					3 (SerialLink)\n4					4 (+5V)\n5					5 (PortA IR-Transceiver out)\n6					6 (nc)"
 		(exclude_from_sim no)
-		(at 168.91 46.99 0)
+		(at 167.132 48.514 0)
 		(effects
 			(font
 				(size 1.27 1.27)

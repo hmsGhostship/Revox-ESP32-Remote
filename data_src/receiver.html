@@ -84,7 +84,15 @@
             <label for="volumeSlider" class="slide-label">Lautst&auml;rke:</label>
             <input type="range" min="0" max="99" value="50" id="volumeSlider" name="volSlider" class='slide' style="transform: scaleX(-1);">
         </div>
-				
+        
+	        <label for="speakers">Lautsprecher:</label>
+            <select class="b203set" id="speakers" name="speakers">
+                <option value="0">Lautsprecher aus</option>
+                <option value="1">Lautsprecher A</option>
+                <option value="2">Lautsprecher B</option>
+                <option value="3">Lautsprecher A & B</option>
+            </select>
+
         <!-- Lautsprecher-Schalter (Bedienung) 
         <div class='select-group-container span2'>
             <label for="setspeakers">Lautsprecher:</label>
@@ -154,14 +162,6 @@
                 <option value="7">Monitor Tape 1</option>
                  <option value="8">Monitor Tape 2</option>
                 <option value="9">Status unerkannt</option>
-            </select>
-
-            <label for="speakers">Lautsprecher:</label>
-            <select class="b203set" id="speakers" name="speakers">
-                <option value="0">Lautsprecher aus</option>
-                <option value="1">Lautsprecher A</option>
-                <option value="2">Lautsprecher B</option>
-                <option value="3">Lautsprecher A & B</option>
             </select>
 
             <label for="volume">Volume</label>

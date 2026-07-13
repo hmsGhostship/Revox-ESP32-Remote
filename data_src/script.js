@@ -21,7 +21,7 @@ window.addEventListener('load', onLoad);
 
 function onLoad() {
   // ==================================================
-  // 1. GLOBALE INITIALISIERUNG (Muss auf jeder Seite laufen)
+  // 1. GLOBALE INITIALISIERUNG (Exakt dein Original)
   // ==================================================
   initWebSocket();
   getButton();
@@ -33,70 +33,119 @@ function onLoad() {
   // 2. DYNAMISCHE SEITEN- UND GRUPPENERKENNUNG
   // ==================================================
   const path = window.location.pathname;
-  const page = path.split("/").pop().toLowerCase(); // z.B. "cd_recv.html" oder "tape1.html"
+  const page = path.split("/").pop().toLowerCase(); 
 
   console.log("[Routing] Aktuelle HTML-Seite geladen: " + page);
 
-  // Prüfen, ob wir uns in der B285-Receiver-Gruppe befinden
-  const isReceiverGroup = page.includes("_recv");
+  // KORREKTUR: Erkennt deine Seiten der Receiver-Gruppe (inkl. b203_rec.html / b203_recv.html)
+  const isReceiverWorld = page.includes("_recv") || page.includes("_rec") || page === "receiver.html";
+  const isAmplifierWorld = !isReceiverWorld;
 
   // ==================================================
-  // 3. LOGIK FÜR DIE RECEIVER-GRUPPE (B285 aktiv)
+  // 3. LOGIK FÜR DIE RECEIVER-WELT (B285 aktiv)
   // ==================================================
-  if (isReceiverGroup) {
-    console.log("[Routing] Receiver-Gruppe erkannt. Starte B285 Basis-Abfragen.");
+  if (isReceiverWorld) {
+    console.log("[Routing] Modus: Receiver-Welt (B285).");
     
-    // Diese Abfragen gehören zum B285 und laufen auf JEDER _recv.html Seite beim Start
-    getb285();
-    setB285Speakers();
-    setB285Volume();
-
-    // Jetzt die gerätespezifischen Unterfunktionen innerhalb der Receiver-Welt aufrufen
-    if (page.startsWith("cd_recv")) {
-      console.log("[Routing] Lade spezifische CD-Daten für B285.");
-      getb226();
-    } 
-    else if (page.startsWith("tape1_recv")) {
-      console.log("[Routing] Lade spezifische Tape-Daten für B285.");
-      getb215();
-    } 
-    else if (page.startsWith("phone_recv") || page.startsWith("phono_recv")) {
-      console.log("[Routing] Lade spezifische Phono-Daten für B285.");
-      getb291();
-    }
-  } 
-  
-  // ==================================================
-  // 4. LOGIK FÜR DIE VERSTÄRKER+TUNER-GRUPPE (B251 / B261 aktiv)
-  // ==================================================
-  else {
-    console.log("[Routing] Verstärker/Tuner-Gruppe erkannt.");
-
-    if (page === "cd.html") {
-      console.log("[Routing] Lade spezifische CD-Daten für B251/B261.");
-      getb226();
-    } 
-    else if (page === "tape1.html") {
-      console.log("[Routing] Lade spezifische Tape-Daten für B251/B261.");
-      getb215();
-    } 
-    else if (page === "phone.html" || page === "phono.html") {
-      console.log("[Routing] Lade spezifische Phono-Daten für B251/B261.");
-      getb291();
-    }
-    // Falls es eine b203.html (oder index.html ohne _recv) gibt, wo das Setup liegt:
-    else if (page === "b203.html" || page === "index.html" || page === "") {
-      console.log("[Routing] Lade Setup-Daten für B203.");
+    // Wenn die B203-Seite in der Receiver-Gruppe geöffnet wird (b203_rec.html / b203_recv.html)
+    if (page.startsWith("b203")) {
+      console.log("[Routing] Lade Setup-Daten für B203 (Receivergruppe).");
       setb203();
-      getb203();
+      getb203(); 
       setEventb203();
       setDateb203();
       setTimeb203();
       callEventb203();
       delEventb203();
       testEventb203();
+
+      // KORREKTUR: Warte ganz kurz, bis der WebSocket OPEN ist, dann "klicken"
+      setTimeout(() => {
+        console.log("[Routing] Automatischer Erstabruf beim Betreten der B203-Seite");
+        document.getElementById('b203_get')?.click();
+      }, 150);
+    } 
+    // Für alle anderen echten Receiver-Seiten
+    else {
+      getb285();
+      setB285Speakers();
+
+      if (page.startsWith("cd_recv")) {
+        getb226();
+        setTimeout(() => document.getElementById('b226_get')?.click(), 150); // Verzögerter Erstabruf
+      } else if (page.startsWith("tape1_recv")) {
+        getb215();
+        setTimeout(() => document.getElementById('b215_get')?.click(), 150); // Verzögerter Erstabruf
+      } else if (page.startsWith("receiver")) {
+        getb285();
+        setTimeout(() => document.getElementById('b285_get')?.click(), 150); // Verzögerter Erstabruf
+      }
+    }
+  } 
+
+  // ==================================================
+  // 4. LOGIK FÜR DIE BAUSTEIN-WELT (Verstärker B251 + Einzelgeräte)
+  // ==================================================
+  else if (isAmplifierWorld) {
+    console.log("[Routing] Modus: Baustein-Welt (B251 / Einzelgeräte).");
+
+    if (page === "amplifier.html") {
+      console.log("[Routing] Lade Hauptfunktionen für B251 Verstärker.");
+    } 
+    else if (page === "cd.html") {
+      getb226();
+      setTimeout(() => document.getElementById('b226_get')?.click(), 150); // Verzögerter Erstabruf
+    } else if (page === "tape1.html") {
+      getb215();
+      setTimeout(() => document.getElementById('b215_get')?.click(), 150); // Verzögerter Erstabruf
+    }
+    else if (page === "b203.html" || page === "index.html" || page === "") {
+      console.log("[Routing] Lade Setup-Daten für B203.");
+      setb203();
+      getb203(); 
+      setEventb203();
+      setDateb203();
+      setTimeb203();
+      callEventb203();
+      delEventb203();
+      testEventb203();
+
+      // KORREKTUR: Warte ganz kurz, bis der WebSocket OPEN ist, dann "klicken"
+      setTimeout(() => {
+        console.log("[Routing] Automatischer Erstabruf beim Betreten der B203-Bausteinseite");
+        document.getElementById('b203_get')?.click();
+      }, 150);
     }
   }
+
+  // ==================================================
+  // 5. AUTOMATISCHER TAB-TRIGGER (Nur bei Status- und Setup-Tabs!)
+  // ==================================================
+  console.log("[Tabs] Initialisiere Klick-Erkennung für .tablinks Buttons.");
+  document.querySelectorAll('.tablinks').forEach(tabButton => {
+    tabButton.addEventListener('click', (event) => {
+      const onClickAttr = event.target.getAttribute('onclick') || "";
+      
+      console.log("[Tabs] Tab-Button geklickt. OnClick-Inhalt: " + onClickAttr);
+
+      if (onClickAttr.includes("B226") && onClickAttr.includes("Status")) {
+        console.log("[Tabs] CD Status-Tab geöffnet -> Trigger Laden");
+        document.getElementById('b226_get')?.click();
+      } 
+      else if (onClickAttr.includes("B215") && onClickAttr.includes("Status")) {
+        console.log("[Tabs] Tape Status-Tab geöffnet -> Trigger Laden");
+        document.getElementById('b215_get')?.click();
+      } 
+      else if (onClickAttr.includes("B285") && (onClickAttr.includes("Status") || onClickAttr.includes("B285tab"))) {
+        console.log("[Tabs] Receiver Status-Tab geöffnet -> Trigger Laden");
+        document.getElementById('b285_get')?.click();
+      }
+      else if (onClickAttr.includes("B203Setuptab")) {
+        console.log("[Tabs] B203 Setup-Tab geöffnet -> Trigger Laden");
+        document.getElementById('b203_get')?.click();
+      }
+    });
+  });
 }
 
 function setBibus() {
@@ -904,18 +953,32 @@ function getB203Settings(incomingData) {
 }
 
   function getB215Settings(incomingData) {
-    const rawdata = event.data.slice(3);
-    const functions = rawdata.charAt(0);
-    document.getElementById("functions").value = functions;
-    const addfunctions = rawdata.charAt(1);
-    document.getElementById("addfunctions").value = addfunctions;
-    const cuestate = rawdata.charAt(2);
-    document.getElementById("cuestate").value = cuestate;
-    const tapecountermm = rawdata.slice(3, 5);
-    const tapecounterss = rawdata.slice(5, 7);
-    const tapecounter = (tapecountermm + ":" + tapecounterss)
-    document.getElementById("bandzaehler").value = tapecounter;
-  }
+  // Holt die Daten sicher entweder aus dem Parameter oder dem globalen Event
+  const rawString = incomingData || (typeof event !== 'undefined' ? event.data : '');
+  if (!rawString) return;
+
+  // WICHTIG: Hier muss rawString stehen, nicht event.data!
+  const rawdata = rawString.slice(3); 
+  
+  const functions = rawdata.charAt(0);
+  const functionsElem = document.getElementById("functions");
+  if (functionsElem) functionsElem.value = functions;
+
+  const addfunctions = rawdata.charAt(1);
+  const addfunctionsElem = document.getElementById("addfunctions");
+  if (addfunctionsElem) addfunctionsElem.value = addfunctions;
+
+  const cuestate = rawdata.charAt(2);
+  const cuestateElem = document.getElementById("cuestate");
+  if (cuestateElem) cuestateElem.value = cuestate;
+
+  const tapecountermm = rawdata.slice(3, 5);
+  const tapecounterss = rawdata.slice(5, 7);
+  const tapecounter = (tapecountermm + ":" + tapecounterss);
+  
+  const bandzaehlerElem = document.getElementById("bandzaehler");
+  if (bandzaehlerElem) bandzaehlerElem.value = tapecounter;
+}
 
 function getB226Settings(incomingData) {
   // Holt die Daten direkt aus dem Parameter

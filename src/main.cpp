@@ -790,6 +790,13 @@ void setupServerRoutes(){
       request->send(response);
     });
 
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+      // Lädt die .gz Datei, gibt dem Browser aber das korrekte Icon-Format an
+      AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/favicon.ico.gz", "image/x-icon");
+      response->addHeader("Content-Encoding", "gzip");
+      request->send(response);
+    });
+
     // NEU: Eigene, saubere Route für das WiFi-Setup (Kollision auf / behoben!)
     server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
       request->send(LittleFS, "/config/wifi_config.html", String(), false);
@@ -870,7 +877,6 @@ void setupServerRoutes(){
     server.serveStatic("/js/", LittleFS, "/js/");
     server.serveStatic("/style.css", LittleFS, "/style.css");
     server.serveStatic("/script.js", LittleFS, "/script.js");
-    server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico");
 
     // Fallback für dynamische JSONs und HTML-Seiten
 

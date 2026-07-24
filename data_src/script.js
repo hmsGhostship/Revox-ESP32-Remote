@@ -17,39 +17,29 @@ const HIDE_AMP_TUN_WITHOUT_RECEIVER = true;
 // \u00e4 = ä, \u00f6 = ö, \u00fc = ü, \u00df = ß
 
 window.addEventListener('load', onLoad);
-//window.addEventListener('DOMContentLoaded', loadConfig);
 
 function onLoad() {
-  // ==================================================
-  // 1. GLOBALE INITIALISIERUNG (Exakt dein Original)
-  // ==================================================
+  // 1. GLOBALE INITIALISIERUNG
   initWebSocket();
   getButton();
   setIRstate();
   setPorts();
   setBibus();
 
-  // ==================================================
   // 2. DYNAMISCHE SEITEN- UND GRUPPENERKENNUNG
-  // ==================================================
   const path = window.location.pathname;
   const page = path.split("/").pop().toLowerCase(); 
+  const bodyWorld = document.body.getAttribute('data-world');
 
-  console.log("[Routing] Aktuelle HTML-Seite geladen: " + page);
+  // Zukunftssichere Erkennung der Geräte-Welt
+  const isReceiverWorld = (bodyWorld === "receiver") || 
+                          page.includes("_recv") || 
+                          page.includes("_rec") || 
+                          page === "receiver.html";
 
-  // KORREKTUR: Erkennt deine Seiten der Receiver-Gruppe (inkl. b203_rec.html / b203_recv.html)
-  const isReceiverWorld = page.includes("_recv") || page.includes("_rec") || page === "receiver.html";
-  const isAmplifierWorld = !isReceiverWorld;
-
-  // ==================================================
   // 3. LOGIK FÜR DIE RECEIVER-WELT (B285 aktiv)
-  // ==================================================
   if (isReceiverWorld) {
-    console.log("[Routing] Modus: Receiver-Welt (B285).");
-    
-    // Wenn die B203-Seite in der Receiver-Gruppe geöffnet wird (b203_rec.html / b203_recv.html)
     if (page.startsWith("b203")) {
-      console.log("[Routing] Lade Setup-Daten für B203 (Receivergruppe).");
       setb203();
       getb203(); 
       setEventb203();
@@ -59,52 +49,39 @@ function onLoad() {
       delEventb203();
       testEventb203();
 
-      // KORREKTUR: Warte ganz kurz, bis der WebSocket OPEN ist, dann "klicken"
       setTimeout(() => {
-        console.log("[Routing] Automatischer Erstabruf beim Betreten der B203-Seite");
         document.getElementById('b203_get')?.click();
       }, 150);
     } 
-    // Für alle anderen echten Receiver-Seiten
     else {
-
       getb285();
-      // KORREKTUR: Minimal verzögern (z.B. 100ms), damit das DOM sicher bereit ist
-      setTimeout(() => {
-        setB285Speakers();
-      }, 150);
+      setB285Speakers(); // Initialisiert die Lautsprecher-Steuerung sofort
 
       if (page.startsWith("cd_recv")) {
         getb226();
-        setTimeout(() => document.getElementById('b226_get')?.click(), 150); // Verzögerter Erstabruf
+        setTimeout(() => document.getElementById('b226_get')?.click(), 150);
       } else if (page.startsWith("tape1_recv")) {
         getb215();
-        setTimeout(() => document.getElementById('b215_get')?.click(), 150); // Verzögerter Erstabruf
-      } else if (page.startsWith("receiver")) {
-        getb285();
-        setTimeout(() => document.getElementById('b285_get')?.click(), 150); // Verzögerter Erstabruf
+        setTimeout(() => document.getElementById('b215_get')?.click(), 150);
+      } else if (page.startsWith("receiver") || page === "index.html" || page === "") {
+        setTimeout(() => document.getElementById('b285_get')?.click(), 150);
       }
     }
   } 
 
-  // ==================================================
   // 4. LOGIK FÜR DIE BAUSTEIN-WELT (Verstärker B251 + Einzelgeräte)
-  // ==================================================
-  else if (isAmplifierWorld) {
-    console.log("[Routing] Modus: Baustein-Welt (B251 / Einzelgeräte).");
-
+  else {
     if (page === "amplifier.html") {
-      console.log("[Routing] Lade Hauptfunktionen für B251 Verstärker.");
+      // Hauptfunktionen für B251 Verstärker falls nötig
     } 
     else if (page === "cd.html") {
       getb226();
-      setTimeout(() => document.getElementById('b226_get')?.click(), 150); // Verzögerter Erstabruf
+      setTimeout(() => document.getElementById('b226_get')?.click(), 150);
     } else if (page === "tape1.html") {
       getb215();
-      setTimeout(() => document.getElementById('b215_get')?.click(), 150); // Verzögerter Erstabruf
+      setTimeout(() => document.getElementById('b215_get')?.click(), 150);
     }
     else if (page === "b203.html" || page === "index.html" || page === "") {
-      console.log("[Routing] Lade Setup-Daten für B203.");
       setb203();
       getb203(); 
       setEventb203();
@@ -114,38 +91,27 @@ function onLoad() {
       delEventb203();
       testEventb203();
 
-      // KORREKTUR: Warte ganz kurz, bis der WebSocket OPEN ist, dann "klicken"
       setTimeout(() => {
-        console.log("[Routing] Automatischer Erstabruf beim Betreten der B203-Bausteinseite");
         document.getElementById('b203_get')?.click();
       }, 150);
     }
   }
 
-  // ==================================================
-  // 5. AUTOMATISCHER TAB-TRIGGER (Nur bei Status- und Setup-Tabs!)
-  // ==================================================
-  console.log("[Tabs] Initialisiere Klick-Erkennung für .tablinks Buttons.");
+  // 5. AUTOMATISCHER TAB-TRIGGER (Bei Status- und Setup-Tabs)
   document.querySelectorAll('.tablinks').forEach(tabButton => {
     tabButton.addEventListener('click', (event) => {
       const onClickAttr = event.target.getAttribute('onclick') || "";
       
-      console.log("[Tabs] Tab-Button geklickt. OnClick-Inhalt: " + onClickAttr);
-
       if (onClickAttr.includes("B226") && onClickAttr.includes("Status")) {
-        console.log("[Tabs] CD Status-Tab geöffnet -> Trigger Laden");
         document.getElementById('b226_get')?.click();
       } 
       else if (onClickAttr.includes("B215") && onClickAttr.includes("Status")) {
-        console.log("[Tabs] Tape Status-Tab geöffnet -> Trigger Laden");
         document.getElementById('b215_get')?.click();
       } 
       else if (onClickAttr.includes("B285") && (onClickAttr.includes("Status") || onClickAttr.includes("B285tab"))) {
-        console.log("[Tabs] Receiver Status-Tab geöffnet -> Trigger Laden");
         document.getElementById('b285_get')?.click();
       }
       else if (onClickAttr.includes("B203Setuptab")) {
-        console.log("[Tabs] B203 Setup-Tab geöffnet -> Trigger Laden");
         document.getElementById('b203_get')?.click();
       }
     });
@@ -307,17 +273,39 @@ function switchConfiguration(selectedValue) {
 }
 
 function initWebSocket() {
+  // Sicherheitsabfrage: Wenn ws existiert und bereits offen oder am Verbinden ist, brich ab!
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    console.log('[WebSocket-Sperre] Verbindung existiert bereits. Ignoriere Doppel-Aufruf.');
+    return;
+  }
+
+  // Falls eine alte, tote Verbindung existiert, schließen wir sie zur Sicherheit vorher
+  if (ws) {
+    try { ws.close(); } catch(e) {}
+  }
+
   console.log('Trying to open a WebSocket connection...');
   ws = new WebSocket(gateway);
   ws.onopen    = onOpen;
   ws.onclose   = onClose;
-  ws.onmessage = onMessage; // <-- add this line
+  ws.onmessage = onMessage;
 }
   
-// When websocket is established, call the getReadings() function
+// Wird aufgerufen, sobald die WebSocket-Verbindung erfolgreich steht
 function onOpen(event) {
   console.log('Connection opened');
-  ws.send('get_data');
+  
+  // Sicherheitsabfrage: Nur senden, wenn die Verbindung wirklich zu 100% BEREIT ist
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send('get_data');
+  } else {
+    // Falls der Browser eine Millisekunde zu schnell war, senden wir es minimal verzögert
+    setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('get_data');
+      }
+    }, 50);
+  }
 }
 
 function onClose(event) {
@@ -375,36 +363,40 @@ function setIRstate() {
   });
 }
 
-// 1. Die verarbeitende Funktion komplett eigenständig machen
+// 1. Die verarbeitende Funktion (Sicherer und ohne ID-Konflikt)
 function handleSpeakerChange(event) {
-  // Verhindert, dass andere Skripte oder Tab-Systeme dieses Event blockieren
+  // Wir suchen das nächsthöhere select-Element mit der ID 'speakers', 
+  // egal ob auf die Option oder das Select geklickt wurde.
+  const selectEl = event.target.closest('#speakers');
+  if (!selectEl) return; // Wenn es nicht das Speaker-Dropdown war, ignoriere es.
+
   event.stopPropagation(); 
 
-  if (event.target && event.target.id === 'speakers') {
-    const Value = event.target.value;
-    const Name = event.target.name;
+  const Value = selectEl.value;
+  const Name = selectEl.name;
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      console.log("[WebSocket ERFOLG] Sende direkt: " + Name + Value);
-      ws.send(Name + Value);
-    } else {
-      console.error("[WebSocket FEHLER] Verbindung im Tab nicht offen!");
-    }
+  console.log("[Speaker-Event] Wert geändert! Name: " + Name + ", Value: " + Value);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    console.log("[WebSocket ERFOLG] Sende direkt: " + Name + Value);
+    ws.send(Name + Value);
+  } else {
+    console.error("[WebSocket FEHLER] Verbindung im Tab nicht offen!");
   }
 }
 
-// 2. Die Initialisierung direkt an das Element binden
+// 2. Die Initialisierung (Sicher gegen DOM-Überschreibungen durch den ESP32)
 function setB285Speakers() {
-  const el = document.getElementById('speakers');
-  if (!el) return;
-
-  // Alte Listener entfernen, um Dopplungen im Tab zu vermeiden
-  el.removeEventListener('change', handleSpeakerChange);
-  el.removeEventListener('input', handleSpeakerChange);
+  console.log("[Speaker-Init] Binde globalen Delegated-Listener an document.body");
   
-  // 'input' reagiert im Tab oft schneller und sicherer vor Blockaden als 'change'
-  el.addEventListener('change', handleSpeakerChange);
-  el.addEventListener('input', handleSpeakerChange);
+  // Wir entfernen erst den alten Listener vom body, um Dopplungen zu vermeiden
+  document.body.removeEventListener('change', handleSpeakerChange);
+  document.body.removeEventListener('input', handleSpeakerChange);
+  
+  // Wir hängen den Listener an den BODY. Er lauscht jetzt IMMER, 
+  // selbst wenn der ESP32 das Dropdown-Menü 100-mal pro Sekunde neu lädt!
+  document.body.addEventListener('change', handleSpeakerChange);
+  document.body.addEventListener('input', handleSpeakerChange);
 }
 
 function setB285Volume() {
@@ -1086,7 +1078,6 @@ function getB226Settings(incomingData) {
     if (stationIdElem) stationIdElem.value = "------";
     if (freqElem) freqElem.value = "------";
   }
-  setB285Speakers(); 
 }
 
   function getB291Settings() {
@@ -1465,3 +1456,5 @@ if (rawBibus !== undefined && rawBibus !== null && rawBibus !== "") {
         alert('Netzwerkfehler: ' + error.message);
     }
 }
+
+document.addEventListener("DOMContentLoaded", onLoad);

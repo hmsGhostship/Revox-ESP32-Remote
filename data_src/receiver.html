@@ -9,7 +9,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 
-<body>
+<body data-world="receiver">
     <!-- Header-Bereich -->
     <header>
         <h3>Revox Receiver<br>B285</h3>
@@ -86,7 +86,8 @@
         </div>
         
 	        <label for="speakers">Lautsprecher:</label>
-            <select class="b203set" id="speakers" name="speakers" onchange="handleSpeakerChange(event)">
+            <!--<select class="b203set" id="speakers" name="speakers" onchange="handleSpeakerChange(event)">-->
+            <select class="b203set" id="speakers" name="speakers">
                 <option value="0">Lautsprecher aus</option>
                 <option value="1">Lautsprecher A</option>
                 <option value="2">Lautsprecher B</option>

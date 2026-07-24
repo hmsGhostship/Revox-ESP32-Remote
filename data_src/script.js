@@ -67,8 +67,12 @@ function onLoad() {
     } 
     // Für alle anderen echten Receiver-Seiten
     else {
+
       getb285();
-      setB285Speakers();
+      // KORREKTUR: Minimal verzögern (z.B. 100ms), damit das DOM sicher bereit ist
+      setTimeout(() => {
+        setB285Speakers();
+      }, 150);
 
       if (page.startsWith("cd_recv")) {
         getb226();

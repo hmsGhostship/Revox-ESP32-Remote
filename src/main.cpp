@@ -90,6 +90,8 @@ bool isFirstButtonPress = true; // Globaler Merker für alle Funktionen
 bool blockSerialSending = false;
 unsigned long serialBlockStartTime = 0;
 
+unsigned long ignoreReceiverUntil = 0;
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
@@ -525,15 +527,16 @@ void processDirectCommands() {
             Serial.println(F("'"));
 
             for (int i = 0; i < portTableSize; i++) {
-                if ((strcmp("receiver", portArray[i].descr) == 0) && (portArray[i].out != "no")) {
-                    Serial.print(F("[DIRECT-LOG] -> Sende via Serial2: '"));
-                    Serial.print(portArray[i].out); Serial.print(b285settingsBytes);
-                    Serial.println(F("\\r'"));
-                    Serial2.print(portArray[i].out); Serial2.print(b285settingsBytes);
-                    Serial2.print("\r");
-                }
+              if ((strcmp("receiver", portArray[i].descr) == 0) && (strcmp(portArray[i].out, "no") != 0)) {
+                // ... Dein bisheriger Sende-Code bleibt gleich ...
+                Serial2.print(portArray[i].out); 
+                Serial2.print(b285settingsBytes);
+                Serial2.print("\r");
+              
+              ignoreReceiverUntil = millis() + 300; 
+              }
             }
-        }
+      }
         else if (msg.startsWith("testEvent")) {
             char testEventBytes[10] = {0}; msg.substring(9).toCharArray(testEventBytes, sizeof(testEventBytes));
             Serial.print(F("[DIRECT-LOG] Typ: testEvent | Bytes: '")); Serial.print(testEventBytes); Serial.println(F("'"));
@@ -1088,7 +1091,193 @@ void setup() {
   btStop(); // Schaltet Bluetooth ab, um Strom zu sparen – sehr gut!
 }
 
-void loop() {
+void loop() { 
+  // ========================================== 
+  // 0. SYSTEM-STATUS & NETZWERK 
+  // ========================================== 
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_WIFI) { 
+    Serial.println(F("[WLAN-WAKEUP]")); 
+  } 
+  ws.cleanupClients(); 
+  
+  if (millis() - lastPingTime >= pingInterval) { 
+    lastPingTime = millis(); 
+    ws.pingAll(); 
+  } 
+
+  // ========================================== 
+  // 1. NON-BLOCKING LESEN & SOFORTIGE XON/XOFF PRÜFUNG
+  // ========================================== 
+  while (Serial2.available() > 0) { 
+    lastActivity = millis(); // KORREKTUR: Aktivität sofort registrieren, solange Daten fließen
+    char inChar = (char)Serial2.read(); 
+
+    // ROH-DATEN DEBUG: Zeigt jedes Zeichen exakt beim Eintreffen mit Zeitstempel
+    Serial.print(F("[RAW-RECEIVE @ ")); 
+    Serial.print(millis()); 
+    Serial.print(F(" ms]: '")); 
+    if (inChar == '\r') Serial.print(F("\\r"));
+    else if (inChar == '\n') Serial.print(F("\\n"));
+    else Serial.print(inChar);
+    Serial.println(F("'"));
+    
+    if (inChar == (char)0x13) { 
+      b203ReadyToSend = false; 
+      Serial.println(F("[B203] XOFF empfangen - Senden blockiert")); 
+      continue; 
+    } else if (inChar == (char)0x11) { 
+      b203ReadyToSend = true; 
+      Serial.println(F("[B203] XON empfangen - Senden freigegeben")); 
+      continue; 
+    } 
+
+    // Wenn das Zeilenende erreicht ist, verarbeiten wir den Puffer 
+    if (inChar == '\r' || inChar == '\n') { 
+      if (b203Buffer.length() > 0) { 
+        b203data = b203Buffer; 
+        b203data.trim(); 
+        b203Buffer = ""; 
+
+        // SICHERHEITSHÜRDE: Wenn blockiert, Daten einfach vernichten und ignorieren! 
+        if (blockSerialSending) { 
+          Serial.print(F("[B203 -> BLOCK] Daten während Seitenwechsel verworfen: ")); 
+          Serial.println(b203data); 
+          b203data = ""; 
+          continue; 
+        } 
+
+        // Reguläres Senden, wenn Clients da sind und keine Sperre aktiv ist 
+        if (b203data.length() > 0 && ws.count() > 0) { 
+          Serial.print(F("[B203 -> WEB] Sende: ")); 
+          Serial.println(b203data); 
+          ws.textAll(b203data); 
+        } 
+      } 
+    } else { 
+      // Normales Zeichen empfangen -> In den Puffer schreiben 
+      b203Buffer += inChar; 
+    } 
+  } 
+
+  // ========================================== 
+  // 2. + 3. AUSGELAGERTE FUNKTIONS-AUFRUFE 
+  // ========================================== 
+  processDirectCommands(); // Verarbeitet Web-Direktbefehle 
+  processButtonPath();     // Verarbeitet Web- & manuelle Buttons 
+
+  // ========================================== 
+  // 4. INFRAROT-PFAD (KORRIGIERT: OHNE INTERVALL-SBRRE) 
+  // ========================================== 
+  if (IrReceiver.decode()) { 
+    uint32_t combined = ((uint32_t)IrReceiver.decodedIRData.address << 16) | IrReceiver.decodedIRData.command; 
+
+    // DETAILED IR-LOG: Basis-Daten beim Empfang 
+    Serial.println(F("\n==================================================")); 
+    Serial.println(F("[IR-LOG] INFRAROT-SIGNAL ERKANNT!")); 
+    Serial.print(F("[IR-LOG] Protokoll: ")); 
+    Serial.println(IrReceiver.getProtocolString()); 
+    Serial.print(F("[IR-LOG] Adresse: 0x")); 
+    Serial.print(IrReceiver.decodedIRData.address, HEX); 
+    Serial.print(F(" | Kommando: 0x")); 
+    Serial.println(IrReceiver.decodedIRData.command, HEX); 
+    Serial.print(F("[IR-LOG] Kombinierter Code (combined): 0x")); 
+    Serial.println(combined, HEX); 
+
+    if (IrReceiver.decodedIRData.protocol == UNKNOWN) { 
+      Serial.println(F("[IR-LOG] Signal ungenau oder unbekanntes Protokoll (Noise)")); 
+      Serial.println(F("==================================================")); 
+      IrReceiver.resume(); 
+      // KORREKTUR: Bei Noise die Schleife sofort verlassen und nicht im configArray suchen
+    } 
+    else { 
+      Serial.print(F("[IR-LOG] Kurzinfo: ")); 
+      IrReceiver.printIRResultShort(&Serial); 
+      Serial.println(); 
+
+      if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) { 
+        Serial.println(F("[IR-LOG] Typ: WIEDERHOLUNG (Taste gedrueckt gehalten)")); 
+        if ((configArray[irid].repeat == 1) && (irid > 0) && (configArray[irid].command != 0x40)) { 
+          if (configArray[irid].addressRep != 0) { 
+            Serial.print(F("[IR-LOG] -> Sende REPEAT-Frame mit addressRep: 0x")); 
+            Serial.println(configArray[irid].addressRep, HEX); 
+            sendRevoxFrame(configArray[irid].addressRep, configArray[irid].command, 1); 
+          } else { 
+            Serial.print(F("[IR-LOG] -> Sende REPEAT-Frame mit Standard-Addr: 0x")); 
+            Serial.println(configArray[irid].address, HEX); 
+            sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1); 
+          } 
+        } else { 
+          Serial.println(F("[IR-LOG] -> Keine Sende-Aktion (repeat=0 oder blockiert)")); 
+        } 
+        Serial.println(F("==================================================")); 
+      } 
+      else { 
+        Serial.println(F("[IR-LOG] Typ: ERST-DRUCK (Neues Signal)")); 
+        irid = 0; 
+        lastActivity = millis(); 
+        bool irMatchFound = false; 
+
+        while (configArray[irid].btnID[0] != '\0' && strcmp(configArray[irid].btnID, "none") != 0 && irid < maxCommandCapacity) { 
+          if ((combined == configArray[irid].irRecvCode) && (combined != 0)) { 
+            irMatchFound = true; 
+            Serial.print(F("[IR-LOG] -> TREFFER in Konfiguration bei Index [")); 
+            Serial.print(irid); 
+            Serial.println(F("]")); 
+            Serial.print(F("[IR-LOG] ID: ")); 
+            Serial.print(configArray[irid].btnID); 
+            Serial.print(F(" | Geraet: ")); 
+            Serial.print(configArray[irid].device); 
+            Serial.println(F("")); 
+
+            if ((configArray[irid].address < 0x11) && (configArray[irid].cmdFlag == 0)) { 
+              if (configArray[irid].command != 0x40) { 
+                Serial.print(F("[IR-LOG] Sende ReVox-Frame: Addr 0x")); 
+                Serial.print(configArray[irid].address, HEX); 
+                Serial.print(F(", Cmd 0x")); 
+                Serial.println(configArray[irid].command, HEX); 
+                sendRevoxFrame(configArray[irid].address, configArray[irid].command, 1); 
+              } else { 
+                Serial.println(F("[IR-LOG] Uebersprungen: Befehl hat Blockier-Command 0x40")); 
+              } 
+            } else { 
+              Serial.println(F("[IR-LOG] Keine native ReVox-Sendung (cmdFlag > 0 oder Addr >= 0x11)")); 
+            } 
+            break; 
+          } 
+          ++irid; 
+        } 
+        if (!irMatchFound) { 
+          Serial.println(F("[IR-LOG] Info: Dieser IR-Code ist in der configArray-Tabelle nicht hinterlegt.")); 
+        } 
+        Serial.println(F("==================================================")); 
+      } 
+      IrReceiver.resume(); 
+    } 
+  } 
+
+  // ========================================== 
+  // KORREKTUR: AUTOMATISCHES LÖSEN DER SERIELLEN SPERRE (GLOBAL IM LOOP)
+  // ========================================== 
+  if (blockSerialSending && (millis() - serialBlockStartTime > 3000)) { 
+    blockSerialSending = false; 
+    Serial.println(F("[SYSTEM] Serieller Block nach 3 Sekunden Timeout automatisch geloest.")); 
+  } 
+
+  // ========================================== 
+  // 5. DYNAMISCHES SCHLAF-FENSTER 
+  // ========================================== 
+  if (buttonHold > 0 || b203Buffer.length() > 0) { 
+    lastActivity = millis(); 
+  } 
+
+  if (millis() - lastActivity >= 2000) { 
+    delay(10); 
+  } else { 
+    delay(1); 
+  } 
+}
+
+/*void loop() {
 
   // ==========================================   
   // 0. SYSTEM-STATUS & NETZWERK
@@ -1264,4 +1453,4 @@ void loop() {
   } else {
       delay(1);  
   }
-}
+}*/

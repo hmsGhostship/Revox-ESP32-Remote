@@ -31,31 +31,25 @@ function onLoad() {
   const page = path.split("/").pop().toLowerCase(); 
   const bodyWorld = document.body.getAttribute('data-world');
 
-  // Zukunftssichere Erkennung der Geräte-Welt
+  // Erkennung der Geräte-Welten
   const isReceiverWorld = (bodyWorld === "receiver") || 
                           page.includes("_recv") || 
                           page.includes("_rec") || 
                           page === "receiver.html";
 
+  const isAmplifierWorld = (bodyWorld === "amplifier") || 
+                           page === "amplifier.html" || 
+                           page === "cd.html" || 
+                           page === "tape1.html";
+
   // 3. LOGIK FÜR DIE RECEIVER-WELT (B285 aktiv)
   if (isReceiverWorld) {
     if (page.startsWith("b203")) {
-      setb203();
-      getb203(); 
-      setEventb203();
-      setDateb203();
-      setTimeb203();
-      callEventb203();
-      delEventb203();
-      testEventb203();
-
-      setTimeout(() => {
-        document.getElementById('b203_get')?.click();
-      }, 150);
+      initB203Functions();
     } 
     else {
       getb285();
-      setB285Speakers(); // Initialisiert die Lautsprecher-Steuerung sofort
+      setB285Speakers(); 
 
       if (page.startsWith("cd_recv")) {
         getb226();
@@ -69,32 +63,24 @@ function onLoad() {
     }
   } 
 
-  // 4. LOGIK FÜR DIE BAUSTEIN-WELT (Verstärker B251 + Einzelgeräte)
-  else {
+  // 4. LOGIK FÜR DIE AMPLIFIER-WELT (Verstärker B251 + Einzelgeräte)
+  else if (isAmplifierWorld) {
     if (page === "amplifier.html") {
       // Hauptfunktionen für B251 Verstärker falls nötig
     } 
     else if (page === "cd.html") {
       getb226();
       setTimeout(() => document.getElementById('b226_get')?.click(), 150);
-    } else if (page === "tape1.html") {
+    } 
+    else if (page === "tape1.html") {
       getb215();
       setTimeout(() => document.getElementById('b215_get')?.click(), 150);
     }
-    else if (page === "b203.html" || page === "index.html" || page === "") {
-      setb203();
-      getb203(); 
-      setEventb203();
-      setDateb203();
-      setTimeb203();
-      callEventb203();
-      delEventb203();
-      testEventb203();
+  }
 
-      setTimeout(() => {
-        document.getElementById('b203_get')?.click();
-      }, 150);
-    }
+  // 4b. FALLBACK / TIMER-WELT (Direkter B203-Betrieb via index.html oder b203.html)
+  else {
+    initB203Functions();
   }
 
   // 5. AUTOMATISCHER TAB-TRIGGER (Bei Status- und Setup-Tabs)
@@ -116,6 +102,21 @@ function onLoad() {
       }
     });
   });
+
+  // Interne Hilfsfunktion (Bleibt innerhalb von onLoad kapselt)
+  function initB203Functions() {
+    setb203();
+    getb203(); 
+    setEventb203();
+    setDateb203();
+    setTimeb203();
+    callEventb203();
+    delEventb203();
+    testEventb203();
+    setTimeout(() => {
+      document.getElementById('b203_get')?.click();
+    }, 150);
+  }
 }
 
 function setBibus() {
@@ -399,16 +400,30 @@ function setB285Speakers() {
   document.body.addEventListener('input', handleSpeakerChange);
 }
 
+let lastVolumeValue = ""; 
+
 function setB285Volume() {
-  let lastValue = ""; // Speichert den zuletzt gesendeten Wert
-  // 'input' feuert kontinuierlich während des Ziehens
-  document.getElementById('volumeSlider')?.addEventListener('change', (event) => {
+  const slider = document.getElementById('volumeSlider');
+  const display = document.getElementById('volumeValue');
+  
+  if (!slider) return;
+
+  // 1. Live-Feedback beim Ziehen (Aktualisiert NUR den Text im HTML)
+  slider.addEventListener('input', (event) => {
+    if (display) {
+      display.textContent = event.target.value;
+    }
+  });
+
+  // 2. Netzwerk-Aktion beim Loslassen (Sendet Daten über WebSocket)
+  slider.addEventListener('change', (event) => {
     const Value = event.target.value;
     const Name = event.target.name;
-    // Nur senden, wenn sich die Zahl wirklich geändert hat (schont den WebSocket)
-    if (Value !== lastValue) {
-      lastValue = Value; // Aktualisieren
-      if (ws.readyState === WebSocket.OPEN) {
+
+    if (Value !== lastVolumeValue) {
+      lastVolumeValue = Value; 
+      
+      if (typeof ws !== 'undefined' && ws.readyState === WebSocket.OPEN) {
         console.log(Name + "V" + Value);
         ws.send(Name + "V" + Value);
       }
@@ -685,12 +700,11 @@ function getButton() {
       const Id = element.getAttribute('data-id') || element.id; 
 
       if (ws.readyState === WebSocket.OPEN) {
-        console.log("Sende: buttonPush" + Id);
         ws.send("buttonPush" + Id);
       }
     };
 
-    // --- HILFSFUNKTION: LOSLASSEN (RELEASE) ---
+   // --- HILFSFUNKTION: LOSLASSEN (RELEASE) ---
     const handleRelease = (element) => {
       element.classList.remove('is-pressed');
       const Id = element.getAttribute('data-id') || element.id;
@@ -698,8 +712,19 @@ function getButton() {
       const targetUrl = linkElement ? linkElement.getAttribute('href') : null;
 
       if (ws.readyState === WebSocket.OPEN) {
-        console.log("Sende: buttonRelease" + Id);
         ws.send("buttonRelease" + Id);
+
+        // ====================================================================
+        // DIREKTER AUFRUF DER BESTEHENDEN TAB-EVENT FUNKTION FÜR DIE LAUTSTÄRKE
+        // ====================================================================
+        if (Id === 'ampvoldn' || Id === 'ampvolup') {
+          setTimeout(() => {
+            if (typeof getb285tabevent === 'function') {
+              getb285tabevent(); 
+            }
+          }, 3000);
+        }
+        // ====================================================================
         
         if (targetUrl && targetUrl !== "#" && targetUrl !== "") {
           setTimeout(() => {
@@ -751,25 +776,34 @@ function getButton() {
   // DIREKTE EVENT-BINDUNG FÜR DEN VOLUME-SLIDER (EXAKT FÜR DEINEN ESP32)
   // ====================================================================
   const volSlider = document.getElementById('volumeSlider');
+  const volDisplay = document.getElementById('volumeValue'); 
+
   if (volSlider && !volSlider.classList.contains('js-bound')) {
     volSlider.classList.add('js-bound');
 
-    // Das 'change'-Event feuert exakt beim Loslassen des Sliders
+    // 1. Live-Feedback beim Ziehen (Reine Optik im HTML)
+    volSlider.addEventListener('input', (event) => {
+      if (volDisplay) {
+        const currentVolume = String(event.target.value).padStart(2, '0');
+        volDisplay.textContent = "-" + currentVolume + " dB";
+      }
+    });
+
+    // 2. Netzwerk-Aktion beim Loslassen
     volSlider.addEventListener('change', (event) => {
-      // Erzwingt, dass die Zahl immer 2-stellig ist (z.B. aus 5 wird "05")
       const currentVolume = String(event.target.value).padStart(2, '0');
       
-      // Das exakte Format für deinen Server: "volSliderV" (10 Zeichen) + "xx"
+      if (volDisplay) {
+        volDisplay.textContent = "-" + currentVolume + " dB";
+      }
+      
       const espMessage = "volSliderV" + currentVolume;
 
-      console.log("[Slider-Aktion] Sende via WS: " + espMessage);
-
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(espMessage); // Schickt "volSliderV50" an den C++ Code
+        ws.send(espMessage); 
       }
     });
   }
-  
 
   // ====================================================================
   // LOGIK FÜR ALLE EINSTELLUNGS-, CONFIG- & TIMER-BUTTONS (.set_button)
@@ -787,9 +821,7 @@ function getButton() {
       
       const inlineOnClick = element.getAttribute('onclick');
       
-      if (inlineOnClick) {
-        console.log(`[Einstellung] Inline-onclick im HTML erkannt: ${inlineOnClick}`);
-      } else {
+      if (!inlineOnClick) {
         const functionName = element.getAttribute('name');
         
         const nameMapping = {
@@ -815,7 +847,6 @@ function getButton() {
         }
 
         if (typeof window[targetFunction] === 'function') {
-          console.log(`[Einstellung] Button ausgeführt: ${targetFunction}()`);
           window[targetFunction](); 
         } else {
           console.warn(`[Einstellung] Funktion ${targetFunction}() nicht gefunden.`);
@@ -1014,9 +1045,10 @@ function getB226Settings(incomingData) {
 }
 
  function getB285Settings(incomingData) {
-  if (!incomingData || typeof incomingData !== 'string') return;
-  
-  console.log("Verarbeite B285 Daten:", incomingData);
+  if (!incomingData || typeof incomingData !== 'string') {
+    console.warn("⚠️ getB285Settings abgebrochen: incomingData ist leer oder kein String!", incomingData);
+    return;
+  }
 
   // Wir schneiden die ersten 3 Zeichen (Kanal + Geräteidentifier, z.B. "103") ab
   const rawdata = incomingData.slice(3);
@@ -1028,9 +1060,6 @@ function getB226Settings(incomingData) {
   
   // 2. Lautsprecher (D) -> 1 Zeichen an Index 1
   const speakersVal = rawdata.charAt(1);
-  console.log("[Echtzeit-Log] Extrahierter Lautsprecher-Wert:", speakersVal);
-
-  // Aktualisiert das Status-Dropdown mit der ID "speakers"
   const speakersElem = document.getElementById("speakers");
   if (speakersElem) {
       speakersElem.value = speakersVal;
@@ -1043,8 +1072,16 @@ function getB226Settings(incomingData) {
   
   // Slider im Control-Tab synchronisieren
   const sliderElem = document.getElementById("volumeSlider");
-  if (sliderElem) sliderElem.value = parseInt(volume, 10) || 0;
-  
+  const parsedVolume = parseInt(volume, 10) || 0;
+  if (sliderElem) sliderElem.value = parsedVolume;
+
+  // Anzeigen des Sliderwertes im HTML (-XX dB)
+  const valueDisplay = document.getElementById("volumeValue");
+  if (valueDisplay) {
+    const formattedVolume = String(parsedVolume).padStart(2, '0');
+    valueDisplay.textContent = "-" + formattedVolume + " dB";
+  }
+
   // --- DYNAMISCHER TUNER-BLOCK ---
   const stationElem = document.getElementById("tunerstation");
   const stationIdElem = document.getElementById("stationid");
@@ -1060,16 +1097,14 @@ function getB226Settings(incomingData) {
     if (stationIdElem) stationIdElem.value = stationid;
     
     if (freqElem) {
-      // 1. String in echte Zahl umwandeln (z.B. 10730)
       const freqNum = parseFloat(frequency);
       
       if (!isNaN(freqNum)) {
-        // 2. Durch 100 teilen (-> 107.3) und auf 2 Nachkommastellen zwingen (-> "107.30")
-        // 3. Punkt durch Komma ersetzen und " MHz" anhängen
+        // Durch 100 teilen (-> 107.3) und auf 2 Nachkommastellen zwingen (-> "107.30")
         const formattedFreq = (freqNum / 100).toFixed(2).replace('.', ',') + " MHz";
         freqElem.value = formattedFreq;
       } else {
-        freqElem.value = frequency; // Fallback, falls keine Zahl extrahiert werden konnte
+        freqElem.value = frequency; // Fallback
       }
     }
   } else {

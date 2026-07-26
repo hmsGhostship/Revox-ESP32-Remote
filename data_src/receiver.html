@@ -81,8 +81,9 @@
             <p><button type="button" name='button' id='tun10on' class='button span6'>Enter</button></p>
             <p><button type="button" name='button' id='tunvoldn' class='button span6'>Volume -</button></p>
             <p><button type="button" name='button' id='tunvolup' class='button span6'>Volume +</button></p>
-            <label for="volumeSlider" class="slide-label">Lautst&auml;rke:</label>
-            <input type="range" min="0" max="99" value="50" id="volumeSlider" name="volSlider" class='slide' style="transform: scaleX(-1);">
+             <!-- Anzeige-Element direkt hinter das Label gesetzt -->
+    <label for="volumeSlider" class="slide-label">Lautst&auml;rke: <span id="volumeValue">50</span></label>
+    <input type="range" min="0" max="99" value="50" id="volumeSlider" name="volSlider" class='slide' style="transform: scaleX(-1);">
         </div>
         
 	        <label for="speakers">Lautsprecher:</label>
